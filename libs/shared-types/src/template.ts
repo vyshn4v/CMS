@@ -21,9 +21,23 @@ export interface TemplateDto {
   updatedAt: string;
 }
 
-export interface RenderRequestDto {
-  templateId: string;
+/**
+ * Request payload for content generation and template rendering.
+ * schemaId (UUID) is used instead of apiIdentifier/slug to guarantee collision-free resolution.
+ */
+export interface GenerationRequestDto {
+  schemaId: string;
+  templateId?: string;
   contentId?: string;
+  data?: Record<string, any>;
+  variables?: Record<string, any>;
+}
+
+export interface RenderRequestDto {
+  schemaId?: string;
+  templateId?: string;
+  contentId?: string;
+  data?: Record<string, any>;
   variables?: Record<string, any>;
 }
 

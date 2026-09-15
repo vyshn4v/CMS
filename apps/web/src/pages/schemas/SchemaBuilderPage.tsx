@@ -19,6 +19,8 @@ import {
   List,
   Image,
   Code,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
@@ -56,6 +58,7 @@ export const SchemaBuilderPage: React.FC = () => {
   const [kind, setKind] = useState<ContentTypeKind>(defaultKind);
   const [fields, setFields] = useState<FieldDefinition[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
 
   // Field modal state
   const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
@@ -152,6 +155,29 @@ export const SchemaBuilderPage: React.FC = () => {
             <p className="text-xs text-slate-400 mt-0.5">
               Build the structure and validation rules for this content model.
             </p>
+            {isEditing && id && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className="text-[11px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                  schemaId: {id}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(id);
+                    setCopiedId(true);
+                    setTimeout(() => setCopiedId(false), 2000);
+                  }}
+                  title="Copy schemaId for Generation & Render APIs"
+                  className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition p-0.5"
+                >
+                  {copiedId ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -209,9 +235,14 @@ export const SchemaBuilderPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              API Identifier (Slug)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                URL Slug
+              </label>
+              <span className="text-[10px] text-slate-400">
+                (API uses <code className="font-mono text-indigo-500">schemaId</code>)
+              </span>
+            </div>
             <input
               type="text"
               required
@@ -223,6 +254,9 @@ export const SchemaBuilderPage: React.FC = () => {
               placeholder="e.g. articles"
               className="mt-1 w-full font-mono rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
             />
+            <p className="text-[10px] text-slate-400 mt-1">
+              Used for dashboard routes. Generation/Render APIs consume <span className="font-mono font-medium text-slate-600 dark:text-slate-300">schemaId</span> to avoid conflicts.
+            </p>
           </div>
 
           <div>

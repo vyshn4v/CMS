@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
-import { Layers, Plus, Edit3, Trash2, Database } from 'lucide-react';
+import { Layers, Plus, Edit3, Trash2, Database, Copy, Check } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { ContentTypeDto } from '@cms/shared-types';
@@ -11,6 +11,7 @@ export const SchemasListPage: React.FC = () => {
   const orgId = activeOrg?.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [copiedId, setCopiedId] = React.useState<string | null>(null);
 
   const { data: schemas = [], isLoading } = useQuery<ContentTypeDto[]>({
     queryKey: ['schemas', orgId],
@@ -112,8 +113,30 @@ export const SchemasListPage: React.FC = () => {
                       </div>
                       <div>
                         <p>{schema.name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
+                            ID: {schema.id}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(schema.id);
+                              setCopiedId(schema.id);
+                              setTimeout(() => setCopiedId(null), 2000);
+                            }}
+                            title="Copy schemaId for Generation & Render APIs"
+                            className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                          >
+                            {copiedId === schema.id ? (
+                              <Check className="h-3 w-3 text-emerald-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </button>
+                        </div>
                         {schema.description && (
-                          <p className="text-[11px] text-slate-400 font-normal">
+                          <p className="text-[11px] text-slate-400 font-normal mt-0.5">
                             {schema.description}
                           </p>
                         )}
