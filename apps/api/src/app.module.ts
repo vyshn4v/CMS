@@ -6,6 +6,7 @@ import { OrgModule } from './modules/org/org.module';
 import { RoleModule } from './modules/role/role.module';
 import { SchemaModule } from './modules/schema/schema.module';
 import { ContentModule } from './modules/content/content.module';
+import { TemplateModule } from './modules/template/template.module';
 
 /**
  * Root NestJS application module.
@@ -22,6 +23,7 @@ import { ContentModule } from './modules/content/content.module';
     RoleModule,
     SchemaModule,
     ContentModule,
+    TemplateModule,
   ],
 })
 export class AppModule {}

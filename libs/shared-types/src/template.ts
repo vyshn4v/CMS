@@ -19,7 +19,44 @@ export interface TemplateDto {
   publishedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  contentType?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }
+
+export interface CreateTemplateInput {
+  name: string;
+  type: TemplateType;
+  contentTypeId?: string | null;
+  bodyDraft: string;
+  subjectDraft?: string | null;
+  publish?: boolean;
+}
+
+export interface UpdateTemplateInput {
+  name?: string;
+  type?: TemplateType;
+  contentTypeId?: string | null;
+  bodyDraft?: string;
+  subjectDraft?: string | null;
+}
+
+export interface PreviewTemplateInput {
+  body?: string;
+  subject?: string;
+  variables?: Record<string, any>;
+  contentId?: string;
+}
+
+export interface TemplateListResponse {
+  items: TemplateDto[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 
 /**
  * Request payload for content generation and template rendering.

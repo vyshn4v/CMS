@@ -6,12 +6,14 @@ import { api } from './lib/api';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { TemplatesPage, ApiKeysPage } from './pages/common/SectionPages';
+import { ApiKeysPage } from './pages/common/SectionPages';
 import { ContentDashboardPage } from './pages/content/ContentDashboardPage';
 import { ContentListPage } from './pages/content/ContentListPage';
 import { ContentEditorPage } from './pages/content/ContentEditorPage';
 import { SchemasListPage } from './pages/schemas/SchemasListPage';
 import { SchemaBuilderPage } from './pages/schemas/SchemaBuilderPage';
+import { TemplatesListPage } from './pages/templates/TemplatesListPage';
+import { TemplateEditorPage } from './pages/templates/TemplateEditorPage';
 import { SettingsLayout } from './pages/settings/SettingsLayout';
 import { MembersPage } from './pages/settings/MembersPage';
 import { RolesPage } from './pages/settings/RolesPage';
@@ -111,7 +113,10 @@ export const App: React.FC = () => {
             <Route path="schemas/new" element={<SchemaBuilderPage />} />
             <Route path="schemas/:id" element={<SchemaBuilderPage />} />
 
-            <Route path="templates/*" element={<TemplatesPage />} />
+            {/* Templates Studio */}
+            <Route path="templates" element={<TemplatesListPage />} />
+            <Route path="templates/new" element={<TemplateEditorPage />} />
+            <Route path="templates/:id" element={<TemplateEditorPage />} />
 
             {/* Settings & RBAC */}
             <Route path="settings" element={<SettingsLayout />}>
