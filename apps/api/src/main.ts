@@ -15,7 +15,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT', 3000);
+  const port = configService.get<number>('PORT', 5000);
   const clientUrl = configService.get<string>('CLIENT_URL', 'http://localhost:5173');
 
   // Security and parser middlewares
