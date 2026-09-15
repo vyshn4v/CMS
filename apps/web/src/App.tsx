@@ -59,7 +59,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [location.pathname, navigate, setActiveOrg, setLoading, setOrganizations, setUser]);
+  }, []);
 
   if (isLoading) {
     return (
