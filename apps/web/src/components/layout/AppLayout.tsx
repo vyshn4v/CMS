@@ -9,15 +9,15 @@ import {
   Settings,
   LogOut,
   Building2,
-  ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../lib/api';
+import { OrgSwitcher } from './OrgSwitcher';
 
 export const AppLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, activeOrg, organizations, setActiveOrg, logout } = useAuthStore();
+  const { user, activeOrg, logout } = useAuthStore();
 
   const handleLogout = async () => {
     try {
@@ -54,26 +54,7 @@ export const AppLayout: React.FC = () => {
 
         {/* Org Selector */}
         <div className="p-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="relative">
-            <select
-              value={activeOrg?.id || ''}
-              onChange={(e) => {
-                const selected = organizations.find((o) => o.id === e.target.value);
-                if (selected) setActiveOrg(selected);
-              }}
-              className="w-full appearance-none rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-8"
-            >
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name} ({org.role})
-                </option>
-              ))}
-              {organizations.length === 0 && (
-                <option value="">No Organizations Found</option>
-              )}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
-          </div>
+          <OrgSwitcher />
         </div>
 
         {/* Navigation Links */}

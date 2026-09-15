@@ -6,7 +6,10 @@ import { api } from './lib/api';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { ContentPage, SchemasPage, TemplatesPage, SettingsPage } from './pages/common/SectionPages';
+import { ContentPage, SchemasPage, TemplatesPage, ApiKeysPage } from './pages/common/SectionPages';
+import { SettingsLayout } from './pages/settings/SettingsLayout';
+import { MembersPage } from './pages/settings/MembersPage';
+import { RolesPage } from './pages/settings/RolesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,7 +97,14 @@ export const App: React.FC = () => {
             <Route path="content/*" element={<ContentPage />} />
             <Route path="schemas/*" element={<SchemasPage />} />
             <Route path="templates/*" element={<TemplatesPage />} />
-            <Route path="settings/*" element={<SettingsPage />} />
+
+            {/* Settings & RBAC */}
+            <Route path="settings" element={<SettingsLayout />}>
+              <Route index element={<Navigate to="members" replace />} />
+              <Route path="members" element={<MembersPage />} />
+              <Route path="roles" element={<RolesPage />} />
+              <Route path="api-keys" element={<ApiKeysPage />} />
+            </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
