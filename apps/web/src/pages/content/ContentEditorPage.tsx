@@ -48,7 +48,7 @@ export const ContentEditorPage: React.FC = () => {
     queryFn: async () => {
       if (!orgId || !slug || !id || id === 'new') return null;
       const res = await api.get(`/orgs/${orgId}/content/${slug}/${id}`);
-      return res.data;
+      return res.data.data || res.data;
     },
     enabled: isEditing && !!orgId && !!slug && !!id,
   });
@@ -70,12 +70,12 @@ export const ContentEditorPage: React.FC = () => {
         const res = await api.patch(`/orgs/${orgId}/content/${slug}/${id}`, {
           data: formData,
         });
-        return res.data;
+        return res.data.data || res.data;
       } else {
         const res = await api.post(`/orgs/${orgId}/content/${slug}`, {
           data: formData,
         });
-        return res.data;
+        return res.data.data || res.data;
       }
     },
     onSuccess: (savedEntry) => {

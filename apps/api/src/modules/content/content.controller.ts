@@ -14,6 +14,7 @@ import { ContentService } from './content.service';
 import { JwtAuthGuard } from '../auth/guards/auth.guards';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   Permissions,
   CreateEntryInput,
@@ -45,11 +46,12 @@ export class ContentController {
   async createEntry(
     @Param('orgId') orgId: string,
     @Param('slug') slug: string,
+    @CurrentUser('sub') userId: string,
     @Req() req: any,
     @Body() body: CreateEntryInput,
   ) {
-    const userId = req.user?.id;
-    return this.contentService.createEntry(orgId, slug, userId, body);
+    const finalUserId = userId || req.user?.id || req.user?.sub;
+    return this.contentService.createEntry(orgId, slug, finalUserId, body);
   }
 
   @Get(':id')

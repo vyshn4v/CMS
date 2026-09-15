@@ -208,11 +208,21 @@ export class ContentService {
       });
     }
 
+    if (!userId) {
+      throw new BadRequestException('User ID is required to author a content entry');
+    }
+
     const created = await this.prisma.contentEntry.create({
       data: {
-        contentTypeId: contentType.id,
-        orgId,
-        createdById: userId,
+        contentType: {
+          connect: { id: contentType.id },
+        },
+        org: {
+          connect: { id: orgId },
+        },
+        createdBy: {
+          connect: { id: userId },
+        },
         status: 'DRAFT',
         data: validation.data || input.data || {},
       },

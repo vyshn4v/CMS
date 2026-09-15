@@ -50,7 +50,7 @@ export const ContentListPage: React.FC = () => {
       });
       if (statusFilter) params.append('status', statusFilter);
       const res = await api.get(`/orgs/${orgId}/content/${slug}?${params.toString()}`);
-      return res.data;
+      return res.data.data || res.data;
     },
     enabled: !!orgId && !!slug,
   });
