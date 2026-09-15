@@ -84,3 +84,32 @@ export interface ComponentDto {
   schema: SchemaDefinition;
   createdAt: string;
 }
+
+export interface CreateContentTypeInput {
+  name: string;
+  slug?: string;
+  description?: string;
+  kind?: ContentTypeKind;
+  schema: SchemaDefinition;
+}
+
+export interface UpdateContentTypeInput {
+  name?: string;
+  description?: string;
+  kind?: ContentTypeKind;
+  schema?: SchemaDefinition;
+}
+
+export interface CreateComponentInput {
+  name: string;
+  slug?: string;
+  category?: string;
+  schema: SchemaDefinition;
+}
+
+export interface UpdateComponentInput {
+  name?: string;
+  category?: string;
+  schema?: SchemaDefinition;
+}
+

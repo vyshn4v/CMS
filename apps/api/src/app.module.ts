@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { OrgModule } from './modules/org/org.module';
 import { RoleModule } from './modules/role/role.module';
+import { SchemaModule } from './modules/schema/schema.module';
 
 /**
  * Root NestJS application module.
@@ -18,6 +19,7 @@ import { RoleModule } from './modules/role/role.module';
     AuthModule,
     OrgModule,
     RoleModule,
+    SchemaModule,
   ],
 })
 export class AppModule {}

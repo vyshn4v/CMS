@@ -6,7 +6,9 @@ import { api } from './lib/api';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { ContentPage, SchemasPage, TemplatesPage, ApiKeysPage } from './pages/common/SectionPages';
+import { ContentPage, TemplatesPage, ApiKeysPage } from './pages/common/SectionPages';
+import { SchemasListPage } from './pages/schemas/SchemasListPage';
+import { SchemaBuilderPage } from './pages/schemas/SchemaBuilderPage';
 import { SettingsLayout } from './pages/settings/SettingsLayout';
 import { MembersPage } from './pages/settings/MembersPage';
 import { RolesPage } from './pages/settings/RolesPage';
@@ -95,7 +97,12 @@ export const App: React.FC = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="content/*" element={<ContentPage />} />
-            <Route path="schemas/*" element={<SchemasPage />} />
+
+            {/* Schema Builder */}
+            <Route path="schemas" element={<SchemasListPage />} />
+            <Route path="schemas/new" element={<SchemaBuilderPage />} />
+            <Route path="schemas/:id" element={<SchemaBuilderPage />} />
+
             <Route path="templates/*" element={<TemplatesPage />} />
 
             {/* Settings & RBAC */}
