@@ -53,12 +53,14 @@ export const ContentEditorPage: React.FC = () => {
     enabled: isEditing && !!orgId && !!slug && !!id,
   });
 
-  // Populate form on entry load
+  // Populate form on entry load or reset on create mode
   useEffect(() => {
-    if (entry?.data) {
-      setFormData(entry.data);
+    if (isEditing && entry) {
+      setFormData(entry.data || {});
+    } else if (!isEditing) {
+      setFormData({});
     }
-  }, [entry]);
+  }, [entry, isEditing]);
 
   // Save or Publish mutation
   const saveMutation = useMutation({
@@ -93,7 +95,7 @@ export const ContentEditorPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['contentEntries', orgId, slug] });
       queryClient.invalidateQueries({ queryKey: ['contentEntry', orgId, slug, id] });
       if (!isEditing && savedEntry?.id) {
-        navigate(`/content/${slug}/${savedEntry.id}`);
+        navigate(`/content/${slug}/${savedEntry.id}`, { replace: true });
       }
     },
     onError: (err: any) => {
@@ -349,30 +351,30 @@ export const ContentEditorPage: React.FC = () => {
               </p>
             </div>
 
-            {isEditing && entry && (
+            {isEditing && (
               <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Entry Information
                 </h3>
                 <div>
                   <label className="text-[11px] font-medium text-slate-400">Entry ID</label>
-                  <p className="text-[11px] font-mono text-slate-600 dark:text-slate-400 truncate">
-                    {entry.id}
+                  <p className="text-[11px] font-mono text-slate-600 dark:text-slate-400 truncate select-all">
+                    {entry?.id || id}
                   </p>
                 </div>
                 <div>
                   <label className="text-[11px] font-medium text-slate-400">Created By</label>
                   <p className="text-xs text-slate-700 dark:text-slate-300">
-                    {entry.createdBy?.name || entry.createdBy?.email || 'User'}
+                    {entry?.createdBy?.name || entry?.createdBy?.email || 'User'}
                   </p>
                 </div>
                 <div>
                   <label className="text-[11px] font-medium text-slate-400">Created At</label>
                   <p className="text-xs text-slate-700 dark:text-slate-300">
-                    {new Date(entry.createdAt).toLocaleString()}
+                    {entry?.createdAt ? new Date(entry.createdAt).toLocaleString() : '—'}
                   </p>
                 </div>
-                {entry.publishedAt && (
+                {entry?.publishedAt && (
                   <div>
                     <label className="text-[11px] font-medium text-slate-400">Published At</label>
                     <p className="text-xs text-emerald-600 dark:text-emerald-400">

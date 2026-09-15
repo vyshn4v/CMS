@@ -20,12 +20,17 @@ export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T
 
     return next.handle().pipe(
       map((res) => {
-        // If the handler already returned an object with data and meta, pass through cleanly
-        if (res && typeof res === 'object' && 'data' in res && ('meta' in res || 'status' in res)) {
+        // If the handler already returned an ApiResponse envelope (numeric HTTP status or explicit meta)
+        if (
+          res &&
+          typeof res === 'object' &&
+          'data' in res &&
+          (typeof (res as any).status === 'number' || 'meta' in res)
+        ) {
           return {
-            status: res.status || statusCode,
-            data: res.data,
-            meta: res.meta,
+            status: typeof (res as any).status === 'number' ? (res as any).status : statusCode,
+            data: (res as any).data,
+            meta: (res as any).meta,
           };
         }
 
