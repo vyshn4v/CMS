@@ -6,7 +6,10 @@ import { api } from './lib/api';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { ContentPage, TemplatesPage, ApiKeysPage } from './pages/common/SectionPages';
+import { TemplatesPage, ApiKeysPage } from './pages/common/SectionPages';
+import { ContentDashboardPage } from './pages/content/ContentDashboardPage';
+import { ContentListPage } from './pages/content/ContentListPage';
+import { ContentEditorPage } from './pages/content/ContentEditorPage';
 import { SchemasListPage } from './pages/schemas/SchemasListPage';
 import { SchemaBuilderPage } from './pages/schemas/SchemaBuilderPage';
 import { SettingsLayout } from './pages/settings/SettingsLayout';
@@ -96,7 +99,12 @@ export const App: React.FC = () => {
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="content/*" element={<ContentPage />} />
+
+            {/* Content Entries Studio */}
+            <Route path="content" element={<ContentDashboardPage />} />
+            <Route path="content/:slug" element={<ContentListPage />} />
+            <Route path="content/:slug/new" element={<ContentEditorPage />} />
+            <Route path="content/:slug/:id" element={<ContentEditorPage />} />
 
             {/* Schema Builder */}
             <Route path="schemas" element={<SchemasListPage />} />
