@@ -68,21 +68,23 @@ async function main() {
   console.log('Seeding system roles...');
 
   for (const roleName of [SystemRoles.SUPER_ADMIN, SystemRoles.EDITOR, SystemRoles.VIEWER]) {
-    const role = await prisma.role.upsert({
+    let role = await prisma.role.findFirst({
       where: {
-        orgId_name: {
-          orgId: null as any,
-          name: roleName,
-        },
-      },
-      update: {},
-      create: {
         name: roleName,
-        isSystem: true,
         orgId: null,
-        description: `System defined ${roleName} role`,
       },
     });
+
+    if (!role) {
+      role = await prisma.role.create({
+        data: {
+          name: roleName,
+          isSystem: true,
+          orgId: null,
+          description: `System defined ${roleName} role`,
+        },
+      });
+    }
 
     const rolePerms = DEFAULT_ROLE_PERMISSIONS[roleName];
     for (const permAction of rolePerms) {

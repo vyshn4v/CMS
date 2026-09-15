@@ -15,7 +15,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@cms/shared-types": ["libs/shared-types/src/index.ts"]
+      "@cms/shared-types": ["libs/shared-types/src/index.ts", "libs/shared-types/dist/index.d.ts"]
     }
   },
   "exclude": ["node_modules", "tmp", "dist"]
