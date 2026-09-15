@@ -25,10 +25,15 @@ export interface ContentEntryDto {
 
 export interface CreateEntryInput {
   data: Record<string, any>;
+  publish?: boolean;
 }
 
 export interface UpdateEntryInput {
   data: Record<string, any>;
+}
+
+export interface PublishEntryInput {
+  data?: Record<string, any>;
 }
 
 export interface ContentEntryListResponse {

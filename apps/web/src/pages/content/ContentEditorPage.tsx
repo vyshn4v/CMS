@@ -60,33 +60,45 @@ export const ContentEditorPage: React.FC = () => {
     }
   }, [entry]);
 
-  // Save / Update mutation
+  // Save or Publish mutation
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (publish: boolean = false) => {
       setFieldErrors({});
       setGeneralError(null);
 
       if (isEditing && id) {
-        const res = await api.patch(`/orgs/${orgId}/content/${slug}/${id}`, {
-          data: formData,
-        });
-        return res.data.data || res.data;
+        if (publish) {
+          const res = await api.post(`/orgs/${orgId}/content/${slug}/${id}/publish`, {
+            data: formData,
+          });
+          return res.data.data || res.data;
+        } else {
+          const res = await api.patch(`/orgs/${orgId}/content/${slug}/${id}`, {
+            data: formData,
+          });
+          return res.data.data || res.data;
+        }
       } else {
         const res = await api.post(`/orgs/${orgId}/content/${slug}`, {
           data: formData,
+          publish,
         });
         return res.data.data || res.data;
       }
     },
     onSuccess: (savedEntry) => {
+      if (savedEntry) {
+        queryClient.setQueryData(['contentEntry', orgId, slug, savedEntry.id], savedEntry);
+      }
       queryClient.invalidateQueries({ queryKey: ['contentEntries', orgId, slug] });
-      queryClient.invalidateQueries({ queryKey: ['contentEntry', orgId, slug, savedEntry.id] });
-      if (!isEditing) {
+      queryClient.invalidateQueries({ queryKey: ['contentEntry', orgId, slug, id] });
+      if (!isEditing && savedEntry?.id) {
         navigate(`/content/${slug}/${savedEntry.id}`);
       }
     },
     onError: (err: any) => {
       const responseData = err.response?.data;
+      const errorObj = responseData?.error;
       if (responseData?.errors && Array.isArray(responseData.errors)) {
         const map: Record<string, string> = {};
         for (const e of responseData.errors) {
@@ -94,26 +106,28 @@ export const ContentEditorPage: React.FC = () => {
         }
         setFieldErrors(map);
       } else {
-        setGeneralError(responseData?.message || 'Failed to save entry');
+        setGeneralError(errorObj?.message || responseData?.message || 'Failed to save entry');
       }
     },
   });
 
-  // Publish / Unpublish mutation
-  const publishMutation = useMutation({
-    mutationFn: async (shouldPublish: boolean) => {
+  // Unpublish mutation
+  const unpublishMutation = useMutation({
+    mutationFn: async () => {
       if (!id || id === 'new') return;
-      const endpoint = shouldPublish
-        ? `/orgs/${orgId}/content/${slug}/${id}/publish`
-        : `/orgs/${orgId}/content/${slug}/${id}/unpublish`;
-      await api.post(endpoint);
+      const res = await api.post(`/orgs/${orgId}/content/${slug}/${id}/unpublish`);
+      return res.data.data || res.data;
     },
-    onSuccess: () => {
+    onSuccess: (updatedEntry) => {
+      if (updatedEntry) {
+        queryClient.setQueryData(['contentEntry', orgId, slug, id], updatedEntry);
+      }
       queryClient.invalidateQueries({ queryKey: ['contentEntries', orgId, slug] });
       queryClient.invalidateQueries({ queryKey: ['contentEntry', orgId, slug, id] });
     },
     onError: (err: any) => {
-      setGeneralError(err.response?.data?.message || 'Failed to change publish status');
+      const responseData = err.response?.data;
+      setGeneralError(responseData?.error?.message || responseData?.message || 'Failed to unpublish entry');
     },
   });
 
@@ -128,7 +142,8 @@ export const ContentEditorPage: React.FC = () => {
       navigate(`/content/${slug}`);
     },
     onError: (err: any) => {
-      setGeneralError(err.response?.data?.message || 'Failed to delete entry');
+      const responseData = err.response?.data;
+      setGeneralError(responseData?.error?.message || responseData?.message || 'Failed to delete entry');
     },
   });
 
@@ -203,45 +218,62 @@ export const ContentEditorPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Delete entry (editing mode only) */}
           {isEditing && (
-            <>
-              <button
-                type="button"
-                disabled={publishMutation.isPending}
-                onClick={() => publishMutation.mutate(!isPublished)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold border transition ${
-                  isPublished
-                    ? 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/40'
-                    : 'border-emerald-200 dark:border-emerald-800 text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-950/60'
-                }`}
-              >
-                {isPublished ? <Archive className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
-                <span>{isPublished ? 'Unpublish' : 'Publish'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm('Delete this entry permanently?')) {
-                    deleteMutation.mutate();
-                  }
-                }}
-                className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-                title="Delete Entry"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </>
+            <button
+              type="button"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (confirm('Delete this entry permanently?')) {
+                  deleteMutation.mutate();
+                }
+              }}
+              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+              title="Delete Entry"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
           )}
 
+          {/* Unpublish button (when already published) */}
+          {isEditing && isPublished && (
+            <button
+              type="button"
+              disabled={unpublishMutation.isPending || saveMutation.isPending}
+              onClick={() => unpublishMutation.mutate()}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/40 px-3 py-2 text-xs font-semibold transition"
+            >
+              <Archive className="h-3.5 w-3.5" />
+              <span>{unpublishMutation.isPending ? 'Unpublishing...' : 'Unpublish'}</span>
+            </button>
+          )}
+
+          {/* Save Draft Button */}
           <button
             type="button"
-            disabled={saveMutation.isPending}
-            onClick={() => saveMutation.mutate()}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition"
+            disabled={saveMutation.isPending || unpublishMutation.isPending}
+            onClick={() => saveMutation.mutate(false)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition"
           >
-            <Save className="h-4 w-4" />
-            <span>{saveMutation.isPending ? 'Saving...' : 'Save Draft'}</span>
+            <Save className="h-3.5 w-3.5" />
+            <span>{saveMutation.isPending && !saveMutation.variables ? 'Saving...' : 'Save Draft'}</span>
+          </button>
+
+          {/* Publish / Update & Publish Button */}
+          <button
+            type="button"
+            disabled={saveMutation.isPending || unpublishMutation.isPending}
+            onClick={() => saveMutation.mutate(true)}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            <span>
+              {saveMutation.isPending && saveMutation.variables
+                ? 'Publishing...'
+                : isPublished
+                ? 'Update & Publish'
+                : 'Publish'}
+            </span>
           </button>
         </div>
       </div>

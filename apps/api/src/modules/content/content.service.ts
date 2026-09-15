@@ -212,6 +212,7 @@ export class ContentService {
       throw new BadRequestException('User ID is required to author a content entry');
     }
 
+    const isPublish = Boolean(input.publish);
     const created = await this.prisma.contentEntry.create({
       data: {
         contentType: {
@@ -223,8 +224,10 @@ export class ContentService {
         createdBy: {
           connect: { id: userId },
         },
-        status: 'DRAFT',
+        status: isPublish ? 'PUBLISHED' : 'DRAFT',
         data: validation.data || input.data || {},
+        publishedData: isPublish ? (validation.data || input.data || {}) : null,
+        publishedAt: isPublish ? new Date() : null,
       },
       include: {
         createdBy: {
@@ -321,6 +324,7 @@ export class ContentService {
     orgId: string,
     slugOrId: string,
     id: string,
+    body?: { data?: Record<string, any> },
   ): Promise<ContentEntryDto> {
     const contentType = await this.resolveContentType(orgId, slugOrId);
     const schemaDef = contentType.schema as unknown as SchemaDefinition;
@@ -332,8 +336,10 @@ export class ContentService {
       throw new NotFoundException('Content entry not found');
     }
 
+    const payloadData = body?.data !== undefined ? body.data : ((existing.data as Record<string, any>) || {});
+
     // Validate draft before publishing to guarantee clean snapshot
-    const validation = validateEntryData(schemaDef, (existing.data as Record<string, any>) || {});
+    const validation = validateEntryData(schemaDef, payloadData);
     if (!validation.isValid) {
       throw new BadRequestException({
         message: 'Cannot publish entry with invalid schema data',
@@ -345,7 +351,8 @@ export class ContentService {
       where: { id },
       data: {
         status: 'PUBLISHED',
-        publishedData: existing.data || {},
+        data: validation.data || payloadData,
+        publishedData: validation.data || payloadData,
         publishedAt: new Date(),
       },
       include: {

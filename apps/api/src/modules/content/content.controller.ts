@@ -91,8 +91,9 @@ export class ContentController {
     @Param('orgId') orgId: string,
     @Param('slug') slug: string,
     @Param('id') id: string,
+    @Body() body?: { data?: Record<string, any> },
   ) {
-    return this.contentService.publishEntry(orgId, slug, id);
+    return this.contentService.publishEntry(orgId, slug, id, body);
   }
 
   @Post(':id/unpublish')
