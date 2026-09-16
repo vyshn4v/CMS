@@ -12,13 +12,15 @@ import {
   Type,
   HelpCircle,
 } from 'lucide-react';
-import { ContentTypeDto, FieldDefinition, TemplateType } from '@cms/shared-types';
+import { ContentTypeDto, ComponentDto, FieldDefinition, TemplateType } from '@cms/shared-types';
+import { safeParseSchema } from '../../lib/utils';
 
 interface DualModeEditorProps {
   content: string;
   onChange: (val: string) => void;
   templateType?: TemplateType;
   selectedSchema?: ContentTypeDto | null;
+  components?: ComponentDto[];
   className?: string;
 }
 
@@ -27,6 +29,7 @@ export const DualModeEditor: React.FC<DualModeEditorProps> = ({
   onChange,
   templateType,
   selectedSchema,
+  components = [],
   className = '',
 }) => {
   // If JSON, force code mode
@@ -37,7 +40,7 @@ export const DualModeEditor: React.FC<DualModeEditorProps> = ({
   const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
 
   const fields: FieldDefinition[] =
-    (selectedSchema?.schema as any)?.fields || [];
+    safeParseSchema(selectedSchema?.schema).fields || [];
 
   const handleCopySnippet = (snippet: string) => {
     navigator.clipboard.writeText(snippet);
@@ -166,17 +169,53 @@ export const DualModeEditor: React.FC<DualModeEditorProps> = ({
                   {fields.map((f) => {
                     const tag = `{{${f.name}}}`;
                     const isCopied = copiedSnippet === tag;
+
+                    // If component, find component definition for subfield helpers
+                    const isComponent = f.type === 'component';
+                    const targetId = f.component?.componentId || (f as any).componentId;
+                    const targetSlug = f.component?.componentSlug || (f as any).componentSlug;
+                    const compDef = isComponent
+                      ? components.find(
+                          (c) =>
+                            (targetId && c.id === targetId) ||
+                            (targetSlug && c.slug === targetSlug),
+                        )
+                      : null;
+                    const compFields = safeParseSchema(compDef?.schema).fields || [];
+
                     return (
-                      <button
-                        key={f.name}
-                        type="button"
-                        onClick={() => handleCopySnippet(tag)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-mono text-slate-700 dark:text-slate-200 shadow-sm hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-                      >
-                        {isCopied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-slate-400" />}
-                        <span>{tag}</span>
-                        <span className="text-[10px] text-slate-400 font-sans">({f.type})</span>
-                      </button>
+                      <React.Fragment key={f.name}>
+                        <button
+                          type="button"
+                          onClick={() => handleCopySnippet(tag)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-mono text-slate-700 dark:text-slate-200 shadow-sm hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                        >
+                          {isCopied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-slate-400" />}
+                          <span>{tag}</span>
+                          <span className="text-[10px] text-slate-400 font-sans">({f.type})</span>
+                        </button>
+
+                        {/* Component Subfields */}
+                        {isComponent && compFields.map((cf: any) => {
+                          const subTag = f.component?.repeatable
+                            ? `{{#each ${f.name}}}{{this.${cf.name}}}{{/each}}`
+                            : `{{${f.name}.${cf.name}}}`;
+                          const isSubCopied = copiedSnippet === subTag;
+                          return (
+                            <button
+                              key={`${f.name}.${cf.name}`}
+                              type="button"
+                              onClick={() => handleCopySnippet(subTag)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 px-2.5 py-1 text-xs font-mono text-violet-700 dark:text-violet-300 shadow-sm hover:border-violet-500 hover:text-violet-600 dark:hover:text-violet-200 transition"
+                              title={`Insert subfield ${cf.name}`}
+                            >
+                              {isSubCopied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3 text-violet-400" />}
+                              <span>{subTag}</span>
+                              <span className="text-[10px] text-slate-400 font-sans">({cf.type})</span>
+                            </button>
+                          );
+                        })}
+                      </React.Fragment>
                     );
                   })}
                 </div>

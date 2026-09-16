@@ -30,6 +30,7 @@ import {
   CreateTemplateInput,
   UpdateTemplateInput,
 } from '@cms/shared-types';
+import { safeParseSchema } from '../../lib/utils';
 
 export const TemplateEditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -113,17 +114,7 @@ export const TemplateEditorPage: React.FC = () => {
   // Ensure fieldsDraft strictly contains ONLY the fields defined for the selected Model
   useEffect(() => {
     if (selectedSchema?.schema) {
-      const rawSchema =
-        typeof selectedSchema.schema === 'string'
-          ? (() => {
-              try {
-                return JSON.parse(selectedSchema.schema);
-              } catch {
-                return {};
-              }
-            })()
-          : selectedSchema.schema || {};
-
+      const rawSchema = safeParseSchema(selectedSchema.schema);
       const modelFields: FieldDefinition[] = rawSchema.fields || [];
 
       if (modelFields.length > 0) {
@@ -533,19 +524,48 @@ export const TemplateEditorPage: React.FC = () => {
                   </div>
 
                   {/* Render Model Fields */}
-                  {((selectedSchema.schema as any)?.fields || []).length > 0 ? (
-                    ((selectedSchema.schema as any)?.fields || []).map((field: any) => {
+                  {(() => {
+                    const parsedModelSchema = safeParseSchema(selectedSchema.schema);
+                    const modelFields: FieldDefinition[] = parsedModelSchema.fields || [];
+
+                    if (modelFields.length === 0) {
+                      return (
+                        <div className="rounded-xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-6 text-center space-y-2">
+                          <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                            No fields defined yet for Model "{selectedSchema.name}"
+                          </p>
+                          <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 max-w-md mx-auto">
+                            Add fields to this Model in the Schema Builder (e.g. "sub" and "body" for an Email model), or write custom template body below.
+                          </p>
+                          <div className="pt-2">
+                            <DualModeEditor
+                              content={bodyDraft}
+                              onChange={setBodyDraft}
+                              templateType={type}
+                              selectedSchema={selectedSchema}
+                              components={components}
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return modelFields.map((field: any) => {
                       const isComponent = field.type === 'component';
                       const isDynamicZone = field.type === 'dynamiczone';
+                      const targetCompId = field.component?.componentId || (field as any).componentId;
+                      const targetCompSlug = field.component?.componentSlug || (field as any).componentSlug;
                       const compDef = isComponent
                         ? components.find(
                             (c) =>
-                              c.id === field.component?.componentId ||
-                              c.slug === field.component?.componentSlug,
+                              (targetCompId && c.id === targetCompId) ||
+                              (targetCompSlug && c.slug === targetCompSlug) ||
+                              (c.id === targetCompId) ||
+                              (c.slug === targetCompSlug),
                           )
                         : null;
-                      const compFields: FieldDefinition[] =
-                        (compDef?.schema as any)?.fields || [];
+                      const parsedCompSchema = safeParseSchema(compDef?.schema);
+                      const compFields: FieldDefinition[] = parsedCompSchema.fields || [];
                       const isRepeatable = Boolean(field.component?.repeatable);
 
                       const isRichOrBody =
@@ -554,6 +574,16 @@ export const TemplateEditorPage: React.FC = () => {
                         field.name === 'body' ||
                         field.name === 'html' ||
                         field.name === 'content';
+
+                      const allowedDzIds: string[] =
+                        field.dynamiczone?.allowedComponentIds ||
+                        (field as any).allowedComponentIds ||
+                        [];
+                      const allowedComps = isDynamicZone
+                        ? components.filter(
+                            (c) => allowedDzIds.includes(c.id) || allowedDzIds.includes(c.slug),
+                          )
+                        : [];
 
                       return (
                         <div
@@ -587,6 +617,11 @@ export const TemplateEditorPage: React.FC = () => {
                                     <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300">
                                       {isRepeatable ? 'Repeatable List' : 'Single Object'}
                                     </span>
+                                    {compDef && (
+                                      <span className="ml-1 text-[10px] text-slate-400 font-mono">
+                                        (/{compDef.slug})
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
 
@@ -605,7 +640,7 @@ export const TemplateEditorPage: React.FC = () => {
                                     Pass-Through (Default)
                                   </button>
 
-                                  {isRepeatable && (
+                                  {isRepeatable ? (
                                     <button
                                       type="button"
                                       onClick={() =>
@@ -622,6 +657,22 @@ export const TemplateEditorPage: React.FC = () => {
                                       title="Insert loop template"
                                     >
                                       Insert Loop
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setFieldsDraft((prev) => ({
+                                          ...prev,
+                                          [field.name]: compFields.length > 0
+                                            ? compFields.map((cf) => `{{${field.name}.${cf.name}}}`).join(' ')
+                                            : `{{${field.name}}}`,
+                                        }))
+                                      }
+                                      className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition"
+                                      title="Insert all subfields tag expression"
+                                    >
+                                      Insert Subfields
                                     </button>
                                   )}
 
@@ -643,8 +694,10 @@ export const TemplateEditorPage: React.FC = () => {
 
                               {/* Clickable Subfields Chips */}
                               {compFields.length > 0 && (
-                                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                                  <span className="text-slate-400 font-medium mr-1">Available Subfields:</span>
+                                <div className="flex flex-wrap items-center gap-1.5 text-[11px] p-2 rounded-lg bg-violet-50/40 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/40">
+                                  <span className="text-slate-500 font-medium mr-1 text-[10px]">
+                                    Available Subfields ({compFields.length}):
+                                  </span>
                                   {compFields.map((cf) => {
                                     const tag = isRepeatable
                                       ? `{{this.${cf.name}}}`
@@ -658,7 +711,7 @@ export const TemplateEditorPage: React.FC = () => {
                                           const updated = current ? `${current} ${tag}` : tag;
                                           setFieldsDraft((prev) => ({ ...prev, [field.name]: updated }));
                                         }}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-[10px] text-slate-700 dark:text-slate-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-300 transition"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-800 font-mono text-[10px] text-violet-700 dark:text-violet-300 hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition shadow-xs"
                                         title={`Insert ${tag}`}
                                       >
                                         <Plus className="h-2.5 w-2.5 text-violet-500" />
@@ -689,6 +742,9 @@ export const TemplateEditorPage: React.FC = () => {
                                   <span className="font-semibold text-emerald-950 dark:text-emerald-200">
                                     Dynamic Zone: {field.label || field.name}
                                   </span>
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                                    {allowedComps.length > 0 ? `${allowedComps.length} allowed ${allowedComps.length === 1 ? 'component' : 'components'}` : 'All components'}
+                                  </span>
                                 </div>
 
                                 <div className="flex items-center gap-1.5">
@@ -707,13 +763,30 @@ export const TemplateEditorPage: React.FC = () => {
 
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      setFieldsDraft((prev) => ({
-                                        ...prev,
-                                        [field.name]: `{{#each ${field.name}}}\n  {{#ifEquals this.__component "hero"}}\n    <h1>{{this.heading}}</h1>\n  {{/ifEquals}}\n{{/each}}`,
-                                      }))
-                                    }
+                                    onClick={() => {
+                                      let loopTpl = `{{#each ${field.name}}}\n`;
+                                      if (allowedComps.length > 0) {
+                                        allowedComps.forEach((ac) => {
+                                          const acSchema = safeParseSchema(ac.schema);
+                                          const acFields: any[] = acSchema.fields || [];
+                                          loopTpl += `  {{#ifEquals this.__component "${ac.slug}"}}\n    <section class="block-${ac.slug}">\n`;
+                                          if (acFields.length > 0) {
+                                            acFields.forEach((acf) => {
+                                              loopTpl += `      <p>{{this.${acf.name}}}</p>\n`;
+                                            });
+                                          } else {
+                                            loopTpl += `      <h2>{{this.title}}</h2>\n`;
+                                          }
+                                          loopTpl += `    </section>\n  {{/ifEquals}}\n`;
+                                        });
+                                      } else {
+                                        loopTpl += `  <div class="block-item">\n    <p>{{this.__component}}</p>\n  </div>\n`;
+                                      }
+                                      loopTpl += `{{/each}}`;
+                                      setFieldsDraft((prev) => ({ ...prev, [field.name]: loopTpl }));
+                                    }}
                                     className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition"
+                                    title="Generate multi-block discriminator template using actual allowed components"
                                   >
                                     Insert Block Loop
                                   </button>
@@ -733,6 +806,42 @@ export const TemplateEditorPage: React.FC = () => {
                                 </div>
                               </div>
 
+                              {/* Allowed component blocks helper pills */}
+                              {allowedComps.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-1.5 text-[11px] p-2 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                                  <span className="text-slate-500 font-medium mr-1 text-[10px]">
+                                    Allowed Blocks:
+                                  </span>
+                                  {allowedComps.map((ac) => {
+                                    const acSchema = safeParseSchema(ac.schema);
+                                    const acFields: any[] = acSchema.fields || [];
+                                    const blockSnippet = `{{#ifEquals this.__component "${ac.slug}"}}\n  <div class="block-${ac.slug}">\n${
+                                      acFields.length > 0
+                                        ? acFields.map((acf) => `    <p>{{this.${acf.name}}}</p>`).join('\n')
+                                        : '    <p>{{this.title}}</p>'
+                                    }\n  </div>\n{{/ifEquals}}`;
+
+                                    return (
+                                      <button
+                                        key={ac.id}
+                                        type="button"
+                                        onClick={() => {
+                                          const current = fieldsDraft[field.name] || '';
+                                          const updated = current ? `${current}\n${blockSnippet}` : blockSnippet;
+                                          setFieldsDraft((prev) => ({ ...prev, [field.name]: updated }));
+                                        }}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 font-mono text-[10px] text-emerald-700 dark:text-emerald-300 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition shadow-xs"
+                                        title={`Append #${ac.slug} block check snippet`}
+                                      >
+                                        <Plus className="h-2.5 w-2.5 text-emerald-500" />
+                                        <span>{ac.name}</span>
+                                        <span className="text-[9px] text-slate-400 font-sans">({acFields.length} {acFields.length === 1 ? 'field' : 'fields'})</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
                               <textarea
                                 rows={3}
                                 value={fieldsDraft[field.name] || ''}
@@ -751,6 +860,7 @@ export const TemplateEditorPage: React.FC = () => {
                               }
                               templateType="CUSTOM"
                               selectedSchema={selectedSchema}
+                              components={components}
                               className="min-h-[260px]"
                             />
                           ) : (
@@ -766,25 +876,8 @@ export const TemplateEditorPage: React.FC = () => {
                           )}
                         </div>
                       );
-                    })
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-6 text-center space-y-2">
-                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
-                        No fields defined yet for Model "{selectedSchema.name}"
-                      </p>
-                      <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 max-w-md mx-auto">
-                        Add fields to this Model in the Schema Builder (e.g. "sub" and "body" for an Email model), or write custom template body below.
-                      </p>
-                      <div className="pt-2">
-                        <DualModeEditor
-                          content={bodyDraft}
-                          onChange={setBodyDraft}
-                          templateType={type}
-                          selectedSchema={selectedSchema}
-                        />
-                      </div>
-                    </div>
-                  )}
+                    });
+                  })()}
                 </div>
               ) : (
                 /* Mandatory Model Selection Screen (No Standalone Mode) */
