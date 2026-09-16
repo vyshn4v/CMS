@@ -258,7 +258,10 @@ export class SchemaService {
    */
   async getComponentById(orgId: string, id: string): Promise<ComponentDto> {
     const component = await this.prisma.component.findFirst({
-      where: { id, orgId },
+      where: {
+        orgId,
+        OR: [{ id }, { slug: id }],
+      },
     });
 
     if (!component) {

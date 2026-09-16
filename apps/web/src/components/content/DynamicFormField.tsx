@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FieldDefinition } from '@cms/shared-types';
 import { RelationPicker } from './fields/RelationPicker';
 import { ComponentForm } from './fields/ComponentForm';
 import { DynamicZoneEditor } from './fields/DynamicZoneEditor';
+import { TipTapEditor } from '../editors/TipTapEditor';
+import { Eye, Code2 } from 'lucide-react';
 
 interface DynamicFormFieldProps {
   field: FieldDefinition;
@@ -23,6 +25,7 @@ export const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
   disabled = false,
 }) => {
   const { name, label, type, required, options, validations } = field;
+  const [richTextMode, setRichTextMode] = useState<'visual' | 'code'>('visual');
 
   return (
     <div className="space-y-1.5">
@@ -53,18 +56,55 @@ export const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
       )}
 
       {type === 'richtext' && (
-        <textarea
-          rows={5}
-          value={value ?? ''}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          placeholder={`Write ${label || name} content (HTML or Markdown)...`}
-          className={`w-full font-mono rounded-lg border p-3 text-xs transition focus:outline-none focus:ring-2 ${
-            error
-              ? 'border-red-400 bg-red-50/20 focus:ring-red-500'
-              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-indigo-500 text-slate-900 dark:text-slate-100'
-          }`}
-        />
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-end gap-1 mb-1">
+            <button
+              type="button"
+              onClick={() => setRichTextMode('visual')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                richTextMode === 'visual'
+                  ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 font-semibold'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <Eye className="h-3 w-3" />
+              <span>Visual Editor</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRichTextMode('code')}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                richTextMode === 'code'
+                  ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 font-semibold'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <Code2 className="h-3 w-3" />
+              <span>HTML Source</span>
+            </button>
+          </div>
+
+          {richTextMode === 'visual' ? (
+            <TipTapEditor
+              content={value ?? ''}
+              onChange={onChange}
+              className={error ? 'border-red-400' : ''}
+            />
+          ) : (
+            <textarea
+              rows={8}
+              value={value ?? ''}
+              onChange={(e) => onChange(e.target.value)}
+              disabled={disabled}
+              placeholder={`Write ${label || name} HTML content...`}
+              className={`w-full font-mono rounded-lg border p-3 text-xs transition focus:outline-none focus:ring-2 ${
+                error
+                  ? 'border-red-400 bg-red-50/20 focus:ring-red-500'
+                  : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-indigo-500 text-slate-900 dark:text-slate-100'
+              }`}
+            />
+          )}
+        </div>
       )}
 
       {type === 'number' && (

@@ -11,6 +11,7 @@ import {
 import { api } from '../../../lib/api';
 import { useAuthStore } from '../../../store/auth.store';
 import { FieldDefinition, ComponentDto } from '@cms/shared-types';
+import { safeParseSchema } from '../../../lib/utils';
 import { DynamicFormField } from '../DynamicFormField';
 
 interface DynamicZoneEditorProps {
@@ -54,7 +55,8 @@ export const DynamicZoneEditor: React.FC<DynamicZoneEditorProps> = ({
     const newBlock: Record<string, any> = {
       __component: component.slug,
     };
-    component.schema?.fields?.forEach((f) => {
+    const cFields = safeParseSchema(component.schema).fields || [];
+    cFields.forEach((f: any) => {
       if (f.defaultValue !== undefined) {
         newBlock[f.name] = f.defaultValue;
       }
@@ -164,7 +166,7 @@ export const DynamicZoneEditor: React.FC<DynamicZoneEditorProps> = ({
           {blocks.map((block, idx) => {
             const blockSlug = block.__component;
             const matchedComponent = allComponents.find((c) => c.slug === blockSlug);
-            const compFields = matchedComponent?.schema?.fields || [];
+            const compFields: FieldDefinition[] = safeParseSchema(matchedComponent?.schema).fields || [];
 
             return (
               <div

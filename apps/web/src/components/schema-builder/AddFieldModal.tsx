@@ -26,6 +26,7 @@ import {
   ComponentDto,
   RelationConfig,
 } from '@cms/shared-types';
+import { safeParseSchema } from '../../lib/utils';
 
 interface AddFieldModalProps {
   isOpen: boolean;
@@ -241,8 +242,15 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
         setRelationType(initialField.relation?.type || 'many-to-one');
         setTargetContentTypeId(initialField.relation?.targetContentTypeId || '');
         setDisplayField(initialField.relation?.displayField || 'title');
-        setComponentId(initialField.component?.componentId || '');
-        setComponentRepeatable(initialField.component?.repeatable || false);
+        const targetCompDef = components.find(
+          (c) =>
+            c.id === initialField.component?.componentId ||
+            c.slug === initialField.component?.componentSlug ||
+            c.id === (initialField as any).componentId ||
+            c.slug === (initialField as any).componentSlug,
+        );
+        setComponentId(targetCompDef?.id || initialField.component?.componentId || '');
+        setComponentRepeatable(Boolean(initialField.component?.repeatable));
         setAllowedComponentIds(initialField.dynamiczone?.allowedComponentIds || []);
         setMinLength(
           initialField.validations?.minLength !== undefined ? initialField.validations.minLength : '',
@@ -293,7 +301,7 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
       .replace(/[^a-z0-9_]/g, '_');
 
     const targetSchema = schemas.find((s) => s.id === targetContentTypeId);
-    const targetComp = components.find((c) => c.id === componentId);
+    const targetComp = components.find((c) => c.id === componentId || c.slug === componentId);
 
     const field: FieldDefinition = {
       name: formattedName,
@@ -319,9 +327,9 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
             }
           : undefined,
       component:
-        selectedType === 'component' && componentId
+        selectedType === 'component' && (componentId || targetComp)
           ? {
-              componentId,
+              componentId: targetComp?.id || componentId,
               componentSlug: targetComp?.slug || '',
               repeatable: componentRepeatable,
             }
@@ -596,22 +604,89 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
                       </select>
                     </div>
 
-                    <label className="flex items-center gap-2.5 cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={componentRepeatable}
-                        onChange={(e) => setComponentRepeatable(e.target.checked)}
-                        className="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <div>
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                          Repeatable Component
-                        </span>
-                        <p className="text-[10px] text-slate-400">
-                          Allows editors to add multiple items as an array
-                        </p>
+                    {/* Selected Component Subfields Preview */}
+                    {(() => {
+                      const selectedComp = components.find((c) => c.id === componentId);
+                      if (!selectedComp) return null;
+                      const parsed = safeParseSchema(selectedComp.schema);
+                      const cFields: any[] = parsed.fields || [];
+                      return (
+                        <div className="p-2.5 rounded-lg bg-violet-100/60 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between text-violet-900 dark:text-violet-200 font-semibold text-[11px]">
+                            <span>Component Subfields ({cFields.length}):</span>
+                            <span className="font-mono text-[10px] text-slate-500">/{selectedComp.slug}</span>
+                          </div>
+                          {cFields.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {cFields.map((cf: any) => (
+                                <span
+                                  key={cf.name}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-700 font-mono text-[10px] text-violet-700 dark:text-violet-300"
+                                >
+                                  <span>{cf.label || cf.name}</span>
+                                  <span className="text-[9px] text-slate-400 font-sans">({cf.type})</span>
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-slate-400 italic">No subfields configured in this component yet.</p>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                        Component Type
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label
+                          onClick={() => setComponentRepeatable(false)}
+                          className={`p-3 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
+                            !componentRepeatable
+                              ? 'border-violet-600 bg-violet-100/60 dark:bg-violet-950/40 text-violet-950 dark:text-violet-100 shadow-xs'
+                              : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="compRepeatable"
+                              checked={!componentRepeatable}
+                              onChange={() => setComponentRepeatable(false)}
+                              className="text-violet-600 focus:ring-violet-500"
+                            />
+                            <span className="text-xs font-bold">Single component</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 pl-5">
+                            Group of fields like SEO meta, address, or header settings (single object).
+                          </p>
+                        </label>
+
+                        <label
+                          onClick={() => setComponentRepeatable(true)}
+                          className={`p-3 rounded-xl border cursor-pointer transition flex flex-col justify-between ${
+                            componentRepeatable
+                              ? 'border-violet-600 bg-violet-100/60 dark:bg-violet-950/40 text-violet-950 dark:text-violet-100 shadow-xs'
+                              : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="compRepeatable"
+                              checked={componentRepeatable}
+                              onChange={() => setComponentRepeatable(true)}
+                              className="text-violet-600 focus:ring-violet-500"
+                            />
+                            <span className="text-xs font-bold">Repeatable component</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 pl-5">
+                            Multiple items like list of FAQs, slider cards, or team members (array).
+                          </p>
+                        </label>
                       </div>
-                    </label>
+                    </div>
                   </div>
                 )}
 

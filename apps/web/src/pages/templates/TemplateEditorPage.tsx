@@ -20,6 +20,10 @@ import {
   Layers,
   Boxes,
   Plus,
+  Sparkles,
+  Code2,
+  ListPlus,
+  Tags,
 } from 'lucide-react';
 import {
   TemplateDto,
@@ -47,6 +51,11 @@ export const TemplateEditorPage: React.FC = () => {
   const [fieldsDraft, setFieldsDraft] = useState<Record<string, string>>({});
   const [subjectDraft, setSubjectDraft] = useState('');
   const [bodyDraft, setBodyDraft] = useState('');
+
+  // Component Subfield & Mapping State
+  const [fieldComponentOverrides, setFieldComponentOverrides] = useState<Record<string, string>>({});
+  const [customSubfields, setCustomSubfields] = useState<Record<string, string[]>>({});
+  const [newSubfieldInputs, setNewSubfieldInputs] = useState<Record<string, string>>({});
 
   // UI State
   const [viewMode, setViewMode] = useState<'editor' | 'split' | 'preview'>('split');
@@ -125,7 +134,7 @@ export const TemplateEditorPage: React.FC = () => {
               ? (template.fieldsDraft as Record<string, string>)
               : {};
 
-          modelFields.forEach((f) => {
+          modelFields.forEach((f: any) => {
             if (prev[f.name] !== undefined) {
               next[f.name] = prev[f.name];
             } else if (existingSaved[f.name] !== undefined) {
@@ -136,6 +145,37 @@ export const TemplateEditorPage: React.FC = () => {
                 next[f.name] = '{{title}}';
               } else if (f.name === 'body' || f.name === 'html' || f.name === 'content') {
                 next[f.name] = '<h2>{{title}}</h2>\n<p>{{content}}</p>';
+              } else if (f.type === 'component') {
+                const isRep = Boolean(f.component?.repeatable);
+                const targetId = f.component?.componentId || (f as any).componentId;
+                const targetSlug = f.component?.componentSlug || (f as any).componentSlug;
+                const cDef = components.find(
+                  (c) =>
+                    (targetId && c.id === targetId) ||
+                    (targetSlug && c.slug === targetSlug) ||
+                    (c.id === targetId) ||
+                    (c.slug === targetSlug),
+                );
+                const cFields: FieldDefinition[] = safeParseSchema(cDef?.schema).fields || [];
+                const subKeys = cFields.map((cf: any) => cf.name);
+
+                if (isRep) {
+                  if (subKeys.length >= 2) {
+                    next[f.name] = `{{#each ${f.name}}}\n  {{this.${subKeys[0]}}} {{this.${subKeys[1]}}}\n{{/each}}`;
+                  } else if (subKeys.length === 1) {
+                    next[f.name] = `{{#each ${f.name}}}\n  {{this.${subKeys[0]}}}\n{{/each}}`;
+                  } else {
+                    next[f.name] = `{{#each ${f.name}}}\n  {{this.firstname}} {{this.lastname}}\n{{/each}}`;
+                  }
+                } else {
+                  if (subKeys.length >= 2) {
+                    next[f.name] = `{{${f.name}.${subKeys[0]}}} {{${f.name}.${subKeys[1]}}}`;
+                  } else if (subKeys.length === 1) {
+                    next[f.name] = `{{${f.name}.${subKeys[0]}}}`;
+                  } else {
+                    next[f.name] = `{{${f.name}.firstname}} {{${f.name}.lastname}}`;
+                  }
+                }
               } else {
                 next[f.name] = `{{${f.name}}}`;
               }
@@ -151,7 +191,118 @@ export const TemplateEditorPage: React.FC = () => {
     } else {
       setFieldsDraft({});
     }
-  }, [selectedSchema, template]);
+  }, [selectedSchema, template, components]);
+
+  // Smartly append or insert a subfield tag into a field's Handlebars template
+  const handleAppendSubfield = (
+    fieldName: string,
+    subfieldName: string,
+    isRepeatable: boolean,
+  ) => {
+    setFieldsDraft((prev) => {
+      const current = (prev[fieldName] || '').trim();
+
+      if (!isRepeatable) {
+        const tag = `{{${fieldName}.${subfieldName}}}`;
+        if (!current || current === `{{${fieldName}}}` || current === `{{{json ${fieldName}}}}`) {
+          return { ...prev, [fieldName]: tag };
+        }
+        return { ...prev, [fieldName]: `${current} ${tag}` };
+      }
+
+      // Repeatable component loop
+      const tag = `{{this.${subfieldName}}}`;
+
+      // Case 1: Empty or default pass-through {{fieldName}}
+      if (!current || current === `{{${fieldName}}}` || current === `{{{json ${fieldName}}}}`) {
+        return {
+          ...prev,
+          [fieldName]: `{{#each ${fieldName}}}\n  ${tag}\n{{/each}}`,
+        };
+      }
+
+      // Case 2: Already contains an {{#each ...}} loop for this field
+      const loopRegex = new RegExp(`({{#each\\s+${fieldName}[^}]*}})([\\s\\S]*?)({{\\/each}})`, 'i');
+      if (loopRegex.test(current)) {
+        return {
+          ...prev,
+          [fieldName]: current.replace(loopRegex, (_match, start, inner, end) => {
+            const trimmedInner = inner.trim();
+            if (!trimmedInner) {
+              return `${start}\n  ${tag}\n${end}`;
+            }
+            if (inner.includes('</li>')) {
+              const lastLiIdx = inner.lastIndexOf('</li>');
+              return `${start}${inner.slice(0, lastLiIdx)} ${tag}${inner.slice(lastLiIdx)}${end}`;
+            }
+            return `${start}\n  ${trimmedInner} ${tag}\n${end}`;
+          }),
+        };
+      }
+
+      // Case 3: Text exists but no each loop
+      return {
+        ...prev,
+        [fieldName]: `${current}\n{{#each ${fieldName}}}\n  ${tag}\n{{/each}}`,
+      };
+    });
+  };
+
+  // 1-Click Preset to Combine Keys (e.g. firstname + lastname) or HTML/JSON templates
+  const handleCombineSubfields = (
+    fieldName: string,
+    subfields: string[],
+    isRepeatable: boolean,
+    format: 'plain' | 'html' | 'json' = 'plain',
+  ) => {
+    const keys = subfields.length > 0 ? subfields : ['firstname', 'lastname'];
+    let templateStr = '';
+
+    if (isRepeatable) {
+      if (format === 'html') {
+        const inner = keys.map((k) => `{{this.${k}}}`).join(' ');
+        templateStr = `<ul class="${fieldName}-list">\n{{#each ${fieldName}}}\n  <li>${inner}</li>\n{{/each}}\n</ul>`;
+      } else if (format === 'json') {
+        const objProps = keys.map((k) => `"${k}": "{{this.${k}}}"`).join(', ');
+        templateStr = `[{{#each ${fieldName}}}{${objProps}}{{#unless @last}},{{/unless}}{{/each}}]`;
+      } else {
+        const inner = keys.map((k) => `{{this.${k}}}`).join(' ');
+        templateStr = `{{#each ${fieldName}}}\n  ${inner}\n{{/each}}`;
+      }
+    } else {
+      if (format === 'html') {
+        const inner = keys.map((k) => `{{${fieldName}.${k}}}`).join(' ');
+        templateStr = `<div class="${fieldName}-card">\n  <p>${inner}</p>\n</div>`;
+      } else if (format === 'json') {
+        const objProps = keys.map((k) => `"${k}": "{{${fieldName}.${k}}}"`).join(', ');
+        templateStr = `{${objProps}}`;
+      } else {
+        templateStr = keys.map((k) => `{{${fieldName}.${k}}}`).join(' ');
+      }
+    }
+
+    setFieldsDraft((prev) => ({
+      ...prev,
+      [fieldName]: templateStr,
+    }));
+  };
+
+  // Add custom subfield key on-the-fly (e.g. user types "firstname" or clicks a suggestion)
+  const handleAddCustomSubfield = (fieldName: string, isRepeatable: boolean, keyOverride?: string) => {
+    const input = (keyOverride || newSubfieldInputs[fieldName] || '').trim();
+    if (!input) return;
+    const cleanKey = input.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!cleanKey) return;
+
+    setCustomSubfields((prev) => {
+      const existing = prev[fieldName] || [];
+      if (existing.includes(cleanKey)) return prev;
+      return { ...prev, [fieldName]: [...existing, cleanKey] };
+    });
+
+    handleAppendSubfield(fieldName, cleanKey, isRepeatable);
+    setNewSubfieldInputs((prev) => ({ ...prev, [fieldName]: '' }));
+  };
 
   // Save Mutation (handles both Draft and Save & Publish)
   const saveMutation = useMutation({
@@ -553,20 +704,31 @@ export const TemplateEditorPage: React.FC = () => {
                     return modelFields.map((field: any) => {
                       const isComponent = field.type === 'component';
                       const isDynamicZone = field.type === 'dynamiczone';
+
                       const targetCompId = field.component?.componentId || (field as any).componentId;
                       const targetCompSlug = field.component?.componentSlug || (field as any).componentSlug;
+                      const overrideComp = fieldComponentOverrides[field.name];
+                      const effectiveCompKey = overrideComp || targetCompId || targetCompSlug;
+
                       const compDef = isComponent
                         ? components.find(
                             (c) =>
-                              (targetCompId && c.id === targetCompId) ||
-                              (targetCompSlug && c.slug === targetCompSlug) ||
-                              (c.id === targetCompId) ||
-                              (c.slug === targetCompSlug),
+                              (effectiveCompKey && (c.id === effectiveCompKey || c.slug === effectiveCompKey)) ||
+                              (targetCompId && (c.id === targetCompId || c.slug === targetCompId)) ||
+                              (targetCompSlug && (c.slug === targetCompSlug || c.id === targetCompSlug)),
                           )
                         : null;
+
                       const parsedCompSchema = safeParseSchema(compDef?.schema);
                       const compFields: FieldDefinition[] = parsedCompSchema.fields || [];
                       const isRepeatable = Boolean(field.component?.repeatable);
+
+                      // Custom subfields added by the user
+                      const userCustomSubfields = customSubfields[field.name] || [];
+                      // Combined subfields
+                      const allSubfieldNames = Array.from(
+                        new Set([...compFields.map((cf) => cf.name), ...userCustomSubfields]),
+                      );
 
                       const isRichOrBody =
                         field.type === 'richtext' ||
@@ -605,132 +767,237 @@ export const TemplateEditorPage: React.FC = () => {
                           </div>
 
                           {isComponent ? (
-                            <div className="space-y-2.5">
-                              {/* Component Info & Quick Actions Banner */}
-                              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-violet-50/70 dark:bg-violet-950/30 border border-violet-200/70 dark:border-violet-900/40 text-xs">
-                                <div className="flex items-center gap-2">
-                                  <Boxes className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
-                                  <div>
-                                    <span className="font-semibold text-violet-950 dark:text-violet-200">
-                                      Component: {compDef ? compDef.name : field.component?.componentSlug || 'Embedded Group'}
-                                    </span>
-                                    <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300">
-                                      {isRepeatable ? 'Repeatable List' : 'Single Object'}
-                                    </span>
-                                    {compDef && (
-                                      <span className="ml-1 text-[10px] text-slate-400 font-mono">
-                                        (/{compDef.slug})
+                            <div className="space-y-3">
+                              {/* Component Header, Selector & Preset Bar */}
+                              <div className="p-3 rounded-xl bg-violet-50/70 dark:bg-violet-950/30 border border-violet-200/70 dark:border-violet-900/40 space-y-2.5 text-xs">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <Boxes className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-violet-950 dark:text-violet-200">
+                                        Component:
                                       </span>
-                                    )}
+                                      {/* Component Definition Selector */}
+                                      <select
+                                        value={compDef?.id || ''}
+                                        onChange={(e) => {
+                                          const selectedId = e.target.value;
+                                          setFieldComponentOverrides((prev) => ({
+                                            ...prev,
+                                            [field.name]: selectedId,
+                                          }));
+                                        }}
+                                        className="rounded-md border border-violet-300 dark:border-violet-800 bg-white dark:bg-slate-900 px-2 py-1 text-xs font-medium text-violet-950 dark:text-violet-200 focus:outline-none focus:ring-1 focus:ring-violet-500 shadow-xs"
+                                      >
+                                        <option value="">
+                                          {compDef ? `-- Switch Component (${compDef.name}) --` : '-- Select Component Definition --'}
+                                        </option>
+                                        {components.map((c) => (
+                                          <option key={c.id} value={c.id}>
+                                            {c.name} ({c.slug})
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300">
+                                        {isRepeatable ? 'Repeatable Array' : 'Single Object'}
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
 
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setFieldsDraft((prev) => ({
-                                        ...prev,
-                                        [field.name]: `{{${field.name}}}`,
-                                      }))
-                                    }
-                                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition"
-                                    title="Structured pass-through (preserves original object/array)"
-                                  >
-                                    Pass-Through (Default)
-                                  </button>
+                                  {/* 1-Click Quick Preset Actions */}
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCombineSubfields(
+                                          field.name,
+                                          allSubfieldNames,
+                                          isRepeatable,
+                                          'plain',
+                                        )
+                                      }
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold bg-violet-600 hover:bg-violet-700 text-white transition shadow-xs"
+                                      title="Combine keys in loop (e.g. firstname + lastname)"
+                                    >
+                                      <Sparkles className="h-3 w-3" />
+                                      <span>
+                                        Map & Combine Keys{' '}
+                                        {allSubfieldNames.length >= 2
+                                          ? `(${allSubfieldNames[0]} + ${allSubfieldNames[1]})`
+                                          : '(firstname + lastname)'}
+                                      </span>
+                                    </button>
 
-                                  {isRepeatable ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCombineSubfields(
+                                          field.name,
+                                          allSubfieldNames,
+                                          isRepeatable,
+                                          'html',
+                                        )
+                                      }
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition shadow-xs"
+                                      title="Generate HTML list or card with mapped keys"
+                                    >
+                                      <ListPlus className="h-3 w-3" />
+                                      <span>HTML List</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCombineSubfields(
+                                          field.name,
+                                          allSubfieldNames,
+                                          isRepeatable,
+                                          'json',
+                                        )
+                                      }
+                                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition shadow-xs"
+                                      title="Format mapped keys as JSON array/object"
+                                    >
+                                      <Code2 className="h-3 w-3" />
+                                      <span>JSON Array</span>
+                                    </button>
+
                                     <button
                                       type="button"
                                       onClick={() =>
                                         setFieldsDraft((prev) => ({
                                           ...prev,
-                                          [field.name]: `{{#each ${field.name}}}\n  <div class="${field.name}-item">\n${
-                                            compFields.length > 0
-                                              ? compFields.map((cf) => `    <p>{{this.${cf.name}}}</p>`).join('\n')
-                                              : '    <p>{{this}}</p>'
-                                          }\n  </div>\n{{/each}}`,
+                                          [field.name]: `{{{json ${field.name}}}}`,
                                         }))
                                       }
-                                      className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition"
-                                      title="Insert loop template"
+                                      className="px-2 py-1 rounded text-[10px] font-mono text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
+                                      title="Raw JSON pass-through"
                                     >
-                                      Insert Loop
+                                      Raw JSON
                                     </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setFieldsDraft((prev) => ({
-                                          ...prev,
-                                          [field.name]: compFields.length > 0
-                                            ? compFields.map((cf) => `{{${field.name}.${cf.name}}}`).join(' ')
-                                            : `{{${field.name}}}`,
-                                        }))
-                                      }
-                                      className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition"
-                                      title="Insert all subfields tag expression"
-                                    >
-                                      Insert Subfields
-                                    </button>
-                                  )}
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setFieldsDraft((prev) => ({
-                                        ...prev,
-                                        [field.name]: `{{{json ${field.name}}}}`,
-                                      }))
-                                    }
-                                    className="px-2 py-0.5 rounded text-[10px] font-mono text-violet-700 dark:text-violet-300 bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition"
-                                    title="Format as JSON string"
-                                  >
-                                    {'{{{json ' + field.name + '}}}'}
-                                  </button>
+                                  </div>
                                 </div>
                               </div>
 
-                              {/* Clickable Subfields Chips */}
-                              {compFields.length > 0 && (
-                                <div className="flex flex-wrap items-center gap-1.5 text-[11px] p-2 rounded-lg bg-violet-50/40 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/40">
-                                  <span className="text-slate-500 font-medium mr-1 text-[10px]">
-                                    Available Subfields ({compFields.length}):
-                                  </span>
-                                  {compFields.map((cf) => {
-                                    const tag = isRepeatable
-                                      ? `{{this.${cf.name}}}`
-                                      : `{{${field.name}.${cf.name}}}`;
-                                    return (
-                                      <button
-                                        key={cf.name}
-                                        type="button"
-                                        onClick={() => {
-                                          const current = fieldsDraft[field.name] || '';
-                                          const updated = current ? `${current} ${tag}` : tag;
-                                          setFieldsDraft((prev) => ({ ...prev, [field.name]: updated }));
-                                        }}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-800 font-mono text-[10px] text-violet-700 dark:text-violet-300 hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition shadow-xs"
-                                        title={`Insert ${tag}`}
-                                      >
-                                        <Plus className="h-2.5 w-2.5 text-violet-500" />
-                                        <span>{cf.label || cf.name}</span>
-                                        <span className="text-[9px] text-slate-400 font-sans">({cf.type})</span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                              {/* Subfields Selection & Custom Key Creation Bar */}
+                              <div className="p-3 rounded-xl bg-violet-50/40 dark:bg-violet-950/20 border border-violet-100 dark:border-violet-900/40 space-y-2.5">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <Tags className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                                      Available Subfields for Appending:
+                                    </span>
+                                    <span className="text-[10px] text-slate-500">
+                                      (Click any field to insert into {isRepeatable ? '{{#each}} loop' : 'template'})
+                                    </span>
+                                  </div>
 
+                                  {/* Inline input to add custom subfield key (e.g. firstname, lastname) */}
+                                  <div className="flex items-center gap-1.5">
+                                    <input
+                                      type="text"
+                                      placeholder="Custom key (e.g. firstname)"
+                                      value={newSubfieldInputs[field.name] || ''}
+                                      onChange={(e) =>
+                                        setNewSubfieldInputs((prev) => ({
+                                          ...prev,
+                                          [field.name]: e.target.value,
+                                        }))
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleAddCustomSubfield(field.name, isRepeatable);
+                                        }
+                                      }}
+                                      className="w-44 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAddCustomSubfield(field.name, isRepeatable)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300 hover:bg-violet-200 dark:hover:bg-violet-800 transition"
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                      <span>Add Key</span>
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Subfield Pills */}
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {allSubfieldNames.length > 0 ? (
+                                    allSubfieldNames.map((subName) => {
+                                      const schemaField = compFields.find((cf) => cf.name === subName);
+                                      const typeLabel = schemaField ? schemaField.type : 'custom';
+                                      const currentTemplate = fieldsDraft[field.name] || '';
+                                      const isInserted = isRepeatable
+                                        ? currentTemplate.includes(`{{this.${subName}}}`)
+                                        : currentTemplate.includes(`{{${field.name}.${subName}}}`);
+
+                                      return (
+                                        <button
+                                          key={subName}
+                                          type="button"
+                                          onClick={() =>
+                                            handleAppendSubfield(field.name, subName, isRepeatable)
+                                          }
+                                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono text-xs transition shadow-xs ${
+                                            isInserted
+                                              ? 'border-violet-400 bg-violet-100/80 dark:border-violet-700 dark:bg-violet-900/50 text-violet-900 dark:text-violet-200 font-semibold'
+                                              : 'border-violet-200 dark:border-violet-800 bg-white dark:bg-slate-800 text-violet-700 dark:text-violet-300 hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30'
+                                          }`}
+                                          title={`Click to append {{${isRepeatable ? `this.${subName}` : `${field.name}.${subName}`}}} into ${field.name}`}
+                                        >
+                                          <Plus className="h-3 w-3 text-violet-500" />
+                                          <span>{subName}</span>
+                                          <span className="text-[9px] text-slate-400 font-sans">
+                                            ({typeLabel})
+                                          </span>
+                                          {isInserted && (
+                                            <span className="h-1.5 w-1.5 rounded-full bg-violet-600 dark:bg-violet-400" />
+                                          )}
+                                        </button>
+                                      );
+                                    })
+                                  ) : (
+                                    <div className="flex flex-wrap items-center gap-2 py-1">
+                                      <span className="text-xs text-slate-500 italic">
+                                        No subfields defined yet. Quick suggestions:
+                                      </span>
+                                      {['firstname', 'lastname', 'title', 'url'].map((sug) => (
+                                        <button
+                                          key={sug}
+                                          type="button"
+                                          onClick={() =>
+                                            handleAddCustomSubfield(field.name, isRepeatable, sug)
+                                          }
+                                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-violet-300 dark:border-violet-700 bg-white dark:bg-slate-800 text-[11px] font-mono text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition"
+                                        >
+                                          <Plus className="h-2.5 w-2.5 text-violet-500" />
+                                          <span>+ {sug}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Handlebars Formula Textarea */}
                               <textarea
-                                rows={3}
+                                rows={4}
                                 value={fieldsDraft[field.name] || ''}
                                 onChange={(e) =>
-                                  setFieldsDraft((prev) => ({ ...prev, [field.name]: e.target.value }))
+                                  setFieldsDraft((prev) => ({
+                                    ...prev,
+                                    [field.name]: e.target.value,
+                                  }))
                                 }
-                                placeholder={`{{${field.name}}} for direct pass-through, or write Handlebars HTML/loop`}
-                                className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 font-mono text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                                placeholder={
+                                  isRepeatable
+                                    ? `{{#each ${field.name}}}\n  {{this.firstname}} {{this.lastname}}\n{{/each}}`
+                                    : `{{${field.name}.firstname}} {{${field.name}.lastname}}`
+                                }
+                                className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 font-mono text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-500 leading-relaxed"
                               />
                             </div>
                           ) : isDynamicZone ? (

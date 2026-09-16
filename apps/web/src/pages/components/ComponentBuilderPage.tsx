@@ -32,6 +32,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { usePermissions } from '../../hooks/usePermissions';
 import { AddFieldModal } from '../../components/schema-builder/AddFieldModal';
 import { FieldDefinition } from '@cms/shared-types';
+import { safeParseSchema } from '../../lib/utils';
 
 const FIELD_ICONS: Record<string, any> = {
   text: Type,
@@ -85,7 +86,8 @@ export const ComponentBuilderPage: React.FC = () => {
       setName(existingComponent.name);
       setSlug(existingComponent.slug);
       setCategory(existingComponent.category || 'default');
-      setFields(existingComponent.schema?.fields || []);
+      const parsed = safeParseSchema(existingComponent.schema);
+      setFields(parsed.fields || []);
     }
   }, [existingComponent]);
 

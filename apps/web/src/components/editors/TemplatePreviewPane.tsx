@@ -124,6 +124,8 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
             });
           } else {
             // If component definition is not yet available, generate helpful placeholders
+            mockItem.firstname = 'John';
+            mockItem.lastname = 'Doe';
             mockItem.name = 'Sample Item';
             mockItem.description = 'Dynamic component field payload';
           }
@@ -142,6 +144,8 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
                 }
               });
             } else {
+              secondItem.firstname = 'Jane';
+              secondItem.lastname = 'Smith';
               secondItem.name = 'Sample Item 2';
               secondItem.description = 'Dynamic component field payload (Item 2)';
             }
@@ -217,11 +221,48 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
         }
       };
 
+      // Scan each loops (e.g. {{#each seo}}...{{this.firstname}}...{{/each}})
+      const scanEachLoops = (tpl?: string) => {
+        if (!tpl) return;
+        const eachRegex = /\{\{#each\s+([a-zA-Z0-9_]+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
+        let eachMatch;
+        while ((eachMatch = eachRegex.exec(tpl)) !== null) {
+          const loopField = eachMatch[1];
+          const loopBody = eachMatch[2];
+          const thisRegex = /\{\{this\.([a-zA-Z0-9_]+)\}\}/g;
+          let thisMatch;
+          const loopSubfields: string[] = [];
+          while ((thisMatch = thisRegex.exec(loopBody)) !== null) {
+            loopSubfields.push(thisMatch[1]);
+          }
+          if (loopSubfields.length > 0) {
+            if (!sample[loopField] || !Array.isArray(sample[loopField])) {
+              sample[loopField] = [{}, {}];
+            }
+            sample[loopField].forEach((item: any, idx: number) => {
+              loopSubfields.forEach((sf) => {
+                if (item[sf] === undefined) {
+                  const sfLow = sf.toLowerCase();
+                  if (sfLow.includes('first')) item[sf] = idx === 0 ? 'John' : 'Jane';
+                  else if (sfLow.includes('last')) item[sf] = idx === 0 ? 'Doe' : 'Smith';
+                  else if (sfLow.includes('title')) item[sf] = idx === 0 ? 'First Item Title' : 'Second Item Title';
+                  else if (sfLow.includes('url') || sfLow.includes('link')) item[sf] = idx === 0 ? 'https://example.com/one' : 'https://example.com/two';
+                  else item[sf] = idx === 0 ? `Sample ${sf}` : `Sample ${sf} 2`;
+                }
+              });
+            });
+          }
+        }
+      };
+
       if (fieldsDraft) {
         Object.values(fieldsDraft).forEach(scanTemplate);
+        Object.values(fieldsDraft).forEach(scanEachLoops);
       }
       scanTemplate(bodyDraft);
       scanTemplate(subjectDraft);
+      scanEachLoops(bodyDraft);
+      scanEachLoops(subjectDraft);
 
       foundVars.forEach((path) => {
         const parts = path.split('.');
