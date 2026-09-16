@@ -21,6 +21,9 @@ import {
   Code,
   Copy,
   Check,
+  ArrowUp,
+  ArrowDown,
+  GripVertical,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
@@ -154,6 +157,53 @@ export const SchemaBuilderPage: React.FC = () => {
   const openEditField = (index: number) => {
     setEditingFieldIndex(index);
     setIsFieldModalOpen(true);
+  };
+
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  const handleMoveUp = (index: number) => {
+    if (index <= 0) return;
+    setFields((prev) => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[index - 1];
+      next[index - 1] = temp;
+      return next;
+    });
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index >= fields.length - 1) return;
+    setFields((prev) => {
+      const next = [...prev];
+      const temp = next[index];
+      next[index] = next[index + 1];
+      next[index + 1] = temp;
+      return next;
+    });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+    setFields((prev) => {
+      const next = [...prev];
+      const [movedItem] = next.splice(draggedIndex, 1);
+      next.splice(targetIndex, 0, movedItem);
+      return next;
+    });
+    setDraggedIndex(null);
   };
 
   if (isEditing && isLoading) {
@@ -360,12 +410,35 @@ export const SchemaBuilderPage: React.FC = () => {
           <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
             {fields.map((field, idx) => {
               const Icon = FIELD_ICONS[field.type] || Type;
+              const isFirst = idx === 0;
+              const isLast = idx === fields.length - 1;
+              const isDragging = draggedIndex === idx;
+
               return (
                 <div
-                  key={field.name}
-                  className="flex items-center justify-between p-3.5 bg-white dark:bg-slate-900 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition"
+                  key={`${field.name}-${idx}`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => handleDragOver(e)}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  className={`flex items-center justify-between p-3.5 bg-white dark:bg-slate-900 transition ${
+                    isDragging
+                      ? 'opacity-40 bg-indigo-50/50 dark:bg-indigo-950/20'
+                      : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
+                    {/* Drag Grip & Position Number */}
+                    <div
+                      className="flex items-center gap-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing select-none"
+                      title="Drag to reorder"
+                    >
+                      <GripVertical className="h-4 w-4" />
+                      <span className="font-mono text-[10px] text-slate-400 w-4 text-center">
+                        {idx + 1}
+                      </span>
+                    </div>
+
                     <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
                       <Icon className="h-4 w-4" />
                     </div>
@@ -402,9 +475,34 @@ export const SchemaBuilderPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-1">
+                    {/* Move Up Button */}
+                    <button
+                      type="button"
+                      disabled={isFirst}
+                      onClick={() => handleMoveUp(idx)}
+                      title="Move Up"
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+
+                    {/* Move Down Button */}
+                    <button
+                      type="button"
+                      disabled={isLast}
+                      onClick={() => handleMoveDown(idx)}
+                      title="Move Down"
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+
+                    <div className="h-4 w-px bg-slate-200 dark:border-slate-800 mx-1" />
+
                     <button
                       type="button"
                       onClick={() => openEditField(idx)}
+                      title="Edit Field"
                       className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition"
                     >
                       <Edit2 className="h-3.5 w-3.5" />
@@ -412,6 +510,7 @@ export const SchemaBuilderPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleRemoveField(idx)}
+                      title="Delete Field"
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
