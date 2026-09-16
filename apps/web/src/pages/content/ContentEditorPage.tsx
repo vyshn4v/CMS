@@ -12,9 +12,11 @@ import {
   CheckCircle,
   Clock,
   Trash2,
+  Lock,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
+import { usePermissions } from '../../hooks/usePermissions';
 import { ContentTypeDto, ContentEntryDto, SchemaDefinition } from '@cms/shared-types';
 import { DynamicFormRenderer } from '../../components/content/DynamicFormRenderer';
 
@@ -25,6 +27,8 @@ export const ContentEditorPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { activeOrg } = useAuthStore();
   const orgId = activeOrg?.id;
+  const { canEditContent, canCreateContent, canPublishContent, canDeleteContent, role } = usePermissions();
+  const canModify = isEditing ? canEditContent : canCreateContent;
 
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -65,6 +69,8 @@ export const ContentEditorPage: React.FC = () => {
   // Save or Publish mutation
   const saveMutation = useMutation({
     mutationFn: async (publish: boolean = false) => {
+      if (!orgId || !canModify) return;
+      if (publish && !canPublishContent) return;
       setFieldErrors({});
       setGeneralError(null);
 
@@ -116,7 +122,7 @@ export const ContentEditorPage: React.FC = () => {
   // Unpublish mutation
   const unpublishMutation = useMutation({
     mutationFn: async () => {
-      if (!id || id === 'new') return;
+      if (!id || id === 'new' || !canPublishContent) return;
       const res = await api.post(`/orgs/${orgId}/content/${slug}/${id}/unpublish`);
       return res.data.data || res.data;
     },
@@ -136,7 +142,7 @@ export const ContentEditorPage: React.FC = () => {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      if (!id || id === 'new') return;
+      if (!id || id === 'new' || !canDeleteContent) return;
       await api.delete(`/orgs/${orgId}/content/${slug}/${id}`);
     },
     onSuccess: () => {
@@ -221,7 +227,7 @@ export const ContentEditorPage: React.FC = () => {
 
         <div className="flex items-center gap-2">
           {/* Delete entry (editing mode only) */}
-          {isEditing && (
+          {isEditing && canDeleteContent && (
             <button
               type="button"
               disabled={deleteMutation.isPending}
@@ -238,7 +244,7 @@ export const ContentEditorPage: React.FC = () => {
           )}
 
           {/* Unpublish button (when already published) */}
-          {isEditing && isPublished && (
+          {isEditing && isPublished && canPublishContent && (
             <button
               type="button"
               disabled={unpublishMutation.isPending || saveMutation.isPending}
@@ -251,34 +257,53 @@ export const ContentEditorPage: React.FC = () => {
           )}
 
           {/* Save Draft Button */}
-          <button
-            type="button"
-            disabled={saveMutation.isPending || unpublishMutation.isPending}
-            onClick={() => saveMutation.mutate(false)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition"
-          >
-            <Save className="h-3.5 w-3.5" />
-            <span>{saveMutation.isPending && !saveMutation.variables ? 'Saving...' : 'Save Draft'}</span>
-          </button>
+          {canModify && (
+            <button
+              type="button"
+              disabled={saveMutation.isPending || unpublishMutation.isPending}
+              onClick={() => saveMutation.mutate(false)}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition"
+            >
+              <Save className="h-3.5 w-3.5" />
+              <span>{saveMutation.isPending && !saveMutation.variables ? 'Saving...' : 'Save Draft'}</span>
+            </button>
+          )}
 
           {/* Publish / Update & Publish Button */}
-          <button
-            type="button"
-            disabled={saveMutation.isPending || unpublishMutation.isPending}
-            onClick={() => saveMutation.mutate(true)}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition"
-          >
-            <Globe className="h-3.5 w-3.5" />
-            <span>
-              {saveMutation.isPending && saveMutation.variables
-                ? 'Publishing...'
-                : isPublished
-                ? 'Update & Publish'
-                : 'Publish'}
-            </span>
-          </button>
+          {canPublishContent && (
+            <button
+              type="button"
+              disabled={saveMutation.isPending || unpublishMutation.isPending}
+              onClick={() => saveMutation.mutate(true)}
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              <span>
+                {saveMutation.isPending && saveMutation.variables
+                  ? 'Publishing...'
+                  : isPublished
+                  ? 'Update & Publish'
+                  : 'Publish'}
+              </span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Read-Only Access Warning Banner */}
+      {!canModify && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-950/30 p-3.5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200 font-medium">
+            <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Read-Only Mode:</strong> You are viewing this content entry with the <strong>{role || 'Viewer'}</strong> role. Editing, saving, and publishing are restricted.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-200/80 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+            {role || 'Viewer'}
+          </span>
+        </div>
+      )}
 
       {generalError && (
         <div className="rounded-xl bg-red-50 dark:bg-red-950/40 p-3.5 text-xs text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900 flex items-start gap-2">
@@ -305,7 +330,7 @@ export const ContentEditorPage: React.FC = () => {
             values={formData}
             onChange={handleFieldChange}
             errors={fieldErrors}
-            disabled={saveMutation.isPending}
+            disabled={saveMutation.isPending || !canModify}
           />
         </div>
 

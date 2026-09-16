@@ -33,6 +33,7 @@ interface AddFieldModalProps {
   onSave: (field: FieldDefinition, index?: number | null) => void;
   initialField?: FieldDefinition | null;
   editingIndex?: number | null;
+  readOnly?: boolean;
 }
 
 const FIELD_TYPES: Array<{
@@ -141,6 +142,7 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
   onSave,
   initialField,
   editingIndex,
+  readOnly = false,
 }) => {
   const { activeOrg } = useAuthStore();
   const orgId = activeOrg?.id;
@@ -349,11 +351,18 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              {initialField ? 'Edit Field' : 'Add New Field'}
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <span>{readOnly ? 'View Field Details' : initialField ? 'Edit Field' : 'Add New Field'}</span>
+              {readOnly && (
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300">
+                  Read-Only
+                </span>
+              )}
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Choose a data type and configure properties and validation rules.
+              {readOnly
+                ? 'Field configuration and validation rules.'
+                : 'Choose a data type and configure properties and validation rules.'}
             </p>
           </div>
           <button
@@ -801,15 +810,17 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
                 onClick={onClose}
                 className="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
               >
-                Cancel
+                {readOnly ? 'Close' : 'Cancel'}
               </button>
-              <button
-                type="submit"
-                className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition flex items-center gap-1.5"
-              >
-                <Check className="h-3.5 w-3.5" />
-                <span>Save Field</span>
-              </button>
+              {!readOnly && (
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition flex items-center gap-1.5"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  <span>Save Field</span>
+                </button>
+              )}
             </div>
           </form>
         )}

@@ -12,9 +12,11 @@ import {
   Copy,
   Check,
   FileText,
+  Eye,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
+import { usePermissions } from '../../hooks/usePermissions';
 import { ContentTypeDto, ContentEntryListResponse, ContentEntryStatus } from '@cms/shared-types';
 
 export const ContentListPage: React.FC = () => {
@@ -23,6 +25,7 @@ export const ContentListPage: React.FC = () => {
   const orgId = activeOrg?.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { canCreateContent, canEditContent, canDeleteContent, canPublishContent } = usePermissions();
 
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<ContentEntryStatus | ''>('');
@@ -58,7 +61,7 @@ export const ContentListPage: React.FC = () => {
   // Publish / Unpublish mutation
   const togglePublishMutation = useMutation({
     mutationFn: async ({ id, isPublished }: { id: string; isPublished: boolean }) => {
-      if (!orgId || !slug) return;
+      if (!orgId || !slug || !canPublishContent) return;
       const endpoint = isPublished
         ? `/orgs/${orgId}/content/${slug}/${id}/unpublish`
         : `/orgs/${orgId}/content/${slug}/${id}/publish`;
@@ -75,7 +78,7 @@ export const ContentListPage: React.FC = () => {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!orgId || !slug) return;
+      if (!orgId || !slug || !canDeleteContent) return;
       await api.delete(`/orgs/${orgId}/content/${slug}/${id}`);
     },
     onSuccess: () => {
@@ -175,7 +178,7 @@ export const ContentListPage: React.FC = () => {
           </select>
 
           {/* New Entry Button */}
-          {!(contentType.kind === 'SINGLE' && entries.length > 0) && (
+          {canCreateContent && !(contentType.kind === 'SINGLE' && entries.length > 0) && (
             <button
               onClick={() => navigate(`/content/${slug}/new`)}
               className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
@@ -200,15 +203,19 @@ export const ContentListPage: React.FC = () => {
               No entries found
             </h3>
             <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              Create your first entry for this content model to draft and publish live content.
+              {canCreateContent
+                ? 'Create your first entry for this content model to draft and publish live content.'
+                : 'No entries currently exist for this content model.'}
             </p>
-            <button
-              onClick={() => navigate(`/content/${slug}/new`)}
-              className="mt-4 flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Create Entry</span>
-            </button>
+            {canCreateContent && (
+              <button
+                onClick={() => navigate(`/content/${slug}/new`)}
+                className="mt-4 flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Create Entry</span>
+              </button>
+            )}
           </div>
         ) : (
           <table className="w-full text-left text-xs">
@@ -265,40 +272,44 @@ export const ContentListPage: React.FC = () => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() =>
-                            togglePublishMutation.mutate({
-                              id: entry.id,
-                              isPublished,
-                            })
-                          }
-                          title={isPublished ? 'Unpublish' : 'Publish'}
-                          className={`p-1.5 rounded-lg border transition ${
-                            isPublished
-                              ? 'border-slate-200 dark:border-slate-700 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                              : 'border-emerald-200 dark:border-emerald-800 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
-                          }`}
-                        >
-                          {isPublished ? <Archive className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
-                        </button>
+                        {canPublishContent && (
+                          <button
+                            onClick={() =>
+                              togglePublishMutation.mutate({
+                                id: entry.id,
+                                isPublished,
+                              })
+                            }
+                            title={isPublished ? 'Unpublish' : 'Publish'}
+                            className={`p-1.5 rounded-lg border transition ${
+                              isPublished
+                                ? 'border-slate-200 dark:border-slate-700 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                                : 'border-emerald-200 dark:border-emerald-800 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                            }`}
+                          >
+                            {isPublished ? <Archive className="h-3.5 w-3.5" /> : <Globe className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
                         <button
                           onClick={() => navigate(`/content/${slug}/${entry.id}`)}
                           className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition"
-                          title="Edit Entry"
+                          title={canEditContent ? 'Edit Entry' : 'View Entry'}
                         >
-                          <Edit3 className="h-3.5 w-3.5" />
+                          {canEditContent ? <Edit3 className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                         </button>
-                        <button
-                          onClick={() => {
-                            if (confirm('Delete this entry permanently?')) {
-                              deleteMutation.mutate(entry.id);
-                            }
-                          }}
-                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600 text-slate-400 transition"
-                          title="Delete Entry"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        {canDeleteContent && (
+                          <button
+                            onClick={() => {
+                              if (confirm('Delete this entry permanently?')) {
+                                deleteMutation.mutate(entry.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-600 text-slate-400 transition"
+                            title="Delete Entry"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

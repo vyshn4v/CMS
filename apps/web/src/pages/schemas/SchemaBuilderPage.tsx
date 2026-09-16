@@ -25,9 +25,12 @@ import {
   ArrowUp,
   ArrowDown,
   GripVertical,
+  Lock,
+  Eye,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
+import { usePermissions } from '../../hooks/usePermissions';
 import { AddFieldModal } from '../../components/schema-builder/AddFieldModal';
 import { FieldDefinition, ContentTypeKind } from '@cms/shared-types';
 
@@ -51,8 +54,10 @@ export const SchemaBuilderPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { activeOrg } = useAuthStore();
   const orgId = activeOrg?.id;
+  const { canEditSchema, canCreateSchema, role } = usePermissions();
 
   const isEditing = Boolean(id && id !== 'new');
+  const canModify = isEditing ? canEditSchema : canCreateSchema;
   const defaultKind = (searchParams.get('kind') as ContentTypeKind) || 'COLLECTION';
 
   // Schema state
@@ -106,7 +111,7 @@ export const SchemaBuilderPage: React.FC = () => {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!orgId || !name.trim()) return;
+      if (!orgId || !name.trim() || !canModify) return;
 
       const payload = {
         name: name.trim(),
@@ -250,19 +255,36 @@ export const SchemaBuilderPage: React.FC = () => {
             onClick={() => navigate('/schemas')}
             className="px-3.5 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
           >
-            Cancel
+            {canModify ? 'Cancel' : 'Back to Content Types'}
           </button>
-          <button
-            type="button"
-            disabled={saveMutation.isPending || !name.trim()}
-            onClick={() => saveMutation.mutate()}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition"
-          >
-            <Save className="h-4 w-4" />
-            <span>{saveMutation.isPending ? 'Saving...' : 'Save Schema'}</span>
-          </button>
+          {canModify && (
+            <button
+              type="button"
+              disabled={saveMutation.isPending || !name.trim()}
+              onClick={() => saveMutation.mutate()}
+              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition"
+            >
+              <Save className="h-4 w-4" />
+              <span>{saveMutation.isPending ? 'Saving...' : 'Save Schema'}</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Read-Only Access Warning Banner for Viewers */}
+      {!canModify && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-950/30 p-3.5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200 font-medium">
+            <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Read-Only Mode:</strong> You are viewing this schema with the <strong>{role || 'Viewer'}</strong> role. Adding, reordering, editing, or saving fields is restricted.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-200/80 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+            {role || 'Viewer'}
+          </span>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="rounded-xl bg-red-50 dark:bg-red-950/40 p-3.5 text-xs text-red-700 dark:text-red-400 border border-red-200 dark:border-red-900 flex items-start gap-2">
@@ -285,6 +307,7 @@ export const SchemaBuilderPage: React.FC = () => {
             <input
               type="text"
               required
+              disabled={!canModify}
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -293,7 +316,7 @@ export const SchemaBuilderPage: React.FC = () => {
                 }
               }}
               placeholder="e.g. Article"
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -309,13 +332,13 @@ export const SchemaBuilderPage: React.FC = () => {
             <input
               type="text"
               required
-              disabled={isEditing}
+              disabled={isEditing || !canModify}
               value={slug}
               onChange={(e) =>
                 setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))
               }
               placeholder="e.g. articles"
-              className="mt-1 w-full font-mono rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
+              className="mt-1 w-full font-mono rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
             <p className="text-[10px] text-slate-400 mt-1">
               Used for dashboard routes. Generation/Render APIs consume <span className="font-mono font-medium text-slate-600 dark:text-slate-300">schemaId</span> to avoid conflicts.
@@ -328,8 +351,9 @@ export const SchemaBuilderPage: React.FC = () => {
             </label>
             <select
               value={kind}
+              disabled={!canModify}
               onChange={(e) => setKind(e.target.value as ContentTypeKind)}
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <option value="COLLECTION">Collection Type (Multiple Entries)</option>
               <option value="SINGLE">Single Type (One Static Entry)</option>
@@ -343,10 +367,11 @@ export const SchemaBuilderPage: React.FC = () => {
           </label>
           <input
             type="text"
+            disabled={!canModify}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Brief explanation of what this model holds..."
-            className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
           />
         </div>
       </div>
@@ -362,17 +387,19 @@ export const SchemaBuilderPage: React.FC = () => {
               Define the attributes for this model.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setEditingFieldIndex(null);
-              setIsFieldModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Add another field</span>
-          </button>
+          {canModify && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingFieldIndex(null);
+                setIsFieldModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add another field</span>
+            </button>
+          )}
         </div>
 
         {fields.length === 0 ? (
@@ -382,19 +409,23 @@ export const SchemaBuilderPage: React.FC = () => {
               No fields added yet
             </p>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Click below to choose a field type like Text, Rich Text, Number, or Date.
+              {canModify
+                ? 'Click below to choose a field type like Text, Rich Text, Number, or Date.'
+                : 'No fields are currently configured for this content model.'}
             </p>
-            <button
-              type="button"
-              onClick={() => {
-                setEditingFieldIndex(null);
-                setIsFieldModalOpen(true);
-              }}
-              className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Add Field</span>
-            </button>
+            {canModify && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingFieldIndex(null);
+                  setIsFieldModalOpen(true);
+                }}
+                className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Field</span>
+              </button>
+            )}
           </div>
         ) : (
           <DragDropContext onDragEnd={handleOnDragEnd}>
@@ -417,6 +448,7 @@ export const SchemaBuilderPage: React.FC = () => {
                         key={`${field.name}-${idx}`}
                         draggableId={`${field.name}-${idx}`}
                         index={idx}
+                        isDragDisabled={!canModify}
                       >
                         {(provided, snapshot) => (
                           <div
@@ -429,17 +461,29 @@ export const SchemaBuilderPage: React.FC = () => {
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              {/* Drag Grip Handle */}
-                              <div
-                                {...provided.dragHandleProps}
-                                className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 select-none transition"
-                                title="Drag to reorder"
-                              >
-                                <GripVertical className="h-4 w-4" />
-                                <span className="font-mono text-[10px] text-slate-400 w-4 text-center font-bold">
-                                  {idx + 1}
-                                </span>
-                              </div>
+                              {/* Drag Grip Handle or Read-Only Indicator */}
+                              {canModify ? (
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 select-none transition"
+                                  title="Drag to reorder"
+                                >
+                                  <GripVertical className="h-4 w-4" />
+                                  <span className="font-mono text-[10px] text-slate-400 w-4 text-center font-bold">
+                                    {idx + 1}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div
+                                  className="flex items-center gap-1.5 text-slate-400 p-1.5 rounded-lg select-none"
+                                  title="Field position (read-only)"
+                                >
+                                  <Lock className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600" />
+                                  <span className="font-mono text-[10px] text-slate-400 w-4 text-center font-bold">
+                                    {idx + 1}
+                                  </span>
+                                </div>
+                              )}
 
                               <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
                                 <Icon className="h-4 w-4" />
@@ -477,46 +521,52 @@ export const SchemaBuilderPage: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-1">
-                              {/* Move Up Button */}
-                              <button
-                                type="button"
-                                disabled={isFirst}
-                                onClick={() => handleMoveUp(idx)}
-                                title="Move Up"
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-                              >
-                                <ArrowUp className="h-3.5 w-3.5" />
-                              </button>
+                              {/* Move Up / Down Buttons (only for editors) */}
+                              {canModify && (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={isFirst}
+                                    onClick={() => handleMoveUp(idx)}
+                                    title="Move Up"
+                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                                  >
+                                    <ArrowUp className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isLast}
+                                    onClick={() => handleMoveDown(idx)}
+                                    title="Move Down"
+                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                                  >
+                                    <ArrowDown className="h-3.5 w-3.5" />
+                                  </button>
+                                  <div className="h-4 w-px bg-slate-200 dark:border-slate-800 mx-1" />
+                                </>
+                              )}
 
-                              {/* Move Down Button */}
-                              <button
-                                type="button"
-                                disabled={isLast}
-                                onClick={() => handleMoveDown(idx)}
-                                title="Move Down"
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-                              >
-                                <ArrowDown className="h-3.5 w-3.5" />
-                              </button>
-
-                              <div className="h-4 w-px bg-slate-200 dark:border-slate-800 mx-1" />
-
+                              {/* Edit or View Field Button */}
                               <button
                                 type="button"
                                 onClick={() => openEditField(idx)}
-                                title="Edit Field"
+                                title={canModify ? 'Edit Field' : 'View Field Details'}
                                 className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition"
                               >
-                                <Edit2 className="h-3.5 w-3.5" />
+                                {canModify ? <Edit2 className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveField(idx)}
-                                title="Delete Field"
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+
+                              {/* Delete Field Button (only for editors) */}
+                              {canModify && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveField(idx)}
+                                  title="Delete Field"
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}
@@ -536,6 +586,7 @@ export const SchemaBuilderPage: React.FC = () => {
           key={editingFieldIndex !== null ? `edit-${editingFieldIndex}-${fields[editingFieldIndex]?.name}` : 'new-field'}
           isOpen={isFieldModalOpen}
           editingIndex={editingFieldIndex}
+          readOnly={!canModify}
           onClose={() => {
             setIsFieldModalOpen(false);
             setEditingFieldIndex(null);

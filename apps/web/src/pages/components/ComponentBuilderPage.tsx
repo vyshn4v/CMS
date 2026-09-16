@@ -24,9 +24,12 @@ import {
   ArrowUp,
   ArrowDown,
   GripVertical,
+  Lock,
+  Eye,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
+import { usePermissions } from '../../hooks/usePermissions';
 import { AddFieldModal } from '../../components/schema-builder/AddFieldModal';
 import { FieldDefinition } from '@cms/shared-types';
 
@@ -50,8 +53,10 @@ export const ComponentBuilderPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { activeOrg } = useAuthStore();
   const orgId = activeOrg?.id;
+  const { canEditSchema, canCreateSchema, role } = usePermissions();
 
   const isEditing = Boolean(id && id !== 'new');
+  const canModify = isEditing ? canEditSchema : canCreateSchema;
 
   // Component state
   const [name, setName] = useState('');
@@ -86,7 +91,7 @@ export const ComponentBuilderPage: React.FC = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!orgId) return;
+      if (!orgId || !canModify) return;
       const payload = {
         name: name.trim(),
         slug: slug.trim() || undefined,
@@ -179,24 +184,41 @@ export const ComponentBuilderPage: React.FC = () => {
           className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Components
+          {canModify ? 'Back to Components' : 'Back to Components'}
         </button>
 
-        <button
-          onClick={() => {
-            if (!name.trim()) {
-              setErrorMessage('Component name is required');
-              return;
-            }
-            saveMutation.mutate();
-          }}
-          disabled={saveMutation.isPending}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition"
-        >
-          <Save className="h-4 w-4" />
-          {saveMutation.isPending ? 'Saving...' : isEditing ? 'Update Component' : 'Create Component'}
-        </button>
+        {canModify && (
+          <button
+            onClick={() => {
+              if (!name.trim()) {
+                setErrorMessage('Component name is required');
+                return;
+              }
+              saveMutation.mutate();
+            }}
+            disabled={saveMutation.isPending}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold rounded-lg shadow-sm transition"
+          >
+            <Save className="h-4 w-4" />
+            {saveMutation.isPending ? 'Saving...' : isEditing ? 'Update Component' : 'Create Component'}
+          </button>
+        )}
       </div>
+
+      {/* Read-Only Access Warning Banner for Viewers */}
+      {!canModify && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/80 dark:bg-amber-950/30 p-3.5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200 font-medium">
+            <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>Read-Only Mode:</strong> You are viewing this component with the <strong>{role || 'Viewer'}</strong> role. Adding, reordering, editing, or saving fields is restricted.
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-200/80 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300">
+            {role || 'Viewer'}
+          </span>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-lg text-xs text-rose-700 dark:text-rose-400 flex items-start gap-2">
@@ -223,6 +245,7 @@ export const ComponentBuilderPage: React.FC = () => {
               type="text"
               placeholder="e.g. SEO Metadata, Hero Banner"
               value={name}
+              disabled={!canModify}
               onChange={(e) => {
                 setName(e.target.value);
                 if (!isEditing) {
@@ -234,7 +257,7 @@ export const ComponentBuilderPage: React.FC = () => {
                   );
                 }
               }}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -247,8 +270,8 @@ export const ComponentBuilderPage: React.FC = () => {
               placeholder="e.g. seo-metadata"
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
-              disabled={isEditing}
-              className="w-full font-mono px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none"
+              disabled={isEditing || !canModify}
+              className="w-full font-mono px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -260,8 +283,9 @@ export const ComponentBuilderPage: React.FC = () => {
               type="text"
               placeholder="e.g. default, layout, marketing"
               value={category}
+              disabled={!canModify}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
         </div>
@@ -279,31 +303,39 @@ export const ComponentBuilderPage: React.FC = () => {
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              setEditingFieldIndex(null);
-              setIsFieldModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold transition"
-          >
-            <Plus className="h-4 w-4" />
-            Add Field
-          </button>
-        </div>
-
-        {fields.length === 0 ? (
-          <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-            <p className="text-xs text-slate-500 mb-3">No fields added to this component yet.</p>
+          {canModify && (
             <button
               onClick={() => {
                 setEditingFieldIndex(null);
                 setIsFieldModalOpen(true);
               }}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold transition"
             >
-              <Plus className="h-3.5 w-3.5" />
-              Add First Field
+              <Plus className="h-4 w-4" />
+              Add Field
             </button>
+          )}
+        </div>
+
+        {fields.length === 0 ? (
+          <div className="p-8 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+            <p className="text-xs text-slate-500 mb-3">
+              {canModify
+                ? 'No fields added to this component yet.'
+                : 'No fields are currently configured for this component.'}
+            </p>
+            {canModify && (
+              <button
+                onClick={() => {
+                  setEditingFieldIndex(null);
+                  setIsFieldModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add First Field
+              </button>
+            )}
           </div>
         ) : (
           <DragDropContext onDragEnd={handleOnDragEnd}>
@@ -326,6 +358,7 @@ export const ComponentBuilderPage: React.FC = () => {
                         key={`${field.name}-${idx}`}
                         draggableId={`${field.name}-${idx}`}
                         index={idx}
+                        isDragDisabled={!canModify}
                       >
                         {(provided, snapshot) => (
                           <div
@@ -338,17 +371,29 @@ export const ComponentBuilderPage: React.FC = () => {
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              {/* Drag Grip & Position Number */}
-                              <div
-                                {...provided.dragHandleProps}
-                                className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 select-none transition"
-                                title="Drag to reorder"
-                              >
-                                <GripVertical className="h-4 w-4" />
-                                <span className="font-mono text-[10px] text-slate-400 w-4 text-center font-bold">
-                                  {idx + 1}
-                                </span>
-                              </div>
+                              {/* Drag Grip Handle or Read-Only Indicator */}
+                              {canModify ? (
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 select-none transition"
+                                  title="Drag to reorder"
+                                >
+                                  <GripVertical className="h-4 w-4" />
+                                  <span className="font-mono text-[10px] text-slate-400 w-4 text-center font-bold">
+                                    {idx + 1}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div
+                                  className="flex items-center gap-1.5 text-slate-400 p-1.5 rounded-lg select-none"
+                                  title="Field position (read-only)"
+                                >
+                                  <Lock className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600" />
+                                  <span className="font-mono text-[10px] text-slate-400 w-4 text-center font-bold">
+                                    {idx + 1}
+                                  </span>
+                                </div>
+                              )}
 
                               <div className="h-7 w-7 rounded-md bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
                                 <Icon className="h-3.5 w-3.5" />
@@ -371,30 +416,34 @@ export const ComponentBuilderPage: React.FC = () => {
                             </div>
 
                             <div className="flex items-center gap-1">
-                              {/* Move Up */}
-                              <button
-                                type="button"
-                                disabled={isFirst}
-                                onClick={() => handleMoveUp(idx)}
-                                title="Move Up"
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-                              >
-                                <ArrowUp className="h-3.5 w-3.5" />
-                              </button>
+                              {/* Move Up / Down Buttons (only for editors) */}
+                              {canModify && (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={isFirst}
+                                    onClick={() => handleMoveUp(idx)}
+                                    title="Move Up"
+                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                                  >
+                                    <ArrowUp className="h-3.5 w-3.5" />
+                                  </button>
 
-                              {/* Move Down */}
-                              <button
-                                type="button"
-                                disabled={isLast}
-                                onClick={() => handleMoveDown(idx)}
-                                title="Move Down"
-                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-                              >
-                                <ArrowDown className="h-3.5 w-3.5" />
-                              </button>
+                                  <button
+                                    type="button"
+                                    disabled={isLast}
+                                    onClick={() => handleMoveDown(idx)}
+                                    title="Move Down"
+                                    className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                                  >
+                                    <ArrowDown className="h-3.5 w-3.5" />
+                                  </button>
 
-                              <div className="h-4 w-px bg-slate-200 dark:border-slate-800 mx-1" />
+                                  <div className="h-4 w-px bg-slate-200 dark:border-slate-800 mx-1" />
+                                </>
+                              )}
 
+                              {/* Edit or View Field Button */}
                               <button
                                 type="button"
                                 onClick={() => {
@@ -402,18 +451,22 @@ export const ComponentBuilderPage: React.FC = () => {
                                   setIsFieldModalOpen(true);
                                 }}
                                 className="p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded transition"
-                                title="Edit field"
+                                title={canModify ? 'Edit field' : 'View Field Details'}
                               >
-                                <Edit2 className="h-3.5 w-3.5" />
+                                {canModify ? <Edit2 className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteField(idx)}
-                                className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded transition"
-                                title="Delete field"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+
+                              {/* Delete Field Button (only for editors) */}
+                              {canModify && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteField(idx)}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded transition"
+                                  title="Delete field"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}
@@ -429,15 +482,20 @@ export const ComponentBuilderPage: React.FC = () => {
       </div>
 
       {/* FIELD MODAL */}
-      <AddFieldModal
-        isOpen={isFieldModalOpen}
-        onClose={() => {
-          setIsFieldModalOpen(false);
-          setEditingFieldIndex(null);
-        }}
-        onSave={handleAddField}
-        initialField={editingFieldIndex !== null ? fields[editingFieldIndex] : null}
-      />
+      {isFieldModalOpen && (
+        <AddFieldModal
+          key={editingFieldIndex !== null ? `edit-${editingFieldIndex}-${fields[editingFieldIndex]?.name}` : 'new-field'}
+          isOpen={isFieldModalOpen}
+          editingIndex={editingFieldIndex}
+          readOnly={!canModify}
+          onClose={() => {
+            setIsFieldModalOpen(false);
+            setEditingFieldIndex(null);
+          }}
+          onSave={handleAddField}
+          initialField={editingFieldIndex !== null ? fields[editingFieldIndex] : null}
+        />
+      )}
     </div>
   );
 };

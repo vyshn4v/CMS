@@ -11,15 +11,18 @@ import {
   Calendar,
   Layers,
   AlertTriangle,
+  Eye,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
+import { usePermissions } from '../../hooks/usePermissions';
 import { ComponentDto } from '@cms/shared-types';
 
 export const ComponentsListPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
   const queryClient = useQueryClient();
   const orgId = activeOrg?.id;
+  const { canCreateSchema, canEditSchema, canDeleteSchema } = usePermissions();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -39,7 +42,7 @@ export const ComponentsListPage: React.FC = () => {
   // Delete component mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!orgId) return;
+      if (!orgId || !canDeleteSchema) return;
       await api.delete(`/orgs/${orgId}/components/${id}`);
     },
     onSuccess: () => {
@@ -83,13 +86,15 @@ export const ComponentsListPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/components/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
-        >
-          <Plus className="h-4 w-4" />
-          Create Component
-        </Link>
+        {canCreateSchema && (
+          <Link
+            to="/components/new"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
+          >
+            <Plus className="h-4 w-4" />
+            Create Component
+          </Link>
+        )}
       </div>
 
       {/* Filter & Search Toolbar */}
@@ -151,15 +156,19 @@ export const ComponentsListPage: React.FC = () => {
           <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5">
             {searchTerm || selectedCategory !== 'ALL'
               ? 'No components matched your filters.'
-              : 'Create modular component schemas to embed in your content models.'}
+              : canCreateSchema
+              ? 'Create modular component schemas to embed in your content models.'
+              : 'No components have been configured yet.'}
           </p>
-          <Link
-            to="/components/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition"
-          >
-            <Plus className="h-4 w-4" />
-            Create Component
-          </Link>
+          {canCreateSchema && (
+            <Link
+              to="/components/new"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition"
+            >
+              <Plus className="h-4 w-4" />
+              Create Component
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -207,16 +216,28 @@ export const ComponentsListPage: React.FC = () => {
                     to={`/components/${component.id}`}
                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded transition"
                   >
-                    <Edit2 className="h-3.5 w-3.5" />
-                    Edit Schema
+                    {canEditSchema ? (
+                      <>
+                        <Edit2 className="h-3.5 w-3.5" />
+                        <span>Edit Schema</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>View Schema</span>
+                      </>
+                    )}
                   </Link>
-                  <button
-                    onClick={() => setComponentToDelete(component)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded transition"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Delete
-                  </button>
+                  {canDeleteSchema && (
+                    <button
+                      onClick={() => setComponentToDelete(component)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded transition"
+                      title="Delete component"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             );
