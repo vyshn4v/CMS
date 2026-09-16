@@ -141,7 +141,47 @@ export class RenderService {
 
       for (const [key, rawTpl] of Object.entries(fieldsPublished)) {
         if (!allowedFields || allowedFields.has(key)) {
-          renderedFields[key] = this.handlebarsService.render(rawTpl || '', context);
+          const trimmed = (rawTpl || '').trim();
+
+          // 1. Direct pass-through if template expression is {{key}} or {{{key}}} or empty
+          if (
+            (trimmed === `{{${key}}}` || trimmed === `{{{${key}}}}` || trimmed === '') &&
+            context[key] !== undefined
+          ) {
+            renderedFields[key] = context[key];
+            continue;
+          }
+
+          // 2. Render via Handlebars
+          let renderedVal: any = this.handlebarsService.render(rawTpl || '', context);
+
+          // 3. Graceful fallback: If Handlebars produced "[object Object]" and original input was an object/array, preserve original
+          if (
+            typeof renderedVal === 'string' &&
+            renderedVal.includes('[object Object]') &&
+            context[key] !== undefined &&
+            typeof context[key] === 'object'
+          ) {
+            renderedFields[key] = context[key];
+            continue;
+          }
+
+          // 4. Auto-parse JSON string outputs (e.g. from {{{json field}}})
+          if (typeof renderedVal === 'string') {
+            const s = renderedVal.trim();
+            if (
+              (s.startsWith('{') && s.endsWith('}')) ||
+              (s.startsWith('[') && s.endsWith(']'))
+            ) {
+              try {
+                renderedVal = JSON.parse(s);
+              } catch {
+                // keep as rendered string
+              }
+            }
+          }
+
+          renderedFields[key] = renderedVal;
         }
       }
 

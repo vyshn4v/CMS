@@ -18,11 +18,14 @@ import {
   PanelLeft,
   PanelRight,
   Layers,
+  Boxes,
+  Plus,
 } from 'lucide-react';
 import {
   TemplateDto,
   TemplateType,
   ContentTypeDto,
+  ComponentDto,
   FieldDefinition,
   CreateTemplateInput,
   UpdateTemplateInput,
@@ -56,6 +59,17 @@ export const TemplateEditorPage: React.FC = () => {
       if (!orgId) return [];
       const res = await api.get(`/orgs/${orgId}/schemas`);
       return res.data.data;
+    },
+    enabled: !!orgId,
+  });
+
+  // Fetch all components for subfield exploration and component assistance
+  const { data: components = [] } = useQuery<ComponentDto[]>({
+    queryKey: ['components', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      const res = await api.get(`/orgs/${orgId}/components`);
+      return res.data.data || res.data || [];
     },
     enabled: !!orgId,
   });
@@ -521,6 +535,19 @@ export const TemplateEditorPage: React.FC = () => {
                   {/* Render Model Fields */}
                   {((selectedSchema.schema as any)?.fields || []).length > 0 ? (
                     ((selectedSchema.schema as any)?.fields || []).map((field: any) => {
+                      const isComponent = field.type === 'component';
+                      const isDynamicZone = field.type === 'dynamiczone';
+                      const compDef = isComponent
+                        ? components.find(
+                            (c) =>
+                              c.id === field.component?.componentId ||
+                              c.slug === field.component?.componentSlug,
+                          )
+                        : null;
+                      const compFields: FieldDefinition[] =
+                        (compDef?.schema as any)?.fields || [];
+                      const isRepeatable = Boolean(field.component?.repeatable);
+
                       const isRichOrBody =
                         field.type === 'richtext' ||
                         field.type === 'json' ||
@@ -531,7 +558,7 @@ export const TemplateEditorPage: React.FC = () => {
                       return (
                         <div
                           key={field.name}
-                          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2 shadow-sm"
+                          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2.5 shadow-sm"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -547,7 +574,176 @@ export const TemplateEditorPage: React.FC = () => {
                             </span>
                           </div>
 
-                          {isRichOrBody ? (
+                          {isComponent ? (
+                            <div className="space-y-2.5">
+                              {/* Component Info & Quick Actions Banner */}
+                              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-violet-50/70 dark:bg-violet-950/30 border border-violet-200/70 dark:border-violet-900/40 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <Boxes className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                                  <div>
+                                    <span className="font-semibold text-violet-950 dark:text-violet-200">
+                                      Component: {compDef ? compDef.name : field.component?.componentSlug || 'Embedded Group'}
+                                    </span>
+                                    <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium bg-violet-100 dark:bg-violet-900/60 text-violet-700 dark:text-violet-300">
+                                      {isRepeatable ? 'Repeatable List' : 'Single Object'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setFieldsDraft((prev) => ({
+                                        ...prev,
+                                        [field.name]: `{{${field.name}}}`,
+                                      }))
+                                    }
+                                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition"
+                                    title="Structured pass-through (preserves original object/array)"
+                                  >
+                                    Pass-Through (Default)
+                                  </button>
+
+                                  {isRepeatable && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setFieldsDraft((prev) => ({
+                                          ...prev,
+                                          [field.name]: `{{#each ${field.name}}}\n  <div class="${field.name}-item">\n${
+                                            compFields.length > 0
+                                              ? compFields.map((cf) => `    <p>{{this.${cf.name}}}</p>`).join('\n')
+                                              : '    <p>{{this}}</p>'
+                                          }\n  </div>\n{{/each}}`,
+                                        }))
+                                      }
+                                      className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition"
+                                      title="Insert loop template"
+                                    >
+                                      Insert Loop
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setFieldsDraft((prev) => ({
+                                        ...prev,
+                                        [field.name]: `{{{json ${field.name}}}}`,
+                                      }))
+                                    }
+                                    className="px-2 py-0.5 rounded text-[10px] font-mono text-violet-700 dark:text-violet-300 bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition"
+                                    title="Format as JSON string"
+                                  >
+                                    {'{{{json ' + field.name + '}}}'}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Clickable Subfields Chips */}
+                              {compFields.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                                  <span className="text-slate-400 font-medium mr-1">Available Subfields:</span>
+                                  {compFields.map((cf) => {
+                                    const tag = isRepeatable
+                                      ? `{{this.${cf.name}}}`
+                                      : `{{${field.name}.${cf.name}}}`;
+                                    return (
+                                      <button
+                                        key={cf.name}
+                                        type="button"
+                                        onClick={() => {
+                                          const current = fieldsDraft[field.name] || '';
+                                          const updated = current ? `${current} ${tag}` : tag;
+                                          setFieldsDraft((prev) => ({ ...prev, [field.name]: updated }));
+                                        }}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono text-[10px] text-slate-700 dark:text-slate-300 hover:border-violet-400 hover:text-violet-600 dark:hover:text-violet-300 transition"
+                                        title={`Insert ${tag}`}
+                                      >
+                                        <Plus className="h-2.5 w-2.5 text-violet-500" />
+                                        <span>{cf.label || cf.name}</span>
+                                        <span className="text-[9px] text-slate-400 font-sans">({cf.type})</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              <textarea
+                                rows={3}
+                                value={fieldsDraft[field.name] || ''}
+                                onChange={(e) =>
+                                  setFieldsDraft((prev) => ({ ...prev, [field.name]: e.target.value }))
+                                }
+                                placeholder={`{{${field.name}}} for direct pass-through, or write Handlebars HTML/loop`}
+                                className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 font-mono text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                              />
+                            </div>
+                          ) : isDynamicZone ? (
+                            <div className="space-y-2.5">
+                              {/* Dynamic Zone Banner */}
+                              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                  <span className="font-semibold text-emerald-950 dark:text-emerald-200">
+                                    Dynamic Zone: {field.label || field.name}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setFieldsDraft((prev) => ({
+                                        ...prev,
+                                        [field.name]: `{{${field.name}}}`,
+                                      }))
+                                    }
+                                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition"
+                                  >
+                                    Pass-Through (Default)
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setFieldsDraft((prev) => ({
+                                        ...prev,
+                                        [field.name]: `{{#each ${field.name}}}\n  {{#ifEquals this.__component "hero"}}\n    <h1>{{this.heading}}</h1>\n  {{/ifEquals}}\n{{/each}}`,
+                                      }))
+                                    }
+                                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition"
+                                  >
+                                    Insert Block Loop
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setFieldsDraft((prev) => ({
+                                        ...prev,
+                                        [field.name]: `{{{json ${field.name}}}}`,
+                                      }))
+                                    }
+                                    className="px-2 py-0.5 rounded text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition"
+                                  >
+                                    {'{{{json ' + field.name + '}}}'}
+                                  </button>
+                                </div>
+                              </div>
+
+                              <textarea
+                                rows={3}
+                                value={fieldsDraft[field.name] || ''}
+                                onChange={(e) =>
+                                  setFieldsDraft((prev) => ({ ...prev, [field.name]: e.target.value }))
+                                }
+                                placeholder={`{{${field.name}}} for direct pass-through, or dynamic block loop template`}
+                                className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 font-mono text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              />
+                            </div>
+                          ) : isRichOrBody ? (
                             <DualModeEditor
                               content={fieldsDraft[field.name] || ''}
                               onChange={(val) =>
@@ -564,7 +760,7 @@ export const TemplateEditorPage: React.FC = () => {
                               onChange={(e) =>
                                 setFieldsDraft((prev) => ({ ...prev, [field.name]: e.target.value }))
                               }
-                              placeholder={`e.g. Order Confirmation for {{customer}} (#{{orderId}})`}
+                              placeholder={`e.g. {{${field.name}}}`}
                               className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             />
                           )}
@@ -642,6 +838,7 @@ export const TemplateEditorPage: React.FC = () => {
                 bodyDraft={bodyDraft}
                 subjectDraft={subjectDraft}
                 selectedSchema={selectedSchema}
+                components={components}
               />
             </div>
           )}

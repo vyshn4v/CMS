@@ -450,7 +450,47 @@ export class TemplateService {
     if (fieldsSource && typeof fieldsSource === 'object' && Object.keys(fieldsSource).length > 0) {
       const renderedFields: Record<string, any> = {};
       for (const [key, rawTpl] of Object.entries(fieldsSource)) {
-        renderedFields[key] = this.handlebarsService.render(rawTpl || '', contextData);
+        const trimmed = (rawTpl || '').trim();
+
+        // 1. Direct pass-through if template expression is {{key}} or {{{key}}} or empty
+        if (
+          (trimmed === `{{${key}}}` || trimmed === `{{{${key}}}}` || trimmed === '') &&
+          contextData[key] !== undefined
+        ) {
+          renderedFields[key] = contextData[key];
+          continue;
+        }
+
+        // 2. Render via Handlebars
+        let renderedVal: any = this.handlebarsService.render(rawTpl || '', contextData);
+
+        // 3. Graceful fallback: If Handlebars produced "[object Object]" and original input was an object/array, preserve original
+        if (
+          typeof renderedVal === 'string' &&
+          renderedVal.includes('[object Object]') &&
+          contextData[key] !== undefined &&
+          typeof contextData[key] === 'object'
+        ) {
+          renderedFields[key] = contextData[key];
+          continue;
+        }
+
+        // 4. Auto-parse JSON string outputs (e.g. from {{{json field}}})
+        if (typeof renderedVal === 'string') {
+          const s = renderedVal.trim();
+          if (
+            (s.startsWith('{') && s.endsWith('}')) ||
+            (s.startsWith('[') && s.endsWith(']'))
+          ) {
+            try {
+              renderedVal = JSON.parse(s);
+            } catch {
+              // keep as rendered string
+            }
+          }
+        }
+
+        renderedFields[key] = renderedVal;
       }
 
       return {
