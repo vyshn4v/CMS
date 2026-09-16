@@ -10,14 +10,17 @@ import {
   RenderOutputData,
 } from '@cms/shared-types';
 
+import { RedisService } from '../redis/redis.service';
+
 /**
- * Service managing template persistence, versioning (draft/published), and preview rendering.
+ * Service managing Handlebars templates, draft/publish workflow, and live preview.
  */
 @Injectable()
 export class TemplateService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly handlebarsService: HandlebarsService,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -253,6 +256,8 @@ export class TemplateService {
       },
     });
 
+    await this.redisService.invalidateTemplate(id, orgId);
+
     return updated;
   }
 
@@ -329,7 +334,7 @@ export class TemplateService {
       updateData.name = optionalDraftUpdates.name.trim();
     }
 
-    return this.prisma.template.update({
+    const published = await this.prisma.template.update({
       where: { id },
       data: updateData,
       include: {
@@ -338,6 +343,10 @@ export class TemplateService {
         },
       },
     });
+
+    await this.redisService.invalidateTemplate(id, orgId);
+
+    return published;
   }
 
   /**
@@ -346,7 +355,7 @@ export class TemplateService {
   async unpublish(orgId: string, id: string) {
     await this.findOne(orgId, id);
 
-    return this.prisma.template.update({
+    const unpublished = await this.prisma.template.update({
       where: { id },
       data: {
         status: 'DRAFT',
@@ -357,6 +366,10 @@ export class TemplateService {
         },
       },
     });
+
+    await this.redisService.invalidateTemplate(id, orgId);
+
+    return unpublished;
   }
 
   /**
@@ -364,7 +377,9 @@ export class TemplateService {
    */
   async remove(orgId: string, id: string) {
     await this.findOne(orgId, id);
-    return this.prisma.template.delete({ where: { id } });
+    const deleted = await this.prisma.template.delete({ where: { id } });
+    await this.redisService.invalidateTemplate(id, orgId);
+    return deleted;
   }
 
   /**

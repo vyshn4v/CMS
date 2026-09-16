@@ -19,6 +19,7 @@ import { SettingsLayout } from './pages/settings/SettingsLayout';
 import { MembersPage } from './pages/settings/MembersPage';
 import { RolesPage } from './pages/settings/RolesPage';
 import { ApiKeysPage } from './pages/settings/ApiKeysPage';
+import { AuditLogPage } from './pages/settings/AuditLogPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -131,6 +132,8 @@ export const App: React.FC = () => {
               <Route path="members" element={<MembersPage />} />
               <Route path="roles" element={<RolesPage />} />
               <Route path="api-keys" element={<ApiKeysPage />} />
+              <Route path="audit-logs" element={<AuditLogPage />} />
+              <Route path="audit-log" element={<Navigate to="audit-logs" replace />} />
             </Route>
           </Route>
 

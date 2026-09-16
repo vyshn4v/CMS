@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { HandlebarsService } from '../template/handlebars.service';
+import { RedisService } from '../redis/redis.service';
 import { RenderRequest, RenderData } from '@cms/shared-types';
 
 /**
@@ -16,6 +17,7 @@ export class RenderService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly handlebarsService: HandlebarsService,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -32,69 +34,85 @@ export class RenderService {
     }
 
     // 1. Resolve Target Template
-    let template;
+    let template: any = null;
     if (templateId) {
-      template = await this.prisma.template.findFirst({
-        where: { id: templateId, orgId },
-        include: {
-          contentType: {
-            select: { id: true, name: true, slug: true, schema: true },
-          },
-        },
-      });
-
+      template = await this.redisService.getPublishedTemplate<any>(templateId);
       if (!template) {
-        throw new NotFoundException({
-          code: 'TEMPLATE_NOT_FOUND',
-          message: `Template ${templateId} not found in this organization`,
+        template = await this.prisma.template.findFirst({
+          where: { id: templateId, orgId },
+          include: {
+            contentType: {
+              select: { id: true, name: true, slug: true, schema: true },
+            },
+          },
         });
-      }
 
-      if (!template.fieldsPublished && !template.bodyPublished) {
-        throw new BadRequestException({
-          code: 'TEMPLATE_NOT_PUBLISHED',
-          message: `Template "${template.name}" has no published version to render`,
-        });
+        if (!template) {
+          throw new NotFoundException({
+            code: 'TEMPLATE_NOT_FOUND',
+            message: `Template ${templateId} not found in this organization`,
+          });
+        }
+
+        if (!template.fieldsPublished && !template.bodyPublished) {
+          throw new BadRequestException({
+            code: 'TEMPLATE_NOT_PUBLISHED',
+            message: `Template "${template.name}" has no published version to render`,
+          });
+        }
+
+        await this.redisService.setPublishedTemplate(templateId, template);
       }
     } else if (schemaId) {
-      // Find published template matching schemaId (Model)
-      template = await this.prisma.template.findFirst({
-        where: {
-          contentTypeId: schemaId,
-          orgId,
-          OR: [
-            { fieldsPublished: { not: null } },
-            { bodyPublished: { not: null } },
-          ],
-        },
-        orderBy: { updatedAt: 'desc' },
-        include: {
-          contentType: {
-            select: { id: true, name: true, slug: true, schema: true },
-          },
-        },
-      });
-
+      const schemaTmplKey = `tmpl:pub:schema:${orgId}:${schemaId}`;
+      template = await this.redisService.get<any>(schemaTmplKey);
       if (!template) {
-        throw new NotFoundException({
-          code: 'TEMPLATE_NOT_FOUND',
-          message: `No published template found associated with model ${schemaId}`,
+        // Find published template matching schemaId (Model)
+        template = await this.prisma.template.findFirst({
+          where: {
+            contentTypeId: schemaId,
+            orgId,
+            OR: [
+              { fieldsPublished: { not: null } },
+              { bodyPublished: { not: null } },
+            ],
+          },
+          orderBy: { updatedAt: 'desc' },
+          include: {
+            contentType: {
+              select: { id: true, name: true, slug: true, schema: true },
+            },
+          },
         });
+
+        if (!template) {
+          throw new NotFoundException({
+            code: 'TEMPLATE_NOT_FOUND',
+            message: `No published template found associated with model ${schemaId}`,
+          });
+        }
+
+        await this.redisService.set(schemaTmplKey, template, 86400);
       }
     }
 
     // 2. Resolve Content Entry (if contentId provided)
     let contentData: Record<string, any> = {};
     if (contentId) {
-      const entry = await this.prisma.contentEntry.findFirst({
-        where: { id: contentId, orgId },
-      });
-
+      let entry = await this.redisService.getPublishedEntry<any>(contentId);
       if (!entry) {
-        throw new NotFoundException({
-          code: 'CONTENT_NOT_FOUND',
-          message: `Content entry ${contentId} not found in this organization`,
+        entry = await this.prisma.contentEntry.findFirst({
+          where: { id: contentId, orgId },
         });
+
+        if (!entry) {
+          throw new NotFoundException({
+            code: 'CONTENT_NOT_FOUND',
+            message: `Content entry ${contentId} not found in this organization`,
+          });
+        }
+
+        await this.redisService.setPublishedEntry(contentId, entry);
       }
 
       // In production render pipeline, publishedData is preferred

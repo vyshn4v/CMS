@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Users, Shield, Key } from 'lucide-react';
+import { Users, Shield, Key, History } from 'lucide-react';
 
 export const SettingsLayout: React.FC = () => {
   const tabs = [
     { label: 'Team Members', path: '/settings/members', icon: Users },
     { label: 'Roles & Permissions', path: '/settings/roles', icon: Shield },
     { label: 'API Keys', path: '/settings/api-keys', icon: Key },
+    { label: 'Audit Logs', path: '/settings/audit-logs', icon: History },
   ];
 
   return (

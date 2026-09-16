@@ -7,6 +7,7 @@ import {
   FileText,
   FileCode,
   Key,
+  History,
   Settings,
   LogOut,
   Building2,
@@ -172,9 +173,23 @@ export const AppLayout: React.FC = () => {
           </Link>
 
           <Link
+            to="/settings/audit-logs"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname === '/settings/audit-logs'
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <History className="h-4 w-4" />
+            Audit Logs
+          </Link>
+
+          <Link
             to="/settings/members"
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
-              location.pathname.startsWith('/settings') && location.pathname !== '/settings/api-keys'
+              location.pathname.startsWith('/settings') &&
+              location.pathname !== '/settings/api-keys' &&
+              location.pathname !== '/settings/audit-logs'
                 ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}

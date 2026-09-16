@@ -10,6 +10,8 @@ const dayjs: any = (dayjsModule as any).default || dayjsModule;
 @Injectable()
 export class HandlebarsService {
   private hbs: typeof Handlebars;
+  private readonly compiledCache = new Map<string, Handlebars.TemplateDelegate>();
+  private readonly MAX_CACHE_SIZE = 500;
 
   constructor() {
     this.hbs = Handlebars.create();
@@ -71,12 +73,27 @@ export class HandlebarsService {
   }
 
   /**
-   * Validates and compiles a template string into a Handlebars delegate.
+   * Validates and compiles a template string into a Handlebars delegate,
+   * accelerated with an in-memory compilation cache.
    * Throws BadRequestException on syntax errors.
    */
   public compile(templateStr: string): Handlebars.TemplateDelegate {
+    const raw = templateStr || '';
+    const cached = this.compiledCache.get(raw);
+    if (cached) {
+      return cached;
+    }
+
     try {
-      return this.hbs.compile(templateStr || '', { noEscape: false });
+      const compiled = this.hbs.compile(raw, { noEscape: false });
+      if (this.compiledCache.size >= this.MAX_CACHE_SIZE) {
+        const firstKey = this.compiledCache.keys().next().value;
+        if (firstKey !== undefined) {
+          this.compiledCache.delete(firstKey);
+        }
+      }
+      this.compiledCache.set(raw, compiled);
+      return compiled;
     } catch (err: any) {
       throw new BadRequestException({
         code: 'TEMPLATE_SYNTAX_ERROR',

@@ -14,6 +14,7 @@ import {
 } from '@cms/shared-types';
 import { validateEntryData } from '../schema/validators/zod-builder';
 import { populateEntryRelations } from '../schema/validators/relation-resolver';
+import { RedisService } from '../redis/redis.service';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -22,7 +23,10 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
  */
 @Injectable()
 export class ContentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
 
   /**
    * Helper to resolve a ContentType either by slug or by schemaId (UUID).
@@ -311,6 +315,8 @@ export class ContentService {
       },
     });
 
+    await this.redisService.invalidateEntry(id);
+
     return {
       id: updated.id,
       contentTypeId: updated.contentTypeId,
@@ -376,6 +382,8 @@ export class ContentService {
       },
     });
 
+    await this.redisService.invalidateEntry(id);
+
     return {
       id: published.id,
       contentTypeId: published.contentTypeId,
@@ -427,6 +435,8 @@ export class ContentService {
       },
     });
 
+    await this.redisService.invalidateEntry(id);
+
     return {
       id: unpublished.id,
       contentTypeId: unpublished.contentTypeId,
@@ -462,6 +472,8 @@ export class ContentService {
     await this.prisma.contentEntry.delete({
       where: { id },
     });
+
+    await this.redisService.invalidateEntry(id);
 
     return { success: true };
   }

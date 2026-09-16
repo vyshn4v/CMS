@@ -12,12 +12,17 @@ import {
   PermissionGroupDto,
 } from '@cms/shared-types';
 
+import { RedisService } from '../redis/redis.service';
+
 /**
  * Service managing RBAC permissions and organization-scoped custom roles.
  */
 @Injectable()
 export class RoleService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
 
   /**
    * Retrieve all system permissions grouped by domain.
@@ -170,6 +175,8 @@ export class RoleService {
         },
       },
     });
+
+    await this.redisService.invalidateAllOrgPermissions(orgId);
 
     return {
       id: updated.id,
