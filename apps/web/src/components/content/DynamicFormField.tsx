@@ -1,5 +1,8 @@
 import React from 'react';
 import { FieldDefinition } from '@cms/shared-types';
+import { RelationPicker } from './fields/RelationPicker';
+import { ComponentForm } from './fields/ComponentForm';
+import { DynamicZoneEditor } from './fields/DynamicZoneEditor';
 
 interface DynamicFormFieldProps {
   field: FieldDefinition;
@@ -200,6 +203,33 @@ export const DynamicFormField: React.FC<DynamicFormFieldProps> = ({
               ? 'border-red-400 bg-red-50/20 focus:ring-red-500'
               : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:ring-indigo-500 text-slate-900 dark:text-slate-100'
           }`}
+        />
+      )}
+
+      {type === 'relation' && (
+        <RelationPicker
+          field={field}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      )}
+
+      {type === 'component' && (
+        <ComponentForm
+          field={field}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      )}
+
+      {type === 'dynamiczone' && (
+        <DynamicZoneEditor
+          field={field}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
         />
       )}
 

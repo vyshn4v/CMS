@@ -19,6 +19,7 @@ export interface ContentEntryDto {
   data: Record<string, any>;
   publishedData?: Record<string, any> | null;
   publishedAt?: string | null;
+  _populated?: Record<string, any>;
   createdAt: string;
   updatedAt: string;
 }

@@ -11,6 +11,8 @@ import { ContentListPage } from './pages/content/ContentListPage';
 import { ContentEditorPage } from './pages/content/ContentEditorPage';
 import { SchemasListPage } from './pages/schemas/SchemasListPage';
 import { SchemaBuilderPage } from './pages/schemas/SchemaBuilderPage';
+import { ComponentsListPage } from './pages/components/ComponentsListPage';
+import { ComponentBuilderPage } from './pages/components/ComponentBuilderPage';
 import { TemplatesListPage } from './pages/templates/TemplatesListPage';
 import { TemplateEditorPage } from './pages/templates/TemplateEditorPage';
 import { SettingsLayout } from './pages/settings/SettingsLayout';
@@ -112,6 +114,11 @@ export const App: React.FC = () => {
             <Route path="schemas" element={<SchemasListPage />} />
             <Route path="schemas/new" element={<SchemaBuilderPage />} />
             <Route path="schemas/:id" element={<SchemaBuilderPage />} />
+
+            {/* Component Library */}
+            <Route path="components" element={<ComponentsListPage />} />
+            <Route path="components/new" element={<ComponentBuilderPage />} />
+            <Route path="components/:id" element={<ComponentBuilderPage />} />
 
             {/* Templates Studio */}
             <Route path="templates" element={<TemplatesListPage />} />

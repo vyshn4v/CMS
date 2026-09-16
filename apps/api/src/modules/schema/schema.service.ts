@@ -9,6 +9,9 @@ import {
   UpdateContentTypeInput,
   ContentTypeDto,
   FieldDefinition,
+  ComponentDto,
+  CreateComponentInput,
+  UpdateComponentInput,
 } from '@cms/shared-types';
 
 /**
@@ -225,4 +228,159 @@ export class SchemaService {
       names.add(field.name.toLowerCase());
     }
   }
+
+  // =========================================================================
+  // REUSABLE COMPONENTS
+  // =========================================================================
+
+  /**
+   * List all reusable components for an organization.
+   */
+  async listComponents(orgId: string): Promise<ComponentDto[]> {
+    const components = await this.prisma.component.findMany({
+      where: { orgId },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    });
+
+    return components.map((c) => ({
+      id: c.id,
+      orgId: c.orgId,
+      name: c.name,
+      slug: c.slug,
+      category: c.category,
+      schema: c.schema as any,
+      createdAt: c.createdAt.toISOString(),
+    }));
+  }
+
+  /**
+   * Retrieve a single component by ID.
+   */
+  async getComponentById(orgId: string, id: string): Promise<ComponentDto> {
+    const component = await this.prisma.component.findFirst({
+      where: { id, orgId },
+    });
+
+    if (!component) {
+      throw new NotFoundException(`Component ${id} not found`);
+    }
+
+    return {
+      id: component.id,
+      orgId: component.orgId,
+      name: component.name,
+      slug: component.slug,
+      category: component.category,
+      schema: component.schema as any,
+      createdAt: component.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * Create a new reusable component.
+   */
+  async createComponent(orgId: string, input: CreateComponentInput): Promise<ComponentDto> {
+    if (!input.name || input.name.trim().length < 2) {
+      throw new BadRequestException('Component name must be at least 2 characters');
+    }
+
+    const slug =
+      input.slug?.trim() ||
+      input.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+
+    const existing = await this.prisma.component.findUnique({
+      where: { orgId_slug: { orgId, slug } },
+    });
+
+    if (existing) {
+      throw new BadRequestException(`Component with slug "${slug}" already exists`);
+    }
+
+    if (input.schema?.fields) {
+      this.validateFields(input.schema.fields);
+    }
+
+    const record = await this.prisma.component.create({
+      data: {
+        orgId,
+        name: input.name.trim(),
+        slug,
+        category: input.category?.trim() || 'default',
+        schema: (input.schema || { fields: [] }) as any,
+      },
+    });
+
+    return {
+      id: record.id,
+      orgId: record.orgId,
+      name: record.name,
+      slug: record.slug,
+      category: record.category,
+      schema: record.schema as any,
+      createdAt: record.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * Update an existing component.
+   */
+  async updateComponent(
+    orgId: string,
+    id: string,
+    input: UpdateComponentInput,
+  ): Promise<ComponentDto> {
+    const component = await this.prisma.component.findFirst({
+      where: { id, orgId },
+    });
+
+    if (!component) {
+      throw new NotFoundException(`Component ${id} not found`);
+    }
+
+    if (input.schema?.fields) {
+      this.validateFields(input.schema.fields);
+    }
+
+    const updated = await this.prisma.component.update({
+      where: { id },
+      data: {
+        ...(input.name ? { name: input.name.trim() } : {}),
+        ...(input.category ? { category: input.category.trim() } : {}),
+        ...(input.schema ? { schema: input.schema as any } : {}),
+      },
+    });
+
+    return {
+      id: updated.id,
+      orgId: updated.orgId,
+      name: updated.name,
+      slug: updated.slug,
+      category: updated.category,
+      schema: updated.schema as any,
+      createdAt: updated.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * Delete a component.
+   */
+  async deleteComponent(orgId: string, id: string): Promise<{ success: boolean }> {
+    const component = await this.prisma.component.findFirst({
+      where: { id, orgId },
+    });
+
+    if (!component) {
+      throw new NotFoundException(`Component ${id} not found`);
+    }
+
+    await this.prisma.component.delete({
+      where: { id },
+    });
+
+    return { success: true };
+  }
 }
+

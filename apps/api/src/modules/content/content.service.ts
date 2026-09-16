@@ -13,6 +13,7 @@ import {
   SchemaDefinition,
 } from '@cms/shared-types';
 import { validateEntryData } from '../schema/validators/zod-builder';
+import { populateEntryRelations } from '../schema/validators/relation-resolver';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -160,6 +161,13 @@ export class ContentService {
       throw new NotFoundException('Content entry not found');
     }
 
+    const populated = await populateEntryRelations(
+      this.prisma,
+      orgId,
+      contentType.schema as any,
+      entry.data as any,
+    );
+
     return {
       id: entry.id,
       contentTypeId: entry.contentTypeId,
@@ -170,6 +178,7 @@ export class ContentService {
       data: (entry.data as Record<string, any>) || {},
       publishedData: entry.publishedData as Record<string, any> | null,
       publishedAt: entry.publishedAt ? entry.publishedAt.toISOString() : null,
+      _populated: populated,
       createdAt: entry.createdAt.toISOString(),
       updatedAt: entry.updatedAt.toISOString(),
     };

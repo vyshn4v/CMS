@@ -1,6 +1,6 @@
 # CMS Headless — Project Implementation Tracker
 
-**Current Status**: **Phase 6 Completed** | **Phase 7 Pending (Next Up)**  
+**Current Status**: **Phase 7 Completed** | **Phase 8 Pending (Next Up)**  
 **Active Branch**: `dev`  
 **Services Running**: Backend API (`:5000`), Vite Web App (`:5173`), Docker Postgres (`:5434`), Docker Redis (`:6379`)
 
@@ -15,14 +15,14 @@
 | **3** | **Schema Builder** (JSONB Fields, Dynamic Zod Compiler, Drag & Drop Studio) | ✅ Completed | Data Modeling |
 | **4** | **Content Entries** (Dynamic Form Renderer, CRUD, Draft/Publish Workflow) | ✅ Completed | Content Authoring |
 | **5** | **Template Engine** (Handlebars, Dual-Mode TipTap/Monaco, Live Preview) | ✅ Completed | Template Authoring |
-| **6** | **Render API & API Keys** (`POST /render`, Key Generation/Hashing, Guard) | ✅ **Completed** | Public Integrations |
-| **7** | **Advanced Schema** (Relations, Composable Components, Dynamic Zones) | ⏳ **PENDING (UP NEXT)** | Advanced Modeling |
-| **8** | **Caching & Audit** (Redis Template Cache, `AuditInterceptor`, Audit Viewer) | ⏳ Pending | Performance & Ops |
+| **6** | **Render API & API Keys** (`POST /render`, Key Generation/Hashing, Guard) | ✅ Completed | Public Integrations |
+| **7** | **Advanced Schema** (Relations, Composable Components, Dynamic Zones) | ✅ **Completed** | Advanced Modeling |
+| **8** | **Caching & Audit** (Redis Template Cache, `AuditInterceptor`, Audit Viewer) | ⏳ **PENDING (UP NEXT)** | Performance & Ops |
 | **9** | **Polish & Deploy** (E2E Tests, Docker Monolith, Oracle 1GB Free Tier) | ⏳ Pending | Production Launch |
 
 ---
 
-## ✅ Completed Phases (1 – 6)
+## ✅ Completed Phases (1 – 7)
 
 ### Phase 1: Foundation & Auth
 - [x] Nx Monorepo setup (`apps/api`, `apps/web`, `libs/shared-types`).
@@ -73,28 +73,31 @@
   - [x] Key creation modal and secure one-time secret display dialog with 1-click clipboard copy.
   - [x] Revocation confirmation dialog with immediate access termination.
 
+### Phase 7: Advanced Schema — Relations, Components, Dynamic Zones
+- [x] Reusable Components Backend (`apps/api/src/modules/schema/components.controller.ts`):
+  - [x] Component CRUD endpoints (`GET /components`, `POST /components`, `GET /components/:id`, `PATCH /components/:id`, `DELETE /components/:id`).
+  - [x] Component model in PostgreSQL via Prisma with JSONB field schema.
+- [x] Relation Resolution Pipeline:
+  - [x] `relation-resolver.ts` populating target entries for `one-to-one`, `one-to-many`, `many-to-one`, `many-to-many`.
+  - [x] Automatically attaches `_populated` relations map on entry retrieval.
+- [x] Visual Field Builder Extension (`AddFieldModal.tsx`):
+  - [x] Configuration for `relation` fields (target schema, relation cardinality, display field).
+  - [x] Configuration for `component` fields (target component selector, repeatable toggle).
+  - [x] Configuration for `dynamiczone` fields (allowed component multi-select).
+- [x] Frontend Component Studio (`apps/web/src/pages/components/`):
+  - [x] Component Library list page (`ComponentsListPage.tsx`) with category filtering and search.
+  - [x] Component Builder page (`ComponentBuilderPage.tsx`) for authoring modular schemas.
+  - [x] Sidebar navigation entry in `AppLayout.tsx`.
+- [x] Advanced Form Controls:
+  - [x] `RelationPicker.tsx` searchable relation selection with live badge chips.
+  - [x] `ComponentForm.tsx` embedded schema form supporting single and repeatable arrays with add/remove.
+  - [x] `DynamicZoneEditor.tsx` dynamic block composer with component picker, block reordering, and item delete.
+
 ---
 
-## ⏳ Pending Phases (7 – 9)
+## ⏳ Pending Phases (8 – 9)
 
-### 📦 Phase 7: Advanced Schema — Relations, Components, Dynamic Zones (NEXT UP)
-*Goal: Enable complex, nested Strapi-like composable schemas.*
-
-- [ ] **Relations**:
-  - [ ] Relation types: `one-to-one`, `one-to-many`, `many-to-many`.
-  - [ ] Relation resolution in content validation and entry API.
-  - [ ] Frontend `RelationPicker` search-and-select component.
-- [ ] **Reusable Components**:
-  - [ ] Component definitions table and schema CRUD (`/orgs/:orgId/components`).
-  - [ ] Embedded component fields (`single` and `repeatable`).
-  - [ ] Frontend `ComponentForm` renderer.
-- [ ] **Dynamic Zones**:
-  - [ ] Dynamic zone field type allowing multiple allowed component types.
-  - [ ] Dynamic zone block selector and reordering controls in content editor.
-
----
-
-### ⚡ Phase 8: Redis Caching, Audit Logging & Performance
+### ⚡ Phase 8: Redis Caching, Audit Logging & Performance (NEXT UP)
 *Goal: Sub-millisecond template rendering, mutation auditing, and Oracle 1GB memory tuning.*
 
 - [ ] **Redis Caching Layer**:
