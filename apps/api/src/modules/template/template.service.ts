@@ -95,18 +95,28 @@ export class TemplateService {
   /**
    * Creates a new template. Optionally publishes it immediately if `publish: true`.
    */
+  /**
+   * Creates a new template. Optionally publishes it immediately if `publish: true`.
+   */
   async create(orgId: string, input: CreateTemplateInput) {
     if (!input.name || !input.name.trim()) {
       throw new BadRequestException('Template name is required');
     }
 
-    // Verify Handlebars syntax before storing
-    this.handlebarsService.compile(input.bodyDraft || '');
-    if (input.type === 'EMAIL' && input.subjectDraft) {
-      this.handlebarsService.compile(input.subjectDraft);
+    const fieldsDraft = input.fieldsDraft || null;
+    if (fieldsDraft && typeof fieldsDraft === 'object') {
+      for (const [key, val] of Object.entries(fieldsDraft)) {
+        if (typeof val === 'string') {
+          this.handlebarsService.compile(val);
+        }
+      }
+    } else {
+      this.handlebarsService.compile(input.bodyDraft || '');
+      if (input.type === 'EMAIL' && input.subjectDraft) {
+        this.handlebarsService.compile(input.subjectDraft);
+      }
     }
 
-    // Verify contentType association if provided
     if (input.contentTypeId) {
       const contentType = await this.prisma.contentType.findFirst({
         where: { id: input.contentTypeId, orgId },
@@ -117,23 +127,31 @@ export class TemplateService {
     }
 
     const shouldPublish = Boolean(input.publish);
+    const bodyDraft =
+      input.bodyDraft ||
+      (fieldsDraft ? fieldsDraft.body || fieldsDraft.html || JSON.stringify(fieldsDraft) : '');
+    const subjectDraft =
+      input.subjectDraft ||
+      (fieldsDraft ? fieldsDraft.subject || fieldsDraft.sub || null : null);
 
     const template = await this.prisma.template.create({
       data: {
         org: { connect: { id: orgId } },
         name: input.name.trim(),
-        type: input.type || 'EMAIL',
-        bodyDraft: input.bodyDraft || '',
-        subjectDraft: input.subjectDraft || null,
+        type: input.type || 'CUSTOM',
+        fieldsDraft: fieldsDraft as any,
+        fieldsPublished: shouldPublish ? (fieldsDraft as any) : null,
+        bodyDraft,
+        subjectDraft,
         status: shouldPublish ? 'PUBLISHED' : 'DRAFT',
-        bodyPublished: shouldPublish ? input.bodyDraft || '' : null,
-        subjectPublished: shouldPublish ? input.subjectDraft || null : null,
+        bodyPublished: shouldPublish ? bodyDraft : null,
+        subjectPublished: shouldPublish ? subjectDraft : null,
         publishedAt: shouldPublish ? new Date() : null,
         ...(input.contentTypeId ? { contentType: { connect: { id: input.contentTypeId } } } : {}),
       },
       include: {
         contentType: {
-          select: { id: true, name: true, slug: true },
+          select: { id: true, name: true, slug: true, schema: true },
         },
       },
     });
@@ -147,7 +165,15 @@ export class TemplateService {
   async update(orgId: string, id: string, input: UpdateTemplateInput) {
     await this.findOne(orgId, id);
 
-    // Validate Handlebars syntax if body or subject are provided
+    const fieldsDraft = input.fieldsDraft;
+    if (fieldsDraft && typeof fieldsDraft === 'object') {
+      for (const [key, val] of Object.entries(fieldsDraft)) {
+        if (typeof val === 'string') {
+          this.handlebarsService.compile(val);
+        }
+      }
+    }
+
     if (input.bodyDraft !== undefined) {
       this.handlebarsService.compile(input.bodyDraft);
     }
@@ -155,7 +181,6 @@ export class TemplateService {
       this.handlebarsService.compile(input.subjectDraft);
     }
 
-    // Verify contentType association if provided
     if (input.contentTypeId) {
       const contentType = await this.prisma.contentType.findFirst({
         where: { id: input.contentTypeId, orgId },
@@ -168,8 +193,17 @@ export class TemplateService {
     const data: any = {};
     if (input.name !== undefined) data.name = input.name.trim();
     if (input.type !== undefined) data.type = input.type;
-    if (input.bodyDraft !== undefined) data.bodyDraft = input.bodyDraft;
-    if (input.subjectDraft !== undefined) data.subjectDraft = input.subjectDraft;
+    if (fieldsDraft !== undefined) {
+      data.fieldsDraft = fieldsDraft;
+      if (fieldsDraft.body || fieldsDraft.html) {
+        data.bodyDraft = fieldsDraft.body || fieldsDraft.html;
+      }
+      if (fieldsDraft.subject || fieldsDraft.sub) {
+        data.subjectDraft = fieldsDraft.subject || fieldsDraft.sub;
+      }
+    }
+    if (input.bodyDraft !== undefined && !data.bodyDraft) data.bodyDraft = input.bodyDraft;
+    if (input.subjectDraft !== undefined && !data.subjectDraft) data.subjectDraft = input.subjectDraft;
     if (input.contentTypeId !== undefined) {
       data.contentType = input.contentTypeId ? { connect: { id: input.contentTypeId } } : { disconnect: true };
     }
@@ -179,7 +213,7 @@ export class TemplateService {
       data,
       include: {
         contentType: {
-          select: { id: true, name: true, slug: true },
+          select: { id: true, name: true, slug: true, schema: true },
         },
       },
     });
@@ -188,30 +222,51 @@ export class TemplateService {
   }
 
   /**
-   * Publishes the template, creating an immutable published snapshot of body and subject.
+   * Publishes the template, creating an immutable published snapshot of body, subject, and fields.
    */
   async publish(
     orgId: string,
     id: string,
-    optionalDraftUpdates?: { bodyDraft?: string; subjectDraft?: string; name?: string },
+    optionalDraftUpdates?: {
+      bodyDraft?: string;
+      subjectDraft?: string;
+      name?: string;
+      fieldsDraft?: Record<string, string>;
+    },
   ) {
     const template = await this.findOne(orgId, id);
 
-    const bodyToPublish = optionalDraftUpdates?.bodyDraft !== undefined
-      ? optionalDraftUpdates.bodyDraft
-      : template.bodyDraft;
+    const fieldsToPublish =
+      optionalDraftUpdates?.fieldsDraft !== undefined
+        ? optionalDraftUpdates.fieldsDraft
+        : (template.fieldsDraft as Record<string, string> | null);
 
-    const subjectToPublish = optionalDraftUpdates?.subjectDraft !== undefined
-      ? optionalDraftUpdates.subjectDraft
-      : template.subjectDraft;
+    if (fieldsToPublish && typeof fieldsToPublish === 'object') {
+      for (const [_, val] of Object.entries(fieldsToPublish)) {
+        if (typeof val === 'string') {
+          this.handlebarsService.compile(val);
+        }
+      }
+    }
 
-    // Validate syntax before publishing
+    const bodyToPublish =
+      optionalDraftUpdates?.bodyDraft !== undefined
+        ? optionalDraftUpdates.bodyDraft
+        : fieldsToPublish?.body || fieldsToPublish?.html || template.bodyDraft;
+
+    const subjectToPublish =
+      optionalDraftUpdates?.subjectDraft !== undefined
+        ? optionalDraftUpdates.subjectDraft
+        : fieldsToPublish?.subject || fieldsToPublish?.sub || template.subjectDraft;
+
     this.handlebarsService.compile(bodyToPublish || '');
-    if (template.type === 'EMAIL' && subjectToPublish) {
+    if (subjectToPublish) {
       this.handlebarsService.compile(subjectToPublish);
     }
 
     const updateData: any = {
+      fieldsDraft: fieldsToPublish as any,
+      fieldsPublished: fieldsToPublish as any,
       bodyDraft: bodyToPublish,
       subjectDraft: subjectToPublish,
       bodyPublished: bodyToPublish,
@@ -229,7 +284,7 @@ export class TemplateService {
       data: updateData,
       include: {
         contentType: {
-          select: { id: true, name: true, slug: true },
+          select: { id: true, name: true, slug: true, schema: true },
         },
       },
     });
@@ -248,7 +303,7 @@ export class TemplateService {
       },
       include: {
         contentType: {
-          select: { id: true, name: true, slug: true },
+          select: { id: true, name: true, slug: true, schema: true },
         },
       },
     });
@@ -264,23 +319,29 @@ export class TemplateService {
 
   /**
    * Previews a template render using mock variables or a real content entry.
-   * If `id` is provided, fetches the template. Allows client to override `body` / `subject` to preview in-memory draft changes.
+   * If `id` is provided, fetches the template. Allows client to override `fieldsDraft` / `body` / `subject` to preview in-memory draft changes.
    */
   async preview(
     orgId: string,
     id: string | null,
     input: PreviewTemplateInput,
-    rawTemplateType: TemplateType = 'EMAIL',
+    rawTemplateType: TemplateType = 'CUSTOM',
   ): Promise<RenderOutputData> {
-    let templateType = rawTemplateType;
-    let bodySource = input.body || '';
-    let subjectSource = input.subject || '';
+    let templateType = input.type || rawTemplateType;
+    let fieldsSource: Record<string, string> | null = input.fieldsDraft || input.fields || null;
+    let bodySource = input.body;
+    let subjectSource = input.subject;
+    let contentType: any = null;
 
     if (id) {
       const template = await this.findOne(orgId, id);
-      templateType = template.type;
-      bodySource = input.body !== undefined ? input.body : template.bodyDraft;
-      subjectSource = input.subject !== undefined ? input.subject : (template.subjectDraft || '');
+      templateType = input.type || template.type;
+      contentType = template.contentType;
+      if (!fieldsSource && template.fieldsDraft) {
+        fieldsSource = template.fieldsDraft as Record<string, string>;
+      }
+      if (bodySource === undefined) bodySource = template.bodyDraft;
+      if (subjectSource === undefined) subjectSource = template.subjectDraft || '';
     }
 
     // Assemble render context
@@ -291,48 +352,53 @@ export class TemplateService {
         where: { id: input.contentId, orgId },
       });
       if (entry) {
-        const entryPayload = (entry.publishedData as Record<string, any>) || (entry.data as Record<string, any>) || {};
+        const entryPayload =
+          (entry.publishedData as Record<string, any>) ||
+          (entry.data as Record<string, any>) ||
+          {};
         contextData = { ...entryPayload, ...contextData };
       }
     }
 
-    // Render body
-    const renderedBody = this.handlebarsService.render(bodySource, contextData);
+    // If we have field-by-field model output mappings:
+    if (fieldsSource && typeof fieldsSource === 'object' && Object.keys(fieldsSource).length > 0) {
+      const renderedFields: Record<string, any> = {};
+      for (const [key, rawTpl] of Object.entries(fieldsSource)) {
+        renderedFields[key] = this.handlebarsService.render(rawTpl || '', contextData);
+      }
 
-    switch (templateType) {
-      case 'EMAIL': {
-        const renderedSubject = subjectSource
-          ? this.handlebarsService.render(subjectSource, contextData)
-          : '';
-        return {
-          type: 'EMAIL',
-          subject: renderedSubject,
-          body: renderedBody,
-        };
-      }
-      case 'HTML_PAGE': {
-        return {
-          type: 'HTML_PAGE',
-          html: renderedBody,
-        };
-      }
-      case 'JSON': {
-        let parsed: any;
-        try {
-          parsed = JSON.parse(renderedBody);
-        } catch {
-          parsed = { raw: renderedBody };
-        }
-        return {
-          type: 'JSON',
-          payload: parsed,
-        };
-      }
-      default:
-        return {
-          type: 'HTML_PAGE',
-          html: renderedBody,
-        };
+      return {
+        type: templateType,
+        data: renderedFields,
+        output: renderedFields,
+        model: contentType
+          ? { id: contentType.id, name: contentType.name, slug: contentType.slug }
+          : null,
+        subject: renderedFields.subject || renderedFields.sub || '',
+        body: renderedFields.body || renderedFields.html || '',
+        html: renderedFields.html || renderedFields.body || '',
+      };
     }
+
+    // Fallback to legacy single-template preview:
+    const renderedBody = this.handlebarsService.render(bodySource || '', contextData);
+    const renderedSubject = subjectSource
+      ? this.handlebarsService.render(subjectSource, contextData)
+      : '';
+
+    return {
+      type: templateType,
+      data: {
+        ...(renderedSubject ? { subject: renderedSubject } : {}),
+        body: renderedBody,
+      },
+      output: {
+        ...(renderedSubject ? { subject: renderedSubject } : {}),
+        body: renderedBody,
+      },
+      subject: renderedSubject,
+      body: renderedBody,
+      html: renderedBody,
+    };
   }
 }

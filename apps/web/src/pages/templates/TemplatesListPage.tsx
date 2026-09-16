@@ -58,6 +58,8 @@ export const TemplatesListPage: React.FC = () => {
 
   const getTypeIcon = (type: TemplateType) => {
     switch (type) {
+      case 'CUSTOM':
+        return <FileCode className="h-3.5 w-3.5 text-indigo-500" />;
       case 'EMAIL':
         return <Mail className="h-3.5 w-3.5 text-blue-500" />;
       case 'HTML_PAGE':
@@ -71,6 +73,8 @@ export const TemplatesListPage: React.FC = () => {
 
   const getTypeBadgeClass = (type: TemplateType) => {
     switch (type) {
+      case 'CUSTOM':
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50';
       case 'EMAIL':
         return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50';
       case 'HTML_PAGE':

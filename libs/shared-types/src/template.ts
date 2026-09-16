@@ -2,7 +2,7 @@
  * Template & Rendering contracts.
  */
 
-export type TemplateType = 'EMAIL' | 'HTML_PAGE' | 'JSON';
+export type TemplateType = 'CUSTOM' | 'EMAIL' | 'HTML_PAGE' | 'JSON';
 export type TemplateStatus = 'DRAFT' | 'PUBLISHED';
 
 export interface TemplateDto {
@@ -11,6 +11,8 @@ export interface TemplateDto {
   contentTypeId?: string | null;
   name: string;
   type: TemplateType;
+  fieldsDraft?: Record<string, string> | null;
+  fieldsPublished?: Record<string, string> | null;
   bodyDraft: string;
   bodyPublished?: string | null;
   subjectDraft?: string | null;
@@ -23,14 +25,16 @@ export interface TemplateDto {
     id: string;
     name: string;
     slug: string;
+    schema?: any;
   } | null;
 }
 
 export interface CreateTemplateInput {
   name: string;
-  type: TemplateType;
+  type?: TemplateType;
   contentTypeId?: string | null;
-  bodyDraft: string;
+  fieldsDraft?: Record<string, string>;
+  bodyDraft?: string;
   subjectDraft?: string | null;
   publish?: boolean;
 }
@@ -39,13 +43,17 @@ export interface UpdateTemplateInput {
   name?: string;
   type?: TemplateType;
   contentTypeId?: string | null;
+  fieldsDraft?: Record<string, string>;
   bodyDraft?: string;
   subjectDraft?: string | null;
 }
 
 export interface PreviewTemplateInput {
+  fieldsDraft?: Record<string, string>;
+  fields?: Record<string, string>;
   body?: string;
   subject?: string;
+  type?: TemplateType;
   variables?: Record<string, any>;
   contentId?: string;
 }
@@ -82,16 +90,45 @@ export interface RenderEmailResponse {
   type: 'EMAIL';
   subject: string;
   body: string;
+  data?: Record<string, any>;
+  output?: Record<string, any>;
 }
 
 export interface RenderHtmlResponse {
   type: 'HTML_PAGE';
   html: string;
+  data?: Record<string, any>;
+  output?: Record<string, any>;
 }
 
 export interface RenderJsonResponse {
   type: 'JSON';
   payload: Record<string, any>;
+  data?: Record<string, any>;
+  output?: Record<string, any>;
 }
 
-export type RenderOutputData = RenderEmailResponse | RenderHtmlResponse | RenderJsonResponse;
+export interface RenderModelResponse {
+  type?: TemplateType;
+  data: Record<string, any>; // User-defined output fields according to the Model! (e.g. { sub: '...', body: '...' })
+  output?: Record<string, any>;
+  model?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  template?: {
+    id: string;
+    name: string;
+  } | null;
+  subject?: string;
+  body?: string;
+  html?: string;
+  payload?: Record<string, any>;
+}
+
+export type RenderOutputData =
+  | RenderModelResponse
+  | RenderEmailResponse
+  | RenderHtmlResponse
+  | RenderJsonResponse;

@@ -93,6 +93,19 @@
   - [x] `ComponentForm.tsx` embedded schema form supporting single and repeatable arrays with add/remove.
   - [x] `DynamicZoneEditor.tsx` dynamic block composer with component picker, block reordering, and item delete.
 
+### Architectural Upgrade: Model-Driven Output Contract & Dynamic Input Engine
+- [x] **Model as Target Output Schema**:
+  - [x] Schema models (`ContentType`) define the custom output keys/structure expected by external consumers (e.g. `sub` + `body`, or `title` + `message` + `deep_link`).
+  - [x] Input payloads are completely dynamic, unstructured JSON variables passed at runtime without rigid pre-enforced schemas.
+- [x] **Multi-Field Template Engine**:
+  - [x] Prisma `Template` schema enhanced with `fieldsDraft` and `fieldsPublished` JSONB maps storing field-by-field Handlebars templates.
+  - [x] `TemplateService` and `RenderService` updated to compile and render every configured field in the Model with incoming dynamic variables.
+  - [x] Output envelope produces `{ type, data: { [field]: renderedValue }, output: { ... }, model: { ... }, template: { ... } }` maintaining 100% backward compatibility.
+- [x] **Frontend Template Studio Upgrade**:
+  - [x] Dynamic field renderer in `TemplateEditorPage.tsx` inspecting the associated Model's schema and providing dedicated rich/code editors or text inputs for each configured field.
+  - [x] `TemplatePreviewPane.tsx` upgraded with dual output views: Structured JSON Tree and Formatted Visual Field Cards.
+  - [x] Added `CUSTOM` template type styling and badge support across template studio and list pages.
+
 ---
 
 ## ⏳ Pending Phases (8 – 9)

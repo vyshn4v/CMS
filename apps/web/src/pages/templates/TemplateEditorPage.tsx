@@ -22,6 +22,7 @@ import {
   TemplateDto,
   TemplateType,
   ContentTypeDto,
+  FieldDefinition,
   CreateTemplateInput,
   UpdateTemplateInput,
 } from '@cms/shared-types';
@@ -36,8 +37,9 @@ export const TemplateEditorPage: React.FC = () => {
 
   // Form State
   const [name, setName] = useState('');
-  const [type, setType] = useState<TemplateType>('EMAIL');
+  const [type, setType] = useState<TemplateType>('CUSTOM');
   const [contentTypeId, setContentTypeId] = useState<string>('');
+  const [fieldsDraft, setFieldsDraft] = useState<Record<string, string>>({});
   const [subjectDraft, setSubjectDraft] = useState('');
   const [bodyDraft, setBodyDraft] = useState('');
 
@@ -46,7 +48,7 @@ export const TemplateEditorPage: React.FC = () => {
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [copiedSchemaId, setCopiedSchemaId] = useState(false);
 
-  // Fetch all schemas for the active org
+  // Fetch all schemas (models) for the active org
   const { data: schemas = [] } = useQuery<ContentTypeDto[]>({
     queryKey: ['schemas', orgId],
     queryFn: async () => {
@@ -72,23 +74,60 @@ export const TemplateEditorPage: React.FC = () => {
   useEffect(() => {
     if (template) {
       setName(template.name || '');
-      setType(template.type || 'EMAIL');
+      setType(template.type || 'CUSTOM');
       setContentTypeId(template.contentTypeId || '');
       setSubjectDraft(template.subjectDraft || '');
       setBodyDraft(template.bodyDraft || '');
+      if (template.fieldsDraft && typeof template.fieldsDraft === 'object') {
+        setFieldsDraft(template.fieldsDraft);
+      } else {
+        const initFields: Record<string, string> = {};
+        if (template.subjectDraft) initFields.sub = template.subjectDraft;
+        if (template.bodyDraft) initFields.body = template.bodyDraft;
+        setFieldsDraft(initFields);
+      }
     } else if (!isEditing) {
-      // Set sensible defaults for new template
-      setName('Welcome Email');
-      setType('EMAIL');
-      setSubjectDraft('Welcome to {{orgName}}, {{name}}!');
-      setBodyDraft(
-        `<h2>Welcome, {{name}}!</h2>\n<p>Thank you for signing up. Your account is active.</p>\n<p>Registered on: {{formatDate createdAt "MMMM D, YYYY"}}</p>`,
-      );
+      // Sensible defaults for new template
+      setName('New Output Template');
+      setType('CUSTOM');
+      const defaultFields = {
+        sub: 'Order Confirmation for {{customer}} (#{{orderId}})',
+        body: `<h2>Hi {{customer}}!</h2>\n<p>Your order #{{orderId}} for \${{amount}} has been placed successfully.</p>`,
+      };
+      setFieldsDraft(defaultFields);
+      setSubjectDraft(defaultFields.sub);
+      setBodyDraft(defaultFields.body);
     }
   }, [template, isEditing]);
 
   const selectedSchema = schemas.find((s) => s.id === contentTypeId) || null;
   const isPublished = template?.status === 'PUBLISHED';
+
+  // Ensure fields for the selected model exist in fieldsDraft
+  useEffect(() => {
+    if (selectedSchema?.schema) {
+      const modelFields: FieldDefinition[] = (selectedSchema.schema as any)?.fields || [];
+      if (modelFields.length > 0) {
+        setFieldsDraft((prev) => {
+          const next = { ...prev };
+          let changed = false;
+          modelFields.forEach((f) => {
+            if (next[f.name] === undefined) {
+              if ((f.name === 'sub' || f.name === 'subject') && (prev.sub || prev.subject || subjectDraft)) {
+                next[f.name] = prev.sub || prev.subject || subjectDraft;
+              } else if ((f.name === 'body' || f.name === 'html') && (prev.body || prev.html || bodyDraft)) {
+                next[f.name] = prev.body || prev.html || bodyDraft;
+              } else {
+                next[f.name] = '';
+              }
+              changed = true;
+            }
+          });
+          return changed ? next : prev;
+        });
+      }
+    }
+  }, [selectedSchema]);
 
   // Save Mutation (handles both Draft and Save & Publish)
   const saveMutation = useMutation({
@@ -97,12 +136,18 @@ export const TemplateEditorPage: React.FC = () => {
         throw new Error('Template name is required');
       }
 
+      const bodyToSave =
+        fieldsDraft.body || fieldsDraft.html || bodyDraft || Object.values(fieldsDraft)[0] || '';
+      const subjectToSave =
+        fieldsDraft.subject || fieldsDraft.sub || subjectDraft || null;
+
       if (isEditing) {
         if (shouldPublish) {
           const res = await api.post(`/orgs/${orgId}/templates/${id}/publish`, {
             name: name.trim(),
-            bodyDraft,
-            subjectDraft: type === 'EMAIL' ? subjectDraft : null,
+            fieldsDraft,
+            bodyDraft: bodyToSave,
+            subjectDraft: subjectToSave,
           });
           return res.data.data || res.data;
         } else {
@@ -110,8 +155,9 @@ export const TemplateEditorPage: React.FC = () => {
             name: name.trim(),
             type,
             contentTypeId: contentTypeId || null,
-            bodyDraft,
-            subjectDraft: type === 'EMAIL' ? subjectDraft : null,
+            fieldsDraft,
+            bodyDraft: bodyToSave,
+            subjectDraft: subjectToSave,
           };
           const res = await api.patch(`/orgs/${orgId}/templates/${id}`, payload);
           return res.data.data || res.data;
@@ -121,8 +167,9 @@ export const TemplateEditorPage: React.FC = () => {
           name: name.trim(),
           type,
           contentTypeId: contentTypeId || null,
-          bodyDraft,
-          subjectDraft: type === 'EMAIL' ? subjectDraft : null,
+          fieldsDraft,
+          bodyDraft: bodyToSave,
+          subjectDraft: subjectToSave,
           publish: shouldPublish,
         };
         const res = await api.post(`/orgs/${orgId}/templates`, payload);
@@ -423,38 +470,142 @@ export const TemplateEditorPage: React.FC = () => {
                 viewMode === 'split' ? 'w-1/2' : 'w-full'
               }`}
             >
-              {/* EMAIL Subject Draft Input */}
-              {type === 'EMAIL' && (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-1.5 shadow-sm">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                    <span>Email Subject Template</span>
-                    <span className="text-[10px] text-slate-400 font-normal">
-                      Supports Handlebars tags, e.g. &#123;&#123;name&#125;&#125;
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    value={subjectDraft}
-                    onChange={(e) => setSubjectDraft(e.target.value)}
-                    placeholder="e.g. Welcome to {{orgName}}, {{name}}!"
-                    className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
+              {/* If an Associated Model is selected, render an editor for EACH configured field in that Model */}
+              {selectedSchema ? (
+                <div className="space-y-4">
+                  {/* Model Header Info */}
+                  <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/50 dark:bg-indigo-950/30 p-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                            Target Output Model:
+                          </span>
+                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                            {selectedSchema.name}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500">
+                            (/{selectedSchema.slug})
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-1">
+                          Configure Handlebars formulas for each field below. Incoming request data will be dynamically compiled into this output schema.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Render Model Fields */}
+                  {((selectedSchema.schema as any)?.fields || []).length > 0 ? (
+                    ((selectedSchema.schema as any)?.fields || []).map((field: any) => {
+                      const isRichOrBody =
+                        field.type === 'richtext' ||
+                        field.type === 'json' ||
+                        field.name === 'body' ||
+                        field.name === 'html' ||
+                        field.name === 'content';
+
+                      return (
+                        <div
+                          key={field.name}
+                          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2 shadow-sm"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                {field.label || field.name}
+                              </span>
+                              <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">
+                                key: "{field.name}" • {field.type}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-slate-400">
+                              Supports &#123;&#123;variable&#125;&#125; syntax
+                            </span>
+                          </div>
+
+                          {isRichOrBody ? (
+                            <DualModeEditor
+                              content={fieldsDraft[field.name] || ''}
+                              onChange={(val) =>
+                                setFieldsDraft((prev) => ({ ...prev, [field.name]: val }))
+                              }
+                              templateType="CUSTOM"
+                              selectedSchema={selectedSchema}
+                              className="min-h-[260px]"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={fieldsDraft[field.name] || ''}
+                              onChange={(e) =>
+                                setFieldsDraft((prev) => ({ ...prev, [field.name]: e.target.value }))
+                              }
+                              placeholder={`e.g. Order Confirmation for {{customer}} (#{{orderId}})`}
+                              className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            />
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-6 text-center space-y-2">
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                        No fields defined yet for Model "{selectedSchema.name}"
+                      </p>
+                      <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 max-w-md mx-auto">
+                        Add fields to this Model in the Schema Builder (e.g. "sub" and "body" for an Email model), or write custom template body below.
+                      </p>
+                      <div className="pt-2">
+                        <DualModeEditor
+                          content={bodyDraft}
+                          onChange={setBodyDraft}
+                          templateType={type}
+                          selectedSchema={selectedSchema}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Standalone Mode when no Model is chosen */
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-1.5 shadow-sm">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                      <span>Subject Template (optional)</span>
+                      <span className="text-[10px] text-slate-400 font-normal">
+                        Supports Handlebars tags, e.g. &#123;&#123;name&#125;&#125;
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={subjectDraft}
+                      onChange={(e) => {
+                        setSubjectDraft(e.target.value);
+                        setFieldsDraft((prev) => ({ ...prev, sub: e.target.value, subject: e.target.value }));
+                      }}
+                      placeholder="e.g. Notification for {{name}}"
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  <div className="flex-1 flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">
+                      Template Body Source
+                    </label>
+                    <DualModeEditor
+                      content={bodyDraft}
+                      onChange={(val) => {
+                        setBodyDraft(val);
+                        setFieldsDraft((prev) => ({ ...prev, body: val }));
+                      }}
+                      templateType={type}
+                      selectedSchema={selectedSchema}
+                      className="flex-1 min-h-[350px]"
+                    />
+                  </div>
                 </div>
               )}
-
-              {/* Template Body Dual-Mode Editor */}
-              <div className="flex-1 flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">
-                  Template Body Source
-                </label>
-                <DualModeEditor
-                  content={bodyDraft}
-                  onChange={setBodyDraft}
-                  templateType={type}
-                  selectedSchema={selectedSchema}
-                  className="flex-1"
-                />
-              </div>
             </div>
           )}
 
@@ -469,6 +620,7 @@ export const TemplateEditorPage: React.FC = () => {
                 orgId={orgId || ''}
                 templateId={isEditing ? id : undefined}
                 templateType={type}
+                fieldsDraft={fieldsDraft}
                 bodyDraft={bodyDraft}
                 subjectDraft={subjectDraft}
                 selectedSchema={selectedSchema}

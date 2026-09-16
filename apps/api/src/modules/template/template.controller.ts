@@ -112,7 +112,7 @@ export class TemplateController {
   async publish(
     @Param('orgId') orgId: string,
     @Param('id') id: string,
-    @Body() body?: { bodyDraft?: string; subjectDraft?: string; name?: string },
+    @Body() body?: { bodyDraft?: string; subjectDraft?: string; name?: string; fieldsDraft?: Record<string, string> },
   ) {
     return this.templateService.publish(orgId, id, body);
   }

@@ -16,6 +16,7 @@ enum TemplateType {
   EMAIL
   HTML_PAGE
   JSON
+  CUSTOM
 }
 
 enum ContentTypeKind {
@@ -172,7 +173,9 @@ model Template {
   orgId             String       @map("org_id")
   contentTypeId     String?      @map("content_type_id")
   name              String
-  type              TemplateType @default(EMAIL)
+  type              TemplateType @default(CUSTOM)
+  fieldsDraft       Json?        @map("fields_draft")
+  fieldsPublished   Json?        @map("fields_published")
   bodyDraft         String       @map("body_draft") @db.Text
   bodyPublished     String?      @map("body_published") @db.Text
   subjectDraft      String?      @map("subject_draft")

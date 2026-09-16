@@ -36,6 +36,11 @@ export class RenderService {
     if (templateId) {
       template = await this.prisma.template.findFirst({
         where: { id: templateId, orgId },
+        include: {
+          contentType: {
+            select: { id: true, name: true, slug: true, schema: true },
+          },
+        },
       });
 
       if (!template) {
@@ -45,27 +50,35 @@ export class RenderService {
         });
       }
 
-      if (!template.bodyPublished) {
+      if (!template.fieldsPublished && !template.bodyPublished) {
         throw new BadRequestException({
           code: 'TEMPLATE_NOT_PUBLISHED',
           message: `Template "${template.name}" has no published version to render`,
         });
       }
     } else if (schemaId) {
-      // Find published template matching schemaId
+      // Find published template matching schemaId (Model)
       template = await this.prisma.template.findFirst({
         where: {
           contentTypeId: schemaId,
           orgId,
-          bodyPublished: { not: null },
+          OR: [
+            { fieldsPublished: { not: null } },
+            { bodyPublished: { not: null } },
+          ],
         },
         orderBy: { updatedAt: 'desc' },
+        include: {
+          contentType: {
+            select: { id: true, name: true, slug: true, schema: true },
+          },
+        },
       });
 
       if (!template) {
         throw new NotFoundException({
           code: 'TEMPLATE_NOT_FOUND',
-          message: `No published template found associated with schema ${schemaId}`,
+          message: `No published template found associated with model ${schemaId}`,
         });
       }
     }
@@ -101,11 +114,39 @@ export class RenderService {
       variables,
     };
 
-    // 4. Execute Handlebars Render
+    // 4. Model-driven Multi-Field Rendering
+    const fieldsPublished = template.fieldsPublished as Record<string, string> | null;
+    if (fieldsPublished && typeof fieldsPublished === 'object' && Object.keys(fieldsPublished).length > 0) {
+      const renderedFields: Record<string, any> = {};
+      for (const [key, rawTpl] of Object.entries(fieldsPublished)) {
+        renderedFields[key] = this.handlebarsService.render(rawTpl || '', context);
+      }
+
+      return {
+        type: template.type,
+        data: renderedFields,
+        output: renderedFields,
+        model: template.contentType
+          ? {
+              id: template.contentType.id,
+              name: template.contentType.name,
+              slug: template.contentType.slug,
+            }
+          : null,
+        template: {
+          id: template.id,
+          name: template.name,
+        },
+        subject: renderedFields.subject || renderedFields.sub || '',
+        body: renderedFields.body || renderedFields.html || '',
+        html: renderedFields.html || renderedFields.body || '',
+      } as any;
+    }
+
+    // 5. Fallback Legacy Render
     const templateSource = template.bodyPublished || '';
     const renderedBody = this.handlebarsService.render(templateSource, context);
 
-    // 5. Structure Output by Template Type
     switch (template.type) {
       case 'EMAIL': {
         let subject = template.name;
@@ -116,36 +157,87 @@ export class RenderService {
           type: 'EMAIL',
           subject,
           body: renderedBody,
-        };
+          data: { subject, body: renderedBody },
+          output: { subject, body: renderedBody },
+          model: template.contentType
+            ? {
+                id: template.contentType.id,
+                name: template.contentType.name,
+                slug: template.contentType.slug,
+              }
+            : null,
+          template: {
+            id: template.id,
+            name: template.name,
+          },
+        } as any;
       }
 
       case 'HTML_PAGE': {
         return {
           type: 'HTML_PAGE',
           html: renderedBody,
-        };
+          data: { html: renderedBody },
+          output: { html: renderedBody },
+          model: template.contentType
+            ? {
+                id: template.contentType.id,
+                name: template.contentType.name,
+                slug: template.contentType.slug,
+              }
+            : null,
+          template: {
+            id: template.id,
+            name: template.name,
+          },
+        } as any;
       }
 
       case 'JSON': {
+        let parsed: any;
         try {
-          const parsed = JSON.parse(renderedBody);
-          return {
-            type: 'JSON',
-            payload: parsed,
-          };
+          parsed = JSON.parse(renderedBody);
         } catch {
-          return {
-            type: 'JSON',
-            payload: renderedBody,
-          };
+          parsed = { raw: renderedBody };
         }
+        return {
+          type: 'JSON',
+          payload: parsed,
+          data: parsed,
+          output: parsed,
+          model: template.contentType
+            ? {
+                id: template.contentType.id,
+                name: template.contentType.name,
+                slug: template.contentType.slug,
+              }
+            : null,
+          template: {
+            id: template.id,
+            name: template.name,
+          },
+        } as any;
       }
 
       default: {
         return {
-          type: 'HTML_PAGE',
+          type: 'CUSTOM',
+          data: { body: renderedBody },
+          output: { body: renderedBody },
           html: renderedBody,
-        };
+          body: renderedBody,
+          model: template.contentType
+            ? {
+                id: template.contentType.id,
+                name: template.contentType.name,
+                slug: template.contentType.slug,
+              }
+            : null,
+          template: {
+            id: template.id,
+            name: template.name,
+          },
+        } as any;
       }
     }
   }

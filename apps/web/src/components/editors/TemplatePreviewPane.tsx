@@ -23,6 +23,7 @@ interface TemplatePreviewPaneProps {
   orgId: string;
   templateId?: string;
   templateType: TemplateType;
+  fieldsDraft?: Record<string, string>;
   bodyDraft: string;
   subjectDraft?: string;
   selectedSchema?: ContentTypeDto | null;
@@ -32,11 +33,13 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
   orgId,
   templateId,
   templateType,
+  fieldsDraft,
   bodyDraft,
   subjectDraft,
   selectedSchema,
 }) => {
   const [activeTab, setActiveTab] = useState<'variables' | 'entry'>('variables');
+  const [outputTab, setOutputTab] = useState<'visual' | 'json'>('json');
   const [variablesJson, setVariablesJson] = useState<string>('{}');
   const [selectedEntryId, setSelectedEntryId] = useState<string>('');
   const [previewOutput, setPreviewOutput] = useState<RenderOutputData | null>(null);
@@ -133,6 +136,7 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
         : `/orgs/${orgId}/templates/preview-raw`;
 
       const payload = {
+        fieldsDraft,
         body: bodyDraft,
         subject: subjectDraft,
         type: templateType,
@@ -276,53 +280,127 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Render Output ({templateType})
+              Model Output {selectedSchema ? `(${selectedSchema.name})` : `(${templateType})`}
             </span>
           </div>
 
-          <span className="text-[11px] text-slate-400">
-            {previewOutput ? 'Ready' : 'Click Render Preview to view output'}
-          </span>
+          {previewOutput && (
+            <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 p-0.5 text-[11px]">
+              <button
+                type="button"
+                onClick={() => setOutputTab('json')}
+                className={`px-2.5 py-1 rounded-md font-semibold transition ${
+                  outputTab === 'json'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Output JSON
+              </button>
+              <button
+                type="button"
+                onClick={() => setOutputTab('visual')}
+                className={`px-2.5 py-1 rounded-md font-semibold transition ${
+                  outputTab === 'visual'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Visual Preview
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex-1 p-4 overflow-y-auto">
           {previewOutput ? (
             <div className="space-y-4">
-              {/* EMAIL Subject Line Preview */}
-              {previewOutput.type === 'EMAIL' && (
-                <div className="flex items-center gap-2 rounded-lg border border-indigo-100 dark:border-indigo-950 bg-indigo-50/40 dark:bg-indigo-950/20 px-3 py-2">
-                  <Mail className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 block">
-                      Subject
+              {/* Tab 1: Output JSON */}
+              {outputTab === 'json' && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-mono text-slate-400">
+                      Generated payload matching configured Model fields:
                     </span>
-                    <span className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate block">
-                      {previewOutput.subject || <span className="text-slate-400 italic">No subject</span>}
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-bold bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                      200 OK
                     </span>
                   </div>
+                  <pre className="rounded-lg bg-slate-950 p-4 font-mono text-xs text-emerald-400 overflow-x-auto leading-relaxed border border-slate-800">
+                    {JSON.stringify(
+                      (previewOutput as any).data || (previewOutput as any).output || (previewOutput as any).payload || previewOutput,
+                      null,
+                      2,
+                    )}
+                  </pre>
                 </div>
               )}
 
-              {/* HTML / EMAIL Body Render */}
-              {previewOutput.type === 'EMAIL' && (
-                <div
-                  className="rounded-lg border border-slate-100 dark:border-slate-800 p-4 bg-slate-50/30 dark:bg-slate-950/30 prose dark:prose-invert max-w-none text-sm"
-                  dangerouslySetInnerHTML={{ __html: previewOutput.body }}
-                />
-              )}
+              {/* Tab 2: Visual Preview */}
+              {outputTab === 'visual' && (
+                <div className="space-y-4">
+                  {/* If Model-driven output fields are available */}
+                  {(previewOutput as any).data && typeof (previewOutput as any).data === 'object' ? (
+                    Object.entries((previewOutput as any).data).map(([key, value]) => {
+                      const strVal = typeof value === 'string' ? value : JSON.stringify(value);
+                      const isHtml =
+                        typeof value === 'string' &&
+                        (key === 'body' || key === 'html' || key.includes('html') || (strVal.includes('<') && strVal.includes('>')));
 
-              {previewOutput.type === 'HTML_PAGE' && (
-                <div
-                  className="rounded-lg border border-slate-100 dark:border-slate-800 p-4 bg-slate-50/30 dark:bg-slate-950/30 prose dark:prose-invert max-w-none text-sm"
-                  dangerouslySetInnerHTML={{ __html: previewOutput.html }}
-                />
-              )}
+                      return (
+                        <div
+                          key={key}
+                          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-4 space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                              {key}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {typeof value}
+                            </span>
+                          </div>
 
-              {/* JSON Output */}
-              {previewOutput.type === 'JSON' && (
-                <pre className="rounded-lg bg-slate-950 p-4 font-mono text-xs text-emerald-400 overflow-x-auto">
-                  {JSON.stringify(previewOutput.payload, null, 2)}
-                </pre>
+                          {isHtml ? (
+                            <div
+                              className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 prose dark:prose-invert max-w-none text-sm shadow-sm"
+                              dangerouslySetInnerHTML={{ __html: strVal }}
+                            />
+                          ) : (
+                            <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200">
+                              {strVal}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <>
+                      {/* Legacy EMAIL Subject Line Preview */}
+                      {(previewOutput as any).subject && (
+                        <div className="flex items-center gap-2 rounded-lg border border-indigo-100 dark:border-indigo-950 bg-indigo-50/40 dark:bg-indigo-950/20 px-3 py-2">
+                          <Mail className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 block">
+                              Subject
+                            </span>
+                            <span className="text-xs font-medium text-slate-900 dark:text-slate-100 truncate block">
+                              {(previewOutput as any).subject}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Legacy Body Preview */}
+                      {(previewOutput as any).body && (
+                        <div
+                          className="rounded-lg border border-slate-100 dark:border-slate-800 p-4 bg-slate-50/30 dark:bg-slate-950/30 prose dark:prose-invert max-w-none text-sm"
+                          dangerouslySetInnerHTML={{ __html: (previewOutput as any).body }}
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
               )}
             </div>
           ) : (

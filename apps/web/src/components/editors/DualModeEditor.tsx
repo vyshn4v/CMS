@@ -12,12 +12,12 @@ import {
   Type,
   HelpCircle,
 } from 'lucide-react';
-import { ContentTypeDto, FieldDefinition } from '@cms/shared-types';
+import { ContentTypeDto, FieldDefinition, TemplateType } from '@cms/shared-types';
 
 interface DualModeEditorProps {
   content: string;
   onChange: (val: string) => void;
-  templateType: 'EMAIL' | 'HTML_PAGE' | 'JSON';
+  templateType?: TemplateType;
   selectedSchema?: ContentTypeDto | null;
   className?: string;
 }
