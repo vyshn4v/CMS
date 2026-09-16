@@ -78,13 +78,24 @@ export const SchemaBuilderPage: React.FC = () => {
 
   useEffect(() => {
     if (existingSchema) {
-      setName(existingSchema.name);
-      setSlug(existingSchema.slug);
+      setName(existingSchema.name || '');
+      setSlug(existingSchema.slug || '');
       setDescription(existingSchema.description || '');
-      setKind(existingSchema.kind);
-      setFields(existingSchema.schema?.fields || []);
+      setKind(existingSchema.kind || 'COLLECTION');
+      const rawSchema =
+        typeof existingSchema.schema === 'string'
+          ? (() => {
+              try {
+                return JSON.parse(existingSchema.schema);
+              } catch {
+                return {};
+              }
+            })()
+          : existingSchema.schema || {};
+
+      setFields(rawSchema.fields || []);
       setModelType(
-        existingSchema.schema?.modelType ||
+        rawSchema.modelType ||
           (existingSchema.slug?.toLowerCase().includes('email') ? 'EMAIL' : 'CUSTOM'),
       );
     }
@@ -423,15 +434,18 @@ export const SchemaBuilderPage: React.FC = () => {
         )}
       </div>
 
-      <AddFieldModal
-        isOpen={isFieldModalOpen}
-        onClose={() => {
-          setIsFieldModalOpen(false);
-          setEditingFieldIndex(null);
-        }}
-        onSave={handleAddField}
-        initialField={editingFieldIndex !== null ? fields[editingFieldIndex] : null}
-      />
+      {isFieldModalOpen && (
+        <AddFieldModal
+          key={editingFieldIndex !== null ? `edit-${editingFieldIndex}-${fields[editingFieldIndex]?.name}` : 'new-field'}
+          isOpen={isFieldModalOpen}
+          onClose={() => {
+            setIsFieldModalOpen(false);
+            setEditingFieldIndex(null);
+          }}
+          onSave={handleAddField}
+          initialField={editingFieldIndex !== null ? fields[editingFieldIndex] : null}
+        />
+      )}
     </div>
   );
 };

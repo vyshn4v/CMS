@@ -17,6 +17,7 @@ import {
   Columns2,
   PanelLeft,
   PanelRight,
+  Layers,
 } from 'lucide-react';
 import {
   TemplateDto,
@@ -79,61 +80,82 @@ export const TemplateEditorPage: React.FC = () => {
       setSubjectDraft(template.subjectDraft || '');
       setBodyDraft(template.bodyDraft || '');
       if (template.fieldsDraft && typeof template.fieldsDraft === 'object') {
-        setFieldsDraft(template.fieldsDraft);
+        setFieldsDraft(template.fieldsDraft as Record<string, string>);
       } else {
-        const initFields: Record<string, string> = {};
-        if (template.subjectDraft) initFields.sub = template.subjectDraft;
-        if (template.bodyDraft) initFields.body = template.bodyDraft;
-        setFieldsDraft(initFields);
+        setFieldsDraft({});
       }
     } else if (!isEditing) {
-      // Sensible defaults for new template
       setName('New Output Template');
       setType('CUSTOM');
-      const defaultFields = {
-        sub: 'Order Confirmation for {{customer}} (#{{orderId}})',
-        body: `<h2>Hi {{customer}}!</h2>\n<p>Your order #{{orderId}} for \${{amount}} has been placed successfully.</p>`,
-      };
-      setFieldsDraft(defaultFields);
-      setSubjectDraft(defaultFields.sub);
-      setBodyDraft(defaultFields.body);
+      setFieldsDraft({});
+      setSubjectDraft('');
+      setBodyDraft('');
     }
   }, [template, isEditing]);
 
   const selectedSchema = schemas.find((s) => s.id === contentTypeId) || null;
   const isPublished = template?.status === 'PUBLISHED';
 
-  // Ensure fields for the selected model exist in fieldsDraft
+  // Ensure fieldsDraft strictly contains ONLY the fields defined for the selected Model
   useEffect(() => {
     if (selectedSchema?.schema) {
-      const modelFields: FieldDefinition[] = (selectedSchema.schema as any)?.fields || [];
+      const rawSchema =
+        typeof selectedSchema.schema === 'string'
+          ? (() => {
+              try {
+                return JSON.parse(selectedSchema.schema);
+              } catch {
+                return {};
+              }
+            })()
+          : selectedSchema.schema || {};
+
+      const modelFields: FieldDefinition[] = rawSchema.fields || [];
+
       if (modelFields.length > 0) {
         setFieldsDraft((prev) => {
-          const next = { ...prev };
-          let changed = false;
+          const next: Record<string, string> = {};
+          const existingSaved =
+            template?.contentTypeId === selectedSchema.id && template?.fieldsDraft
+              ? (template.fieldsDraft as Record<string, string>)
+              : {};
+
           modelFields.forEach((f) => {
-            if (next[f.name] === undefined) {
-              if ((f.name === 'sub' || f.name === 'subject') && (prev.sub || prev.subject || subjectDraft)) {
-                next[f.name] = prev.sub || prev.subject || subjectDraft;
-              } else if ((f.name === 'body' || f.name === 'html') && (prev.body || prev.html || bodyDraft)) {
-                next[f.name] = prev.body || prev.html || bodyDraft;
+            if (prev[f.name] !== undefined) {
+              next[f.name] = prev[f.name];
+            } else if (existingSaved[f.name] !== undefined) {
+              next[f.name] = existingSaved[f.name];
+            } else {
+              // Context-sensitive starter expressions based on field name
+              if (f.name === 'sub' || f.name === 'subject') {
+                next[f.name] = 'Order Confirmation for {{customer}} (#{{orderId}})';
+              } else if (f.name === 'body' || f.name === 'html' || f.name === 'content') {
+                next[f.name] = `<h2>Hi {{customer}}!</h2>\n<p>Your order #{{orderId}} for \${{amount}} has been placed successfully.</p>`;
               } else {
-                next[f.name] = '';
+                next[f.name] = `{{${f.name}}}`;
               }
-              changed = true;
             }
           });
-          return changed ? next : prev;
+
+          // Strictly return only modelFields keys - no extra or orphan fields!
+          return next;
         });
+      } else {
+        setFieldsDraft({});
       }
+    } else {
+      setFieldsDraft({});
     }
-  }, [selectedSchema]);
+  }, [selectedSchema, template]);
 
   // Save Mutation (handles both Draft and Save & Publish)
   const saveMutation = useMutation({
     mutationFn: async (shouldPublish: boolean = false) => {
       if (!name.trim()) {
         throw new Error('Template name is required');
+      }
+      if (!contentTypeId) {
+        throw new Error('Please select a Model to continue configuring this template');
       }
 
       const bodyToSave =
@@ -370,8 +392,9 @@ export const TemplateEditorPage: React.FC = () => {
           {/* Save Draft Action */}
           <button
             type="button"
-            disabled={saveMutation.isPending || unpublishMutation.isPending}
+            disabled={!contentTypeId || saveMutation.isPending || unpublishMutation.isPending}
             onClick={() => saveMutation.mutate(false)}
+            title={!contentTypeId ? 'Please select a Model to continue' : 'Save template draft'}
             className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition"
           >
             <Save className="h-3.5 w-3.5" />
@@ -383,8 +406,9 @@ export const TemplateEditorPage: React.FC = () => {
           {/* Publish Action */}
           <button
             type="button"
-            disabled={saveMutation.isPending || unpublishMutation.isPending}
+            disabled={!contentTypeId || saveMutation.isPending || unpublishMutation.isPending}
             onClick={() => saveMutation.mutate(true)}
+            title={!contentTypeId ? 'Please select a Model to continue' : 'Publish template'}
             className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition"
           >
             <Globe className="h-3.5 w-3.5" />
@@ -407,9 +431,13 @@ export const TemplateEditorPage: React.FC = () => {
           <select
             value={contentTypeId}
             onChange={(e) => setContentTypeId(e.target.value)}
-            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1 text-slate-800 dark:text-slate-200 font-semibold focus:outline-none"
+            className={`rounded-lg border px-3 py-1 font-semibold focus:outline-none transition ${
+              !contentTypeId
+                ? 'border-amber-400 bg-amber-50/50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200'
+                : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200'
+            }`}
           >
-            <option value="">-- Standalone (No Model) --</option>
+            <option value="">-- Please select a Model --</option>
             {schemas.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} (/{s.slug})
@@ -565,41 +593,36 @@ export const TemplateEditorPage: React.FC = () => {
                   )}
                 </div>
               ) : (
-                /* Standalone Mode when no Model is chosen */
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-1.5 shadow-sm">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                      <span>Subject Template (optional)</span>
-                      <span className="text-[10px] text-slate-400 font-normal">
-                        Supports Handlebars tags, e.g. &#123;&#123;name&#125;&#125;
-                      </span>
-                    </label>
-                    <input
-                      type="text"
-                      value={subjectDraft}
-                      onChange={(e) => {
-                        setSubjectDraft(e.target.value);
-                        setFieldsDraft((prev) => ({ ...prev, sub: e.target.value, subject: e.target.value }));
-                      }}
-                      placeholder="e.g. Notification for {{name}}"
-                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    />
+                /* Mandatory Model Selection Screen (No Standalone Mode) */
+                <div className="flex flex-col items-center justify-center h-full min-h-[420px] text-center p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="h-14 w-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 shadow-sm">
+                    <Layers className="h-7 w-7" />
                   </div>
-
-                  <div className="flex-1 flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 block">
-                      Template Body Source
-                    </label>
-                    <DualModeEditor
-                      content={bodyDraft}
-                      onChange={(val) => {
-                        setBodyDraft(val);
-                        setFieldsDraft((prev) => ({ ...prev, body: val }));
-                      }}
-                      templateType={type}
-                      selectedSchema={selectedSchema}
-                      className="flex-1 min-h-[350px]"
-                    />
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    Please select one model to continue
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
+                    Templates require an associated Model defining the output schema format (e.g. Email, Push Notification, SMS, HTML Document, or Custom JSON). Please select a model to configure template formulas.
+                  </p>
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <select
+                      value={contentTypeId}
+                      onChange={(e) => setContentTypeId(e.target.value)}
+                      className="rounded-lg border border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/50 px-4 py-2 text-xs font-semibold text-indigo-700 dark:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    >
+                      <option value="">-- Choose an Output Model --</option>
+                      {schemas.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} (/{s.slug})
+                        </option>
+                      ))}
+                    </select>
+                    <Link
+                      to="/schemas/new"
+                      className="rounded-lg border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                    >
+                      Create New Model
+                    </Link>
                   </div>
                 </div>
               )}

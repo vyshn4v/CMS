@@ -103,8 +103,32 @@ export class TemplateService {
       throw new BadRequestException('Template name is required');
     }
 
-    const fieldsDraft = input.fieldsDraft || null;
+    if (!input.contentTypeId) {
+      throw new BadRequestException('A target Model (contentTypeId) is required for all templates');
+    }
+
+    const contentType = await this.prisma.contentType.findFirst({
+      where: { id: input.contentTypeId, orgId },
+    });
+    if (!contentType) {
+      throw new NotFoundException(`Content type with ID '${input.contentTypeId}' not found`);
+    }
+
+    let fieldsDraft = input.fieldsDraft || null;
     if (fieldsDraft && typeof fieldsDraft === 'object') {
+      const allowedFields = new Set(
+        ((contentType.schema as any)?.fields || []).map((f: any) => f.name),
+      );
+      if (allowedFields.size > 0) {
+        const cleanFields: Record<string, string> = {};
+        for (const [key, val] of Object.entries(fieldsDraft)) {
+          if (allowedFields.has(key)) {
+            cleanFields[key] = val;
+          }
+        }
+        fieldsDraft = cleanFields;
+      }
+
       for (const [key, val] of Object.entries(fieldsDraft)) {
         if (typeof val === 'string') {
           this.handlebarsService.compile(val);
@@ -114,15 +138,6 @@ export class TemplateService {
       this.handlebarsService.compile(input.bodyDraft || '');
       if (input.type === 'EMAIL' && input.subjectDraft) {
         this.handlebarsService.compile(input.subjectDraft);
-      }
-    }
-
-    if (input.contentTypeId) {
-      const contentType = await this.prisma.contentType.findFirst({
-        where: { id: input.contentTypeId, orgId },
-      });
-      if (!contentType) {
-        throw new NotFoundException(`Content type with ID '${input.contentTypeId}' not found`);
       }
     }
 
@@ -147,7 +162,7 @@ export class TemplateService {
         bodyPublished: shouldPublish ? bodyDraft : null,
         subjectPublished: shouldPublish ? subjectDraft : null,
         publishedAt: shouldPublish ? new Date() : null,
-        ...(input.contentTypeId ? { contentType: { connect: { id: input.contentTypeId } } } : {}),
+        contentType: { connect: { id: input.contentTypeId } },
       },
       include: {
         contentType: {
@@ -163,9 +178,34 @@ export class TemplateService {
    * Updates template draft content and metadata.
    */
   async update(orgId: string, id: string, input: UpdateTemplateInput) {
-    await this.findOne(orgId, id);
+    const existing = await this.findOne(orgId, id);
 
-    const fieldsDraft = input.fieldsDraft;
+    let fieldsDraft = input.fieldsDraft;
+    const targetContentTypeId = input.contentTypeId || existing.contentTypeId;
+
+    if (targetContentTypeId) {
+      const contentType = await this.prisma.contentType.findFirst({
+        where: { id: targetContentTypeId, orgId },
+      });
+      if (!contentType) {
+        throw new NotFoundException(`Content type with ID '${targetContentTypeId}' not found`);
+      }
+      if (fieldsDraft && typeof fieldsDraft === 'object') {
+        const allowedFields = new Set(
+          ((contentType.schema as any)?.fields || []).map((f: any) => f.name),
+        );
+        if (allowedFields.size > 0) {
+          const cleanFields: Record<string, string> = {};
+          for (const [key, val] of Object.entries(fieldsDraft)) {
+            if (allowedFields.has(key)) {
+              cleanFields[key] = val;
+            }
+          }
+          fieldsDraft = cleanFields;
+        }
+      }
+    }
+
     if (fieldsDraft && typeof fieldsDraft === 'object') {
       for (const [key, val] of Object.entries(fieldsDraft)) {
         if (typeof val === 'string') {
@@ -179,15 +219,6 @@ export class TemplateService {
     }
     if (input.subjectDraft !== undefined && input.subjectDraft !== null) {
       this.handlebarsService.compile(input.subjectDraft);
-    }
-
-    if (input.contentTypeId) {
-      const contentType = await this.prisma.contentType.findFirst({
-        where: { id: input.contentTypeId, orgId },
-      });
-      if (!contentType) {
-        throw new NotFoundException(`Content type with ID '${input.contentTypeId}' not found`);
-      }
     }
 
     const data: any = {};
@@ -236,10 +267,25 @@ export class TemplateService {
   ) {
     const template = await this.findOne(orgId, id);
 
-    const fieldsToPublish =
+    let fieldsToPublish =
       optionalDraftUpdates?.fieldsDraft !== undefined
         ? optionalDraftUpdates.fieldsDraft
         : (template.fieldsDraft as Record<string, string> | null);
+
+    if (template.contentType?.schema && fieldsToPublish && typeof fieldsToPublish === 'object') {
+      const allowedFields = new Set(
+        ((template.contentType.schema as any)?.fields || []).map((f: any) => f.name),
+      );
+      if (allowedFields.size > 0) {
+        const cleanFields: Record<string, string> = {};
+        for (const [k, v] of Object.entries(fieldsToPublish)) {
+          if (allowedFields.has(k)) {
+            cleanFields[k] = v;
+          }
+        }
+        fieldsToPublish = cleanFields;
+      }
+    }
 
     if (fieldsToPublish && typeof fieldsToPublish === 'object') {
       for (const [_, val] of Object.entries(fieldsToPublish)) {
@@ -342,6 +388,27 @@ export class TemplateService {
       }
       if (bodySource === undefined) bodySource = template.bodyDraft;
       if (subjectSource === undefined) subjectSource = template.subjectDraft || '';
+    }
+
+    if (!contentType && (input as any).contentTypeId) {
+      contentType = await this.prisma.contentType.findFirst({
+        where: { id: (input as any).contentTypeId, orgId },
+      });
+    }
+
+    if (contentType?.schema && fieldsSource && typeof fieldsSource === 'object') {
+      const allowedFields = new Set(
+        ((contentType.schema as any)?.fields || []).map((f: any) => f.name),
+      );
+      if (allowedFields.size > 0) {
+        const cleanFields: Record<string, string> = {};
+        for (const [k, v] of Object.entries(fieldsSource)) {
+          if (allowedFields.has(k)) {
+            cleanFields[k] = v;
+          }
+        }
+        fieldsSource = cleanFields;
+      }
     }
 
     // Assemble render context

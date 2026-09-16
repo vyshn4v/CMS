@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Type,
   AlignLeft,
@@ -218,6 +218,64 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
     initialField?.validations?.max ?? '',
   );
   const [pattern, setPattern] = useState(initialField?.validations?.pattern || '');
+
+  // Synchronize internal state whenever modal opens or initialField changes
+  useEffect(() => {
+    if (isOpen) {
+      if (initialField) {
+        setSelectedType(initialField.type || null);
+        setName(initialField.name || '');
+        setLabel(initialField.label || '');
+        setRequired(initialField.required || false);
+        setUnique(initialField.unique || false);
+        setDefaultValue(
+          initialField.defaultValue !== undefined && initialField.defaultValue !== null
+            ? String(initialField.defaultValue)
+            : '',
+        );
+        setEnumOptions(initialField.options ? initialField.options.join(', ') : '');
+        setRelationType(initialField.relation?.type || 'many-to-one');
+        setTargetContentTypeId(initialField.relation?.targetContentTypeId || '');
+        setDisplayField(initialField.relation?.displayField || 'title');
+        setComponentId(initialField.component?.componentId || '');
+        setComponentRepeatable(initialField.component?.repeatable || false);
+        setAllowedComponentIds(initialField.dynamiczone?.allowedComponentIds || []);
+        setMinLength(
+          initialField.validations?.minLength !== undefined ? initialField.validations.minLength : '',
+        );
+        setMaxLength(
+          initialField.validations?.maxLength !== undefined ? initialField.validations.maxLength : '',
+        );
+        setMinVal(
+          initialField.validations?.min !== undefined ? initialField.validations.min : '',
+        );
+        setMaxVal(
+          initialField.validations?.max !== undefined ? initialField.validations.max : '',
+        );
+        setPattern(initialField.validations?.pattern || '');
+      } else {
+        setSelectedType(null);
+        setName('');
+        setLabel('');
+        setRequired(false);
+        setUnique(false);
+        setDefaultValue('');
+        setEnumOptions('');
+        setRelationType('many-to-one');
+        setTargetContentTypeId('');
+        setDisplayField('title');
+        setComponentId('');
+        setComponentRepeatable(false);
+        setAllowedComponentIds([]);
+        setMinLength('');
+        setMaxLength('');
+        setMinVal('');
+        setMaxVal('');
+        setPattern('');
+      }
+      setActiveTab('basic');
+    }
+  }, [isOpen, initialField]);
 
   if (!isOpen) return null;
 

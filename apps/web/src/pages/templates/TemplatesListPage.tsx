@@ -223,7 +223,7 @@ export const TemplatesListPage: React.FC = () => {
                           </span>
                         </div>
                       ) : (
-                        <span className="text-slate-400 italic">Standalone</span>
+                        <span className="text-amber-500/80 italic text-[11px]">Unlinked Model</span>
                       )}
                     </td>
 

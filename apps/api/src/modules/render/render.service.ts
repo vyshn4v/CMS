@@ -118,8 +118,13 @@ export class RenderService {
     const fieldsPublished = template.fieldsPublished as Record<string, string> | null;
     if (fieldsPublished && typeof fieldsPublished === 'object' && Object.keys(fieldsPublished).length > 0) {
       const renderedFields: Record<string, any> = {};
+      const modelFields: any[] = (template.contentType?.schema as any)?.fields || [];
+      const allowedFields = modelFields.length > 0 ? new Set(modelFields.map((f: any) => f.name)) : null;
+
       for (const [key, rawTpl] of Object.entries(fieldsPublished)) {
-        renderedFields[key] = this.handlebarsService.render(rawTpl || '', context);
+        if (!allowedFields || allowedFields.has(key)) {
+          renderedFields[key] = this.handlebarsService.render(rawTpl || '', context);
+        }
       }
 
       return {

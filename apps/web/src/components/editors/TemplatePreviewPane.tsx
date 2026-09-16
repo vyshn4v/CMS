@@ -217,6 +217,22 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
     }
   };
 
+  if (!selectedSchema) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[420px] text-center p-8 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">
+          <Database className="h-6 w-6" />
+        </div>
+        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+          Please select one model to continue
+        </h4>
+        <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
+          Select an Output Model to configure dynamic input payloads and view the live rendered preview.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full space-y-4">
       {/* Dynamic Input Variables Card */}
