@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Building2,
+  BookOpen,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/auth.store';
@@ -188,6 +189,18 @@ export const AppLayout: React.FC = () => {
           >
             <History className="h-4 w-4" />
             Audit Logs
+          </Link>
+
+          <Link
+            to="/docs"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname === '/docs'
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <BookOpen className="h-4 w-4" />
+            API Docs
           </Link>
 
           <Link

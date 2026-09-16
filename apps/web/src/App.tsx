@@ -20,6 +20,7 @@ import { MembersPage } from './pages/settings/MembersPage';
 import { RolesPage } from './pages/settings/RolesPage';
 import { ApiKeysPage } from './pages/settings/ApiKeysPage';
 import { AuditLogPage } from './pages/settings/AuditLogPage';
+import { ApiDocsPage } from './pages/docs/ApiDocsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -125,6 +126,10 @@ export const App: React.FC = () => {
             <Route path="templates" element={<TemplatesListPage />} />
             <Route path="templates/new" element={<TemplateEditorPage />} />
             <Route path="templates/:id" element={<TemplateEditorPage />} />
+
+            {/* Developer API Docs */}
+            <Route path="docs" element={<ApiDocsPage />} />
+            <Route path="api-docs" element={<Navigate to="/docs" replace />} />
 
             {/* Settings & RBAC */}
             <Route path="settings" element={<SettingsLayout />}>
