@@ -101,10 +101,17 @@
   - [x] Prisma `Template` schema enhanced with `fieldsDraft` and `fieldsPublished` JSONB maps storing field-by-field Handlebars templates.
   - [x] `TemplateService` and `RenderService` updated to compile and render every configured field in the Model with incoming dynamic variables.
   - [x] Output envelope produces `{ type, data: { [field]: renderedValue }, output: { ... }, model: { ... }, template: { ... } }` maintaining 100% backward compatibility.
-- [x] **Frontend Template Studio Upgrade**:
-  - [x] Dynamic field renderer in `TemplateEditorPage.tsx` inspecting the associated Model's schema and providing dedicated rich/code editors or text inputs for each configured field.
-  - [x] `TemplatePreviewPane.tsx` upgraded with dual output views: Structured JSON Tree and Formatted Visual Field Cards.
-  - [x] Added `CUSTOM` template type styling and badge support across template studio and list pages.
+- [x] **Frontend Template Studio & Preview Revamp**:
+  - [x] Removed redundant template "Type" selector from Template Editor — output format is strictly governed by the associated Model.
+  - [x] Removed content entries dependency from template inputs — templates operate 100% on dynamic runtime JSON payloads.
+  - [x] Added automated variable extraction (`extractVariablesFromFields`) auto-detecting `{{var}}` placeholders from template formulas.
+  - [x] Implemented dedicated high-fidelity render previews based on the defined **Model Type**:
+    - **EMAIL**: Realistic Email Client frame with Subject, From/To headers, Preheader, and HTML body.
+    - **PUSH_NOTIFICATION**: Mobile Lock-screen card with App header, Title, Message, and Action deep link.
+    - **SMS**: Mobile messenger bubble with delivery receipt.
+    - **HTML_PAGE**: Web document canvas with browser address bar.
+    - **CUSTOM**: Field-by-field cards with syntax highlighting and raw JSON payload tab.
+  - [x] Added `Model Output Format` selector in Schema Builder (`SchemaBuilderPage.tsx`).
 
 ---
 

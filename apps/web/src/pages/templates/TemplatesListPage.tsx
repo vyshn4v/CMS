@@ -125,19 +125,21 @@ export const TemplatesListPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Type Filter */}
+          {/* Format Filter */}
           <div className="flex items-center gap-1.5 text-xs text-slate-500">
             <Filter className="h-3.5 w-3.5 text-slate-400" />
-            <span>Type:</span>
+            <span>Format:</span>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
               className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
             >
-              <option value="ALL">All Types</option>
+              <option value="ALL">All Formats</option>
               <option value="EMAIL">Email</option>
+              <option value="PUSH_NOTIFICATION">Push Notification</option>
+              <option value="SMS">SMS</option>
               <option value="HTML_PAGE">HTML Page</option>
-              <option value="JSON">JSON</option>
+              <option value="CUSTOM">Custom Schema</option>
             </select>
           </div>
 
@@ -158,24 +160,26 @@ export const TemplatesListPage: React.FC = () => {
       </div>
 
       {/* Templates Table */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="p-12 text-center text-xs text-slate-400">Loading templates...</div>
         ) : templates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center">
-            <FileCode className="h-10 w-10 text-slate-300 dark:text-slate-700 mb-3" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              No templates found
-            </h3>
-            <p className="text-xs text-slate-400 max-w-sm mt-1 mb-4">
-              Get started by creating a Handlebars template for transactional emails, web layouts, or JSON feeds.
-            </p>
+          <div className="p-12 text-center flex flex-col items-center justify-center space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <FileCode className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">No Templates Found</h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                Create a template and attach it to an Output Model to generate structured payloads.
+              </p>
+            </div>
             <Link
               to="/templates/new"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+              className="mt-2 flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
             >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Create Template</span>
+              <Plus className="h-4 w-4" />
+              <span>Create New Template</span>
             </Link>
           </div>
         ) : (
@@ -184,8 +188,7 @@ export const TemplatesListPage: React.FC = () => {
               <thead className="bg-slate-50/70 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="px-6 py-3 font-semibold">Template Name</th>
-                  <th className="px-6 py-3 font-semibold">Type</th>
-                  <th className="px-6 py-3 font-semibold">Associated Model</th>
+                  <th className="px-6 py-3 font-semibold">Target Output Model</th>
                   <th className="px-6 py-3 font-semibold">Status</th>
                   <th className="px-6 py-3 font-semibold">Last Updated</th>
                   <th className="px-6 py-3 font-semibold text-right">Actions</th>
@@ -206,22 +209,21 @@ export const TemplatesListPage: React.FC = () => {
                     </td>
 
                     <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-semibold border ${getTypeBadgeClass(
-                          tpl.type,
-                        )}`}
-                      >
-                        {tpl.type}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4">
                       {tpl.contentType ? (
-                        <span className="font-mono text-xs text-indigo-600 dark:text-indigo-400">
-                          {tpl.contentType.name}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs text-slate-800 dark:text-slate-200">
+                            {tpl.contentType.name}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-mono font-bold border ${getTypeBadgeClass(
+                              tpl.type,
+                            )}`}
+                          >
+                            {tpl.type}
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-slate-400 italic">None (Standalone)</span>
+                        <span className="text-slate-400 italic">Standalone</span>
                       )}
                     </td>
 

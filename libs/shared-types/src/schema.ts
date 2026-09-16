@@ -59,8 +59,11 @@ export interface FieldDefinition {
   dynamiczone?: DynamicZoneConfig;
 }
 
+export type ModelType = 'EMAIL' | 'PUSH_NOTIFICATION' | 'SMS' | 'HTML_PAGE' | 'CUSTOM';
+
 export interface SchemaDefinition {
   fields: FieldDefinition[];
+  modelType?: ModelType;
 }
 
 export interface ContentTypeDto {
