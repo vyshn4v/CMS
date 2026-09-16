@@ -39,6 +39,7 @@ export class TemplateController {
   async findAll(
     @Param('orgId') orgId: string,
     @Query('type') type?: TemplateType,
+    @Query('contentTypeId') contentTypeId?: string,
     @Query('status') status?: string,
     @Query('search') search?: string,
     @Query('page') page?: string,
@@ -46,6 +47,7 @@ export class TemplateController {
   ) {
     return this.templateService.findAll(orgId, {
       type,
+      contentTypeId,
       status,
       search,
       page: page ? parseInt(page, 10) : undefined,

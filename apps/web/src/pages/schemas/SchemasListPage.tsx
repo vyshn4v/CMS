@@ -47,20 +47,13 @@ export const SchemasListPage: React.FC = () => {
             Define your API schemas, structured data models, and typed collection entries.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div>
           <button
-            onClick={() => navigate('/schemas/new?kind=COLLECTION')}
-            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+            onClick={() => navigate('/schemas/new')}
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
           >
             <Plus className="h-4 w-4" />
-            <span>Create Collection Type</span>
-          </button>
-          <button
-            onClick={() => navigate('/schemas/new?kind=SINGLE')}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Create Single Type</span>
+            <span>Create Content Type</span>
           </button>
         </div>
       </div>
@@ -81,11 +74,11 @@ export const SchemasListPage: React.FC = () => {
               Create your first content model to start publishing entries and serving structured JSON/HTML.
             </p>
             <button
-              onClick={() => navigate('/schemas/new?kind=COLLECTION')}
+              onClick={() => navigate('/schemas/new')}
               className="mt-4 flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
             >
               <Plus className="h-4 w-4" />
-              <span>Create Collection Type</span>
+              <span>Create Content Type</span>
             </button>
           </div>
         ) : (

@@ -126,11 +126,11 @@ export const TemplateEditorPage: React.FC = () => {
             } else if (existingSaved[f.name] !== undefined) {
               next[f.name] = existingSaved[f.name];
             } else {
-              // Context-sensitive starter expressions based on field name
+              // Starter expression
               if (f.name === 'sub' || f.name === 'subject') {
-                next[f.name] = 'Order Confirmation for {{customer}} (#{{orderId}})';
+                next[f.name] = '{{title}}';
               } else if (f.name === 'body' || f.name === 'html' || f.name === 'content') {
-                next[f.name] = `<h2>Hi {{customer}}!</h2>\n<p>Your order #{{orderId}} for \${{amount}} has been placed successfully.</p>`;
+                next[f.name] = '<h2>{{title}}</h2>\n<p>{{content}}</p>';
               } else {
                 next[f.name] = `{{${f.name}}}`;
               }
@@ -173,8 +173,7 @@ export const TemplateEditorPage: React.FC = () => {
           });
           return res.data.data || res.data;
         } else {
-          const effectiveType =
-            ((selectedSchema?.schema as any)?.modelType as TemplateType) || 'CUSTOM';
+          const effectiveType: TemplateType = 'CUSTOM';
 
           const payload: UpdateTemplateInput = {
             name: name.trim(),
@@ -188,8 +187,7 @@ export const TemplateEditorPage: React.FC = () => {
           return res.data.data || res.data;
         }
       } else {
-        const effectiveType =
-          ((selectedSchema?.schema as any)?.modelType as TemplateType) || 'CUSTOM';
+        const effectiveType: TemplateType = 'CUSTOM';
 
         const payload: CreateTemplateInput = {
           name: name.trim(),
@@ -445,10 +443,10 @@ export const TemplateEditorPage: React.FC = () => {
             ))}
           </select>
 
-          {/* Model Format Badge */}
+          {/* Model Fields Count Badge */}
           {selectedSchema && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-[10px] font-mono font-bold text-indigo-700 dark:text-indigo-300">
-              Format: {(selectedSchema.schema as any)?.modelType || 'CUSTOM'}
+            <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-600 dark:text-slate-300">
+              {((selectedSchema.schema as any)?.fields || []).length} {((selectedSchema.schema as any)?.fields || []).length === 1 ? 'field' : 'fields'} configured
             </span>
           )}
 

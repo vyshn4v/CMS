@@ -25,7 +25,7 @@ import {
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { AddFieldModal } from '../../components/schema-builder/AddFieldModal';
-import { FieldDefinition, ContentTypeKind, ModelType } from '@cms/shared-types';
+import { FieldDefinition, ContentTypeKind } from '@cms/shared-types';
 
 const FIELD_ICONS: Record<string, any> = {
   text: Type,
@@ -56,7 +56,6 @@ export const SchemaBuilderPage: React.FC = () => {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [kind, setKind] = useState<ContentTypeKind>(defaultKind);
-  const [modelType, setModelType] = useState<ModelType>('CUSTOM');
   const [fields, setFields] = useState<FieldDefinition[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState(false);
@@ -94,10 +93,6 @@ export const SchemaBuilderPage: React.FC = () => {
           : existingSchema.schema || {};
 
       setFields(rawSchema.fields || []);
-      setModelType(
-        rawSchema.modelType ||
-          (existingSchema.slug?.toLowerCase().includes('email') ? 'EMAIL' : 'CUSTOM'),
-      );
     }
   }, [existingSchema]);
 
@@ -111,7 +106,7 @@ export const SchemaBuilderPage: React.FC = () => {
         slug: slug.trim() || undefined,
         description: description.trim() || undefined,
         kind,
-        schema: { fields, modelType },
+        schema: { fields },
       };
 
       if (isEditing) {
@@ -286,23 +281,6 @@ export const SchemaBuilderPage: React.FC = () => {
             >
               <option value="COLLECTION">Collection Type (Multiple Entries)</option>
               <option value="SINGLE">Single Type (One Static Entry)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Model Output Format
-            </label>
-            <select
-              value={modelType}
-              onChange={(e) => setModelType(e.target.value as ModelType)}
-              className="mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="EMAIL">EMAIL (Subject + Body preview)</option>
-              <option value="PUSH_NOTIFICATION">PUSH NOTIFICATION (Mobile banner preview)</option>
-              <option value="SMS">SMS (Phone text message preview)</option>
-              <option value="HTML_PAGE">HTML PAGE (Document / Web canvas preview)</option>
-              <option value="CUSTOM">CUSTOM JSON (Structured schema preview)</option>
             </select>
           </div>
         </div>

@@ -27,6 +27,7 @@ export class TemplateService {
     orgId: string,
     query: {
       type?: TemplateType;
+      contentTypeId?: string;
       status?: string;
       search?: string;
       page?: number;
@@ -41,6 +42,9 @@ export class TemplateService {
 
     if (query.type) {
       where.type = query.type;
+    }
+    if (query.contentTypeId) {
+      where.contentTypeId = query.contentTypeId;
     }
     if (query.status) {
       where.status = query.status;

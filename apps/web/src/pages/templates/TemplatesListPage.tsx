@@ -7,16 +7,12 @@ import {
   FileCode,
   Plus,
   Search,
-  Filter,
   Trash2,
   Edit,
-  Globe,
-  Mail,
-  FileText,
-  Code2,
   Calendar,
+  Layers,
 } from 'lucide-react';
-import { TemplateDto, TemplateType } from '@cms/shared-types';
+import { ContentTypeDto, TemplateDto } from '@cms/shared-types';
 
 export const TemplatesListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,16 +21,29 @@ export const TemplatesListPage: React.FC = () => {
   const orgId = activeOrg?.id;
 
   const [search, setSearch] = useState('');
-  const [selectedType, setSelectedType] = useState<string>('ALL');
+  const [selectedModel, setSelectedModel] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+
+  // Fetch schemas for model filter
+  const { data: schemasData } = useQuery<{ items: ContentTypeDto[] }>({
+    queryKey: ['content-types', orgId],
+    queryFn: async () => {
+      if (!orgId) return { items: [] };
+      const res = await api.get(`/orgs/${orgId}/content-types`);
+      return res.data.data || res.data;
+    },
+    enabled: !!orgId,
+  });
+
+  const schemas = schemasData?.items || [];
 
   // Fetch templates
   const { data: responseData, isLoading } = useQuery<{ items: TemplateDto[]; total: number }>({
-    queryKey: ['templates', orgId, selectedType, selectedStatus, search],
+    queryKey: ['templates', orgId, selectedModel, selectedStatus, search],
     queryFn: async () => {
       if (!orgId) return { items: [], total: 0 };
       const params = new URLSearchParams();
-      if (selectedType !== 'ALL') params.append('type', selectedType);
+      if (selectedModel !== 'ALL') params.append('contentTypeId', selectedModel);
       if (selectedStatus !== 'ALL') params.append('status', selectedStatus);
       if (search.trim()) params.append('search', search.trim());
 
@@ -55,36 +64,6 @@ export const TemplatesListPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['templates', orgId] });
     },
   });
-
-  const getTypeIcon = (type: TemplateType) => {
-    switch (type) {
-      case 'CUSTOM':
-        return <FileCode className="h-3.5 w-3.5 text-indigo-500" />;
-      case 'EMAIL':
-        return <Mail className="h-3.5 w-3.5 text-blue-500" />;
-      case 'HTML_PAGE':
-        return <Globe className="h-3.5 w-3.5 text-emerald-500" />;
-      case 'JSON':
-        return <Code2 className="h-3.5 w-3.5 text-purple-500" />;
-      default:
-        return <FileText className="h-3.5 w-3.5 text-slate-500" />;
-    }
-  };
-
-  const getTypeBadgeClass = (type: TemplateType) => {
-    switch (type) {
-      case 'CUSTOM':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50';
-      case 'EMAIL':
-        return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50';
-      case 'HTML_PAGE':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/50';
-      case 'JSON':
-        return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50';
-      default:
-        return 'bg-slate-50 text-slate-700 border-slate-200';
-    }
-  };
 
   return (
     <div className="flex flex-col flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
@@ -125,21 +104,21 @@ export const TemplatesListPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Format Filter */}
+          {/* Target Model Filter */}
           <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <Filter className="h-3.5 w-3.5 text-slate-400" />
-            <span>Format:</span>
+            <Layers className="h-3.5 w-3.5 text-slate-400" />
+            <span>Target Model:</span>
             <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
               className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-2.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none"
             >
-              <option value="ALL">All Formats</option>
-              <option value="EMAIL">Email</option>
-              <option value="PUSH_NOTIFICATION">Push Notification</option>
-              <option value="SMS">SMS</option>
-              <option value="HTML_PAGE">HTML Page</option>
-              <option value="CUSTOM">Custom Schema</option>
+              <option value="ALL">All Models</option>
+              {schemas.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -203,7 +182,7 @@ export const TemplatesListPage: React.FC = () => {
                   >
                     <td className="px-6 py-4 font-semibold text-slate-900 dark:text-slate-100">
                       <div className="flex items-center gap-2">
-                        {getTypeIcon(tpl.type)}
+                        <FileCode className="h-4 w-4 text-indigo-500" />
                         <span>{tpl.name}</span>
                       </div>
                     </td>
@@ -214,13 +193,11 @@ export const TemplatesListPage: React.FC = () => {
                           <span className="font-semibold text-xs text-slate-800 dark:text-slate-200">
                             {tpl.contentType.name}
                           </span>
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-mono font-bold border ${getTypeBadgeClass(
-                              tpl.type,
-                            )}`}
-                          >
-                            {tpl.type}
-                          </span>
+                          {tpl.contentType.schema?.fields?.length ? (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-mono font-medium border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50">
+                              {tpl.contentType.schema.fields.length} {tpl.contentType.schema.fields.length === 1 ? 'field' : 'fields'}
+                            </span>
+                          ) : null}
                         </div>
                       ) : (
                         <span className="text-amber-500/80 italic text-[11px]">Unlinked Model</span>
