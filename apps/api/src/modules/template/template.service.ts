@@ -447,10 +447,134 @@ export class TemplateService {
     }
 
     // If we have field-by-field model output mappings:
+    // If we have field-by-field model output mappings:
     if (fieldsSource && typeof fieldsSource === 'object' && Object.keys(fieldsSource).length > 0) {
+      // 0. Normalize fieldsSource: support dot keys (e.g. seo.meta_title) into nested object
+      const normalizedFields: Record<string, any> = {};
+      for (const [k, v] of Object.entries(fieldsSource)) {
+        if (k.includes('.')) {
+          const [parent, child] = k.split('.', 2);
+          if (!normalizedFields[parent] || typeof normalizedFields[parent] !== 'object') {
+            normalizedFields[parent] = {};
+          }
+          normalizedFields[parent][child] = v;
+        } else {
+          normalizedFields[k] = v;
+        }
+      }
+
       const renderedFields: Record<string, any> = {};
-      for (const [key, rawTpl] of Object.entries(fieldsSource)) {
-        const trimmed = (rawTpl || '').trim();
+      for (const [key, rawTpl] of Object.entries(normalizedFields)) {
+        // A. Handle structured component template (object of subfield templates)
+        let subfieldTemplates: Record<string, any> | null = null;
+        if (rawTpl && typeof rawTpl === 'object' && !Array.isArray(rawTpl)) {
+          subfieldTemplates = rawTpl as Record<string, any>;
+        } else if (typeof rawTpl === 'string' && rawTpl.trim().startsWith('{') && rawTpl.trim().endsWith('}')) {
+          try {
+            const parsed = JSON.parse(rawTpl);
+            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+              subfieldTemplates = parsed;
+            }
+          } catch {}
+        }
+
+        if (subfieldTemplates) {
+          const rawVal = contextData[key];
+
+          // 1. If user passed a JSON array for this component -> component output is an array!
+          if (Array.isArray(rawVal)) {
+            const mappedArray = rawVal.map((item: any, idx: number) => {
+              const itemObj: Record<string, any> = {};
+              const itemScope =
+                typeof item === 'object' && item !== null
+                  ? { ...contextData, ...item, this: item, '@index': idx }
+                  : { ...contextData, this: item, '@index': idx };
+
+              for (const [subKey, subFormula] of Object.entries(subfieldTemplates!)) {
+                if (typeof subFormula === 'string') {
+                  const subTrimmed = subFormula.trim();
+                  if (
+                    (subTrimmed === '' ||
+                      subTrimmed === `{{${subKey}}}` ||
+                      subTrimmed === `{{this.${subKey}}}`) &&
+                    typeof item === 'object' &&
+                    item !== null &&
+                    item[subKey] !== undefined
+                  ) {
+                    itemObj[subKey] = item[subKey];
+                  } else {
+                    let val: any = this.handlebarsService.render(subFormula, itemScope);
+                    if (
+                      typeof val === 'string' &&
+                      ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']')))
+                    ) {
+                      try {
+                        val = JSON.parse(val);
+                      } catch {}
+                    }
+                    itemObj[subKey] = val;
+                  }
+                } else {
+                  itemObj[subKey] = subFormula;
+                }
+              }
+              return itemObj;
+            });
+
+            renderedFields[key] = mappedArray;
+            continue;
+          }
+
+          // 2. If user passed a single JSON object for this component
+          if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
+            const itemObj: Record<string, any> = {};
+            const scope = { ...contextData, ...rawVal, this: rawVal };
+
+            for (const [subKey, subFormula] of Object.entries(subfieldTemplates)) {
+              if (typeof subFormula === 'string') {
+                const subTrimmed = subFormula.trim();
+                if (
+                  (subTrimmed === '' ||
+                    subTrimmed === `{{${subKey}}}` ||
+                    subTrimmed === `{{this.${subKey}}}`) &&
+                  rawVal[subKey] !== undefined
+                ) {
+                  itemObj[subKey] = rawVal[subKey];
+                } else {
+                  let val: any = this.handlebarsService.render(subFormula, scope);
+                  if (
+                    typeof val === 'string' &&
+                    ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']')))
+                  ) {
+                    try {
+                      val = JSON.parse(val);
+                    } catch {}
+                  }
+                  itemObj[subKey] = val;
+                }
+              } else {
+                itemObj[subKey] = subFormula;
+              }
+            }
+
+            renderedFields[key] = itemObj;
+            continue;
+          }
+
+          // 3. Fallback: evaluate default subfield expressions with contextData
+          const itemObj: Record<string, any> = {};
+          for (const [subKey, subFormula] of Object.entries(subfieldTemplates)) {
+            itemObj[subKey] =
+              typeof subFormula === 'string'
+                ? this.handlebarsService.render(subFormula, contextData)
+                : subFormula;
+          }
+          renderedFields[key] = itemObj;
+          continue;
+        }
+
+        // B. Handle raw string template
+        const trimmed = (typeof rawTpl === 'string' ? rawTpl : '').trim();
 
         // 1. Direct pass-through if template expression is {{key}} or {{{key}}} or empty
         if (
@@ -462,7 +586,7 @@ export class TemplateService {
         }
 
         // 2. Render via Handlebars
-        let renderedVal: any = this.handlebarsService.render(rawTpl || '', contextData);
+        let renderedVal: any = this.handlebarsService.render(typeof rawTpl === 'string' ? rawTpl : '', contextData);
 
         // 3. Graceful fallback: If Handlebars produced "[object Object]" and original input was an object/array, preserve original
         if (

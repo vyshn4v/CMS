@@ -25,7 +25,7 @@ interface TemplatePreviewPaneProps {
   orgId: string;
   templateId?: string;
   templateType?: TemplateType;
-  fieldsDraft?: Record<string, string>;
+  fieldsDraft?: Record<string, any>;
   bodyDraft: string;
   subjectDraft?: string;
   selectedSchema?: ContentTypeDto | null;
@@ -256,8 +256,19 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
       };
 
       if (fieldsDraft) {
-        Object.values(fieldsDraft).forEach(scanTemplate);
-        Object.values(fieldsDraft).forEach(scanEachLoops);
+        Object.values(fieldsDraft).forEach((val) => {
+          if (typeof val === 'string') {
+            scanTemplate(val);
+            scanEachLoops(val);
+          } else if (typeof val === 'object' && val !== null) {
+            Object.values(val).forEach((subVal) => {
+              if (typeof subVal === 'string') {
+                scanTemplate(subVal);
+                scanEachLoops(subVal);
+              }
+            });
+          }
+        });
       }
       scanTemplate(bodyDraft);
       scanTemplate(subjectDraft);
@@ -733,9 +744,15 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
                               <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400 truncate pr-2">
                                 {k}:
                               </span>
-                              <span className="font-medium text-slate-800 dark:text-slate-100 break-words">
-                                {typeof v === 'object' ? JSON.stringify(v) : String(v)}
-                              </span>
+                              <div className="font-medium text-slate-800 dark:text-slate-100 break-words">
+                                {typeof v === 'object' && v !== null ? (
+                                  <pre className="font-mono text-[11px] bg-slate-50 dark:bg-slate-950 p-2 rounded border border-slate-200 dark:border-slate-800 overflow-x-auto text-indigo-900 dark:text-indigo-200">
+                                    {JSON.stringify(v, null, 2)}
+                                  </pre>
+                                ) : (
+                                  String(v)
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>

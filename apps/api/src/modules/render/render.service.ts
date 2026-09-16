@@ -133,56 +133,181 @@ export class RenderService {
     };
 
     // 4. Model-driven Multi-Field Rendering
-    const fieldsPublished = template.fieldsPublished as Record<string, string> | null;
+    const fieldsPublished = template.fieldsPublished as Record<string, any> | null;
     if (fieldsPublished && typeof fieldsPublished === 'object' && Object.keys(fieldsPublished).length > 0) {
+      // 0. Normalize dot keys (e.g. seo.meta_title) into nested object
+      const normalizedFields: Record<string, any> = {};
+      for (const [k, v] of Object.entries(fieldsPublished)) {
+        if (k.includes('.')) {
+          const [parent, child] = k.split('.', 2);
+          if (!normalizedFields[parent] || typeof normalizedFields[parent] !== 'object') {
+            normalizedFields[parent] = {};
+          }
+          normalizedFields[parent][child] = v;
+        } else {
+          normalizedFields[k] = v;
+        }
+      }
+
       const renderedFields: Record<string, any> = {};
       const modelFields: any[] = (template.contentType?.schema as any)?.fields || [];
       const allowedFields = modelFields.length > 0 ? new Set(modelFields.map((f: any) => f.name)) : null;
 
-      for (const [key, rawTpl] of Object.entries(fieldsPublished)) {
-        if (!allowedFields || allowedFields.has(key)) {
-          const trimmed = (rawTpl || '').trim();
+      for (const [key, rawTpl] of Object.entries(normalizedFields)) {
+        if (allowedFields && !allowedFields.has(key)) {
+          continue;
+        }
 
-          // 1. Direct pass-through if template expression is {{key}} or {{{key}}} or empty
-          if (
-            (trimmed === `{{${key}}}` || trimmed === `{{{${key}}}}` || trimmed === '') &&
-            context[key] !== undefined
-          ) {
-            renderedFields[key] = context[key];
+        // A. Handle structured component template (object of subfield templates)
+        let subfieldTemplates: Record<string, any> | null = null;
+        if (rawTpl && typeof rawTpl === 'object' && !Array.isArray(rawTpl)) {
+          subfieldTemplates = rawTpl as Record<string, any>;
+        } else if (typeof rawTpl === 'string' && rawTpl.trim().startsWith('{') && rawTpl.trim().endsWith('}')) {
+          try {
+            const parsed = JSON.parse(rawTpl);
+            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+              subfieldTemplates = parsed;
+            }
+          } catch {}
+        }
+
+        if (subfieldTemplates) {
+          const rawVal = context[key];
+
+          // 1. If user passed a JSON array for this component -> component output is an array!
+          if (Array.isArray(rawVal)) {
+            const mappedArray = rawVal.map((item: any, idx: number) => {
+              const itemObj: Record<string, any> = {};
+              const itemScope =
+                typeof item === 'object' && item !== null
+                  ? { ...context, ...item, this: item, '@index': idx }
+                  : { ...context, this: item, '@index': idx };
+
+              for (const [subKey, subFormula] of Object.entries(subfieldTemplates!)) {
+                if (typeof subFormula === 'string') {
+                  const subTrimmed = subFormula.trim();
+                  if (
+                    (subTrimmed === '' ||
+                      subTrimmed === `{{${subKey}}}` ||
+                      subTrimmed === `{{this.${subKey}}}`) &&
+                    typeof item === 'object' &&
+                    item !== null &&
+                    item[subKey] !== undefined
+                  ) {
+                    itemObj[subKey] = item[subKey];
+                  } else {
+                    let val: any = this.handlebarsService.render(subFormula, itemScope);
+                    if (
+                      typeof val === 'string' &&
+                      ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']')))
+                    ) {
+                      try {
+                        val = JSON.parse(val);
+                      } catch {}
+                    }
+                    itemObj[subKey] = val;
+                  }
+                } else {
+                  itemObj[subKey] = subFormula;
+                }
+              }
+              return itemObj;
+            });
+
+            renderedFields[key] = mappedArray;
             continue;
           }
 
-          // 2. Render via Handlebars
-          let renderedVal: any = this.handlebarsService.render(rawTpl || '', context);
+          // 2. If user passed a single JSON object for this component
+          if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
+            const itemObj: Record<string, any> = {};
+            const scope = { ...context, ...rawVal, this: rawVal };
 
-          // 3. Graceful fallback: If Handlebars produced "[object Object]" and original input was an object/array, preserve original
-          if (
-            typeof renderedVal === 'string' &&
-            renderedVal.includes('[object Object]') &&
-            context[key] !== undefined &&
-            typeof context[key] === 'object'
-          ) {
-            renderedFields[key] = context[key];
-            continue;
-          }
-
-          // 4. Auto-parse JSON string outputs (e.g. from {{{json field}}})
-          if (typeof renderedVal === 'string') {
-            const s = renderedVal.trim();
-            if (
-              (s.startsWith('{') && s.endsWith('}')) ||
-              (s.startsWith('[') && s.endsWith(']'))
-            ) {
-              try {
-                renderedVal = JSON.parse(s);
-              } catch {
-                // keep as rendered string
+            for (const [subKey, subFormula] of Object.entries(subfieldTemplates)) {
+              if (typeof subFormula === 'string') {
+                const subTrimmed = subFormula.trim();
+                if (
+                  (subTrimmed === '' ||
+                    subTrimmed === `{{${subKey}}}` ||
+                    subTrimmed === `{{this.${subKey}}}`) &&
+                  rawVal[subKey] !== undefined
+                ) {
+                  itemObj[subKey] = rawVal[subKey];
+                } else {
+                  let val: any = this.handlebarsService.render(subFormula, scope);
+                  if (
+                    typeof val === 'string' &&
+                    ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']')))
+                  ) {
+                    try {
+                      val = JSON.parse(val);
+                    } catch {}
+                  }
+                  itemObj[subKey] = val;
+                }
+              } else {
+                itemObj[subKey] = subFormula;
               }
             }
+
+            renderedFields[key] = itemObj;
+            continue;
           }
 
-          renderedFields[key] = renderedVal;
+          // 3. Fallback: evaluate default subfield expressions with context
+          const itemObj: Record<string, any> = {};
+          for (const [subKey, subFormula] of Object.entries(subfieldTemplates)) {
+            itemObj[subKey] =
+              typeof subFormula === 'string'
+                ? this.handlebarsService.render(subFormula, context)
+                : subFormula;
+          }
+          renderedFields[key] = itemObj;
+          continue;
         }
+
+        // B. Handle regular string or primitive templates
+        const trimmed = typeof rawTpl === 'string' ? rawTpl.trim() : '';
+
+        // 1. Direct pass-through if template expression is {{key}} or {{{key}}} or empty
+        if (
+          (trimmed === `{{${key}}}` || trimmed === `{{{${key}}}}` || trimmed === '') &&
+          context[key] !== undefined
+        ) {
+          renderedFields[key] = context[key];
+          continue;
+        }
+
+        // 2. Render via Handlebars
+        let renderedVal: any = this.handlebarsService.render(typeof rawTpl === 'string' ? rawTpl : '', context);
+
+        // 3. Graceful fallback: If Handlebars produced "[object Object]" and original input was an object/array, preserve original
+        if (
+          typeof renderedVal === 'string' &&
+          renderedVal.includes('[object Object]') &&
+          context[key] !== undefined &&
+          typeof context[key] === 'object'
+        ) {
+          renderedFields[key] = context[key];
+          continue;
+        }
+
+        // 4. Auto-parse JSON string outputs (e.g. from {{{json field}}})
+        if (typeof renderedVal === 'string') {
+          const s = renderedVal.trim();
+          if (
+            (s.startsWith('{') && s.endsWith('}')) ||
+            (s.startsWith('[') && s.endsWith(']'))
+          ) {
+            try {
+              renderedVal = JSON.parse(s);
+            } catch {
+              // keep as rendered string
+            }
+          }
+        }
+
+        renderedFields[key] = renderedVal;
       }
 
       return {

@@ -11,8 +11,8 @@ export interface TemplateDto {
   contentTypeId?: string | null;
   name: string;
   type: TemplateType;
-  fieldsDraft?: Record<string, string> | null;
-  fieldsPublished?: Record<string, string> | null;
+  fieldsDraft?: Record<string, any> | null;
+  fieldsPublished?: Record<string, any> | null;
   bodyDraft: string;
   bodyPublished?: string | null;
   subjectDraft?: string | null;
@@ -33,7 +33,7 @@ export interface CreateTemplateInput {
   name: string;
   type?: TemplateType;
   contentTypeId?: string | null;
-  fieldsDraft?: Record<string, string>;
+  fieldsDraft?: Record<string, any>;
   bodyDraft?: string;
   subjectDraft?: string | null;
   publish?: boolean;
@@ -43,14 +43,14 @@ export interface UpdateTemplateInput {
   name?: string;
   type?: TemplateType;
   contentTypeId?: string | null;
-  fieldsDraft?: Record<string, string>;
+  fieldsDraft?: Record<string, any>;
   bodyDraft?: string;
   subjectDraft?: string | null;
 }
 
 export interface PreviewTemplateInput {
-  fieldsDraft?: Record<string, string>;
-  fields?: Record<string, string>;
+  fieldsDraft?: Record<string, any>;
+  fields?: Record<string, any>;
   body?: string;
   subject?: string;
   type?: TemplateType;
