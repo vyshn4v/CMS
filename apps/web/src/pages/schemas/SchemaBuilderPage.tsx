@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import {
   Layers,
   Plus,
@@ -159,8 +160,6 @@ export const SchemaBuilderPage: React.FC = () => {
     setIsFieldModalOpen(true);
   };
 
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-
   const handleMoveUp = (index: number) => {
     if (index <= 0) return;
     setFields((prev) => {
@@ -183,27 +182,18 @@ export const SchemaBuilderPage: React.FC = () => {
     });
   };
 
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === targetIndex) return;
+  const handleOnDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const sourceIndex = result.source.index;
+    const destIndex = result.destination.index;
+    if (sourceIndex === destIndex) return;
 
     setFields((prev) => {
       const next = [...prev];
-      const [movedItem] = next.splice(draggedIndex, 1);
-      next.splice(targetIndex, 0, movedItem);
+      const [movedItem] = next.splice(sourceIndex, 1);
+      next.splice(destIndex, 0, movedItem);
       return next;
     });
-    setDraggedIndex(null);
   };
 
   if (isEditing && isLoading) {
@@ -407,119 +397,137 @@ export const SchemaBuilderPage: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-            {fields.map((field, idx) => {
-              const Icon = FIELD_ICONS[field.type] || Type;
-              const isFirst = idx === 0;
-              const isLast = idx === fields.length - 1;
-              const isDragging = draggedIndex === idx;
-
-              return (
+          <DragDropContext onDragEnd={handleOnDragEnd}>
+            <Droppable droppableId="schema-fields-droppable">
+              {(provided, snapshot) => (
                 <div
-                  key={`${field.name}-${idx}`}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, idx)}
-                  onDragOver={(e) => handleDragOver(e)}
-                  onDrop={(e) => handleDrop(e, idx)}
-                  className={`flex items-center justify-between p-3.5 bg-white dark:bg-slate-900 transition ${
-                    isDragging
-                      ? 'opacity-40 bg-indigo-50/50 dark:bg-indigo-950/20'
-                      : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className={`divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden transition-colors ${
+                    snapshot.isDraggingOver ? 'bg-indigo-50/20 dark:bg-indigo-950/20 border-indigo-300 dark:border-indigo-700' : ''
                   }`}
                 >
-                  <div className="flex items-center gap-3">
-                    {/* Drag Grip & Position Number */}
-                    <div
-                      className="flex items-center gap-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-grab active:cursor-grabbing select-none"
-                      title="Drag to reorder"
-                    >
-                      <GripVertical className="h-4 w-4" />
-                      <span className="font-mono text-[10px] text-slate-400 w-4 text-center">
-                        {idx + 1}
-                      </span>
-                    </div>
+                  {fields.map((field, idx) => {
+                    const Icon = FIELD_ICONS[field.type] || Type;
+                    const isFirst = idx === 0;
+                    const isLast = idx === fields.length - 1;
 
-                    <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs text-slate-900 dark:text-slate-100">
-                          {field.label}
-                        </span>
-                        <span className="font-mono text-[11px] text-slate-400">
-                          ({field.name})
-                        </span>
-                        <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[9px] font-mono uppercase text-slate-600 dark:text-slate-400 font-semibold">
-                          {field.type}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        {field.required && (
-                          <span className="text-[10px] font-semibold text-rose-500 bg-rose-50 dark:bg-rose-950/40 px-1.5 rounded">
-                            Required
-                          </span>
+                    return (
+                      <Draggable
+                        key={`${field.name}-${idx}`}
+                        draggableId={`${field.name}-${idx}`}
+                        index={idx}
+                      >
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={`flex items-center justify-between p-3.5 bg-white dark:bg-slate-900 transition-all ${
+                              snapshot.isDragging
+                                ? 'shadow-2xl ring-2 ring-indigo-500 rounded-xl z-50 bg-white dark:bg-slate-900'
+                                : 'hover:bg-slate-50/70 dark:hover:bg-slate-800/40'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              {/* Drag Grip Handle */}
+                              <div
+                                {...provided.dragHandleProps}
+                                className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 select-none transition"
+                                title="Drag to reorder"
+                              >
+                                <GripVertical className="h-4 w-4" />
+                                <span className="font-mono text-[10px] text-slate-400 w-4 text-center font-bold">
+                                  {idx + 1}
+                                </span>
+                              </div>
+
+                              <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-xs text-slate-900 dark:text-slate-100">
+                                    {field.label}
+                                  </span>
+                                  <span className="font-mono text-[11px] text-slate-400">
+                                    ({field.name})
+                                  </span>
+                                  <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[9px] font-mono uppercase text-slate-600 dark:text-slate-400 font-semibold">
+                                    {field.type}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  {field.required && (
+                                    <span className="text-[10px] font-semibold text-rose-500 bg-rose-50 dark:bg-rose-950/40 px-1.5 rounded">
+                                      Required
+                                    </span>
+                                  )}
+                                  {field.unique && (
+                                    <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-1.5 rounded">
+                                      Unique
+                                    </span>
+                                  )}
+                                  {field.defaultValue !== undefined && (
+                                    <span className="text-[10px] text-slate-400">
+                                      Default: {String(field.defaultValue)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              {/* Move Up Button */}
+                              <button
+                                type="button"
+                                disabled={isFirst}
+                                onClick={() => handleMoveUp(idx)}
+                                title="Move Up"
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                              >
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              </button>
+
+                              {/* Move Down Button */}
+                              <button
+                                type="button"
+                                disabled={isLast}
+                                onClick={() => handleMoveDown(idx)}
+                                title="Move Down"
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                              >
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              </button>
+
+                              <div className="h-4 w-px bg-slate-200 dark:border-slate-800 mx-1" />
+
+                              <button
+                                type="button"
+                                onClick={() => openEditField(idx)}
+                                title="Edit Field"
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveField(idx)}
+                                title="Delete Field"
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
                         )}
-                        {field.unique && (
-                          <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-1.5 rounded">
-                            Unique
-                          </span>
-                        )}
-                        {field.defaultValue !== undefined && (
-                          <span className="text-[10px] text-slate-400">
-                            Default: {String(field.defaultValue)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    {/* Move Up Button */}
-                    <button
-                      type="button"
-                      disabled={isFirst}
-                      onClick={() => handleMoveUp(idx)}
-                      title="Move Up"
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-                    >
-                      <ArrowUp className="h-3.5 w-3.5" />
-                    </button>
-
-                    {/* Move Down Button */}
-                    <button
-                      type="button"
-                      disabled={isLast}
-                      onClick={() => handleMoveDown(idx)}
-                      title="Move Down"
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition disabled:opacity-25 disabled:hover:bg-transparent disabled:cursor-not-allowed"
-                    >
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </button>
-
-                    <div className="h-4 w-px bg-slate-200 dark:border-slate-800 mx-1" />
-
-                    <button
-                      type="button"
-                      onClick={() => openEditField(idx)}
-                      title="Edit Field"
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveField(idx)}
-                      title="Delete Field"
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                      </Draggable>
+                    );
+                  })}
+                  {provided.placeholder}
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         )}
       </div>
 
