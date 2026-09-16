@@ -30,8 +30,9 @@ import {
 interface AddFieldModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (field: FieldDefinition) => void;
+  onSave: (field: FieldDefinition, index?: number | null) => void;
   initialField?: FieldDefinition | null;
+  editingIndex?: number | null;
 }
 
 const FIELD_TYPES: Array<{
@@ -139,6 +140,7 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
   onClose,
   onSave,
   initialField,
+  editingIndex,
 }) => {
   const { activeOrg } = useAuthStore();
   const orgId = activeOrg?.id;
@@ -337,7 +339,7 @@ export const AddFieldModal: React.FC<AddFieldModalProps> = ({
       },
     };
 
-    onSave(field);
+    onSave(field, editingIndex);
     onClose();
   };
 

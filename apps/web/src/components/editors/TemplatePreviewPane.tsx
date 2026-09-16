@@ -188,7 +188,7 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
   const fieldEntries = Object.entries(outputData);
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col space-y-4 pb-10">
       {/* Dynamic Input Variables Card */}
       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3 shadow-sm">
         <div className="flex items-center justify-between">
@@ -254,7 +254,7 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
       )}
 
       {/* Rendered Output Frame */}
-      <div className="flex-1 flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden min-h-[380px] shadow-sm">
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
         {/* Output Header */}
         <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 px-4 py-2.5">
           <div className="flex items-center gap-2">
@@ -296,7 +296,7 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
         </div>
 
         {/* Output Content Area */}
-        <div className="flex-1 p-4 overflow-y-auto">
+        <div className="p-4">
           {previewOutput ? (
             <div className="space-y-4">
               {/* Tab 1: Output JSON */}
@@ -350,22 +350,29 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
                   return (
                     <div className="space-y-3">
                       <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden shadow-sm">
-                        <div className="bg-slate-100 dark:bg-slate-900/80 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                          <span className="text-xs font-mono text-slate-600 dark:text-slate-300">
-                            Rendered Field: <strong className="text-indigo-600 dark:text-indigo-400">{fieldName}</strong>
-                          </span>
-                          <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded font-mono font-semibold">
-                            {isHtml ? 'HTML Render' : 'Text Output'}
+                        <div className="bg-slate-100/80 dark:bg-slate-900/80 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block" />
+                              <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block" />
+                              <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block" />
+                            </div>
+                            <span className="text-xs font-mono text-slate-600 dark:text-slate-300 ml-1">
+                              Output: <strong className="text-indigo-600 dark:text-indigo-400">{fieldName}</strong>
+                            </span>
+                          </div>
+                          <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded font-mono font-semibold border border-emerald-200/50 dark:border-emerald-800/40">
+                            {isHtml ? 'Compiled HTML' : 'Text Output'}
                           </span>
                         </div>
-                        <div className="p-6 bg-white dark:bg-slate-950 min-h-[300px]">
+                        <div className="p-6 bg-white dark:bg-slate-950 min-h-[280px]">
                           {isHtml ? (
                             <div
-                              className="prose dark:prose-invert max-w-none text-sm leading-relaxed"
+                              className="text-slate-900 dark:text-slate-100 text-sm leading-relaxed"
                               dangerouslySetInnerHTML={{ __html: strVal }}
                             />
                           ) : (
-                            <p className="font-mono text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
+                            <p className="font-mono text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
                               {strVal}
                             </p>
                           )}
@@ -397,22 +404,22 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
 
                 return (
                   <div className="space-y-4">
-                    {/* Rendered Text/Metadata Fields */}
+                    {/* Rendered Text/Metadata Fields with strictly aligned 2-column grid */}
                     {textFields.length > 0 && (
-                      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-4 space-y-2.5">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                          Output Fields ({textFields.length})
-                        </span>
-                        <div className="space-y-2">
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            Output Fields ({textFields.length})
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">key-value output</span>
+                        </div>
+                        <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
                           {textFields.map(([k, v]) => (
-                            <div
-                              key={k}
-                              className="p-3 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-baseline gap-3"
-                            >
-                              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 w-28 shrink-0">
+                            <div key={k} className="grid grid-cols-[130px_1fr] items-center px-4 py-2.5 text-xs">
+                              <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400 truncate pr-2">
                                 {k}:
                               </span>
-                              <span className="text-xs font-medium text-slate-800 dark:text-slate-100 break-words flex-1">
+                              <span className="font-medium text-slate-800 dark:text-slate-100 break-words">
                                 {typeof v === 'object' ? JSON.stringify(v) : String(v)}
                               </span>
                             </div>
@@ -427,17 +434,24 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
                         key={k}
                         className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden shadow-sm"
                       >
-                        <div className="bg-slate-100 dark:bg-slate-900/80 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                          <span className="text-xs font-mono text-slate-600 dark:text-slate-300">
-                            Rendered HTML: <strong className="text-indigo-600 dark:text-indigo-400">{k}</strong>
-                          </span>
-                          <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded font-mono font-semibold">
-                            HTML Document
+                        <div className="bg-slate-100/80 dark:bg-slate-900/80 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block" />
+                              <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block" />
+                              <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700 inline-block" />
+                            </div>
+                            <span className="text-xs font-mono text-slate-600 dark:text-slate-300 ml-1">
+                              HTML Document: <strong className="text-indigo-600 dark:text-indigo-400">{k}</strong>
+                            </span>
+                          </div>
+                          <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded font-mono font-semibold border border-emerald-200/50 dark:border-emerald-800/40">
+                            Compiled HTML
                           </span>
                         </div>
-                        <div className="p-6 bg-white dark:bg-slate-950 min-h-[220px]">
+                        <div className="p-6 bg-white dark:bg-slate-950 min-h-[240px]">
                           <div
-                            className="prose dark:prose-invert max-w-none text-sm leading-relaxed"
+                            className="text-slate-900 dark:text-slate-100 text-sm leading-relaxed"
                             dangerouslySetInnerHTML={{ __html: String(v) }}
                           />
                         </div>
@@ -448,10 +462,10 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
               })()}
             </div>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center text-center p-8 text-slate-400 space-y-2">
+            <div className="flex h-56 flex-col items-center justify-center text-center p-8 text-slate-400 space-y-2">
               <Play className="h-8 w-8 text-slate-300 dark:text-slate-700" />
               <p className="text-xs font-medium">Ready to compile & render</p>
-              <p className="text-[11px] max-w-xs">
+              <p className="text-[11px] max-w-xs text-slate-400">
                 Provide test input variables in the JSON editor above, then click <strong>Render Preview</strong> to inspect the Model output.
               </p>
             </div>

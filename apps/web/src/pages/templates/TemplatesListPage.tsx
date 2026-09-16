@@ -25,17 +25,15 @@ export const TemplatesListPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
 
   // Fetch schemas for model filter
-  const { data: schemasData } = useQuery<{ items: ContentTypeDto[] }>({
-    queryKey: ['content-types', orgId],
+  const { data: schemas = [] } = useQuery<ContentTypeDto[]>({
+    queryKey: ['schemas', orgId],
     queryFn: async () => {
-      if (!orgId) return { items: [] };
-      const res = await api.get(`/orgs/${orgId}/content-types`);
-      return res.data.data || res.data;
+      if (!orgId) return [];
+      const res = await api.get(`/orgs/${orgId}/schemas`);
+      return res.data.data || res.data || [];
     },
     enabled: !!orgId,
   });
-
-  const schemas = schemasData?.items || [];
 
   // Fetch templates
   const { data: responseData, isLoading } = useQuery<{ items: TemplateDto[]; total: number }>({

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -63,6 +63,7 @@ export const SchemaBuilderPage: React.FC = () => {
   // Field modal state
   const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
   const [editingFieldIndex, setEditingFieldIndex] = useState<number | null>(null);
+  const isInitializedRef = useRef(false);
 
   // Query existing schema if editing
   const { data: existingSchema, isLoading } = useQuery({
@@ -73,10 +74,12 @@ export const SchemaBuilderPage: React.FC = () => {
       return res.data.data;
     },
     enabled: isEditing && !!orgId,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
-    if (existingSchema) {
+    if (existingSchema && !isInitializedRef.current) {
+      isInitializedRef.current = true;
       setName(existingSchema.name || '');
       setSlug(existingSchema.slug || '');
       setDescription(existingSchema.description || '');
@@ -116,7 +119,8 @@ export const SchemaBuilderPage: React.FC = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['schemas', orgId] });
+      queryClient.invalidateQueries({ queryKey: ['schemas'] });
+      queryClient.invalidateQueries({ queryKey: ['schema', orgId, id] });
       navigate('/schemas');
     },
     onError: (err: any) => {
@@ -124,19 +128,27 @@ export const SchemaBuilderPage: React.FC = () => {
     },
   });
 
-  const handleAddField = (field: FieldDefinition) => {
-    if (editingFieldIndex !== null) {
-      const updated = [...fields];
-      updated[editingFieldIndex] = field;
-      setFields(updated);
-      setEditingFieldIndex(null);
+  const handleAddField = (field: FieldDefinition, targetIndex?: number | null) => {
+    const idx =
+      targetIndex !== undefined && targetIndex !== null
+        ? targetIndex
+        : editingFieldIndex;
+
+    if (idx !== null && idx >= 0 && idx < fields.length) {
+      setFields((prev) => {
+        const updated = [...prev];
+        updated[idx] = field;
+        return updated;
+      });
     } else {
-      setFields([...fields, field]);
+      setFields((prev) => [...prev, field]);
     }
+    setEditingFieldIndex(null);
+    setIsFieldModalOpen(false);
   };
 
   const handleRemoveField = (index: number) => {
-    setFields(fields.filter((_, i) => i !== index));
+    setFields((prev) => prev.filter((_, i) => i !== index));
   };
 
   const openEditField = (index: number) => {
@@ -416,6 +428,7 @@ export const SchemaBuilderPage: React.FC = () => {
         <AddFieldModal
           key={editingFieldIndex !== null ? `edit-${editingFieldIndex}-${fields[editingFieldIndex]?.name}` : 'new-field'}
           isOpen={isFieldModalOpen}
+          editingIndex={editingFieldIndex}
           onClose={() => {
             setIsFieldModalOpen(false);
             setEditingFieldIndex(null);
