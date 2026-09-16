@@ -126,4 +126,117 @@ describe('TemplateService - Component Subfield & Array Rendering', () => {
       ]);
     });
   });
+
+  describe('Dynamic Zone Polymorphic Block Rendering', () => {
+    it('should render a polymorphic array of component blocks with __component discriminators', async () => {
+      const result = await service.preview('org-123', null, {
+        fieldsDraft: {
+          title: '{{title}}',
+          page_content: {
+            __dynamicZone: true,
+            hero: {
+              headline: 'HERO: {{this.headline}}',
+              tagline: '{{this.tagline}}',
+            },
+            rich_text: {
+              html: '<div class="prose">{{{this.content}}}</div>',
+            },
+            cta: {
+              buttonText: 'Action: {{this.label}}',
+              link: '{{this.url}}',
+            },
+          },
+        },
+        variables: {
+          title: 'Home Page',
+          page_content: [
+            {
+              __component: 'hero',
+              headline: 'Welcome to CMS',
+              tagline: 'Next-gen headless content engine',
+            },
+            {
+              __component: 'rich_text',
+              content: '<p>Polymorphic content blocks are powerful.</p>',
+            },
+            {
+              __component: 'cta',
+              label: 'Sign Up Now',
+              url: 'https://example.com/signup',
+            },
+          ],
+        },
+      });
+
+      expect(result.data.title).toBe('Home Page');
+      expect(Array.isArray(result.data.page_content)).toBe(true);
+      expect(result.data.page_content).toHaveLength(3);
+      expect(result.data.page_content[0]).toEqual({
+        __component: 'hero',
+        headline: 'HERO: Welcome to CMS',
+        tagline: 'Next-gen headless content engine',
+      });
+      expect(result.data.page_content[1]).toEqual({
+        __component: 'rich_text',
+        html: '<div class="prose"><p>Polymorphic content blocks are powerful.</p></div>',
+      });
+      expect(result.data.page_content[2]).toEqual({
+        __component: 'cta',
+        buttonText: 'Action: Sign Up Now',
+        link: 'https://example.com/signup',
+      });
+    });
+
+    it('should render a single block object for a dynamic zone if context provides an object', async () => {
+      const result = await service.preview('org-123', null, {
+        fieldsDraft: {
+          featured_section: {
+            __dynamicZone: true,
+            banner: {
+              title: 'BANNER: {{this.heading}}',
+            },
+          },
+        },
+        variables: {
+          featured_section: {
+            __component: 'banner',
+            heading: 'Flash Sale 50% Off',
+          },
+        },
+      });
+
+      expect(result.data.featured_section).toEqual({
+        __component: 'banner',
+        title: 'BANNER: Flash Sale 50% Off',
+      });
+    });
+
+    it('should gracefully fallback when an unknown block component discriminator is passed', async () => {
+      const result = await service.preview('org-123', null, {
+        fieldsDraft: {
+          page_content: {
+            __dynamicZone: true,
+            hero: {
+              headline: 'HERO: {{this.headline}}',
+            },
+          },
+        },
+        variables: {
+          page_content: [
+            {
+              __component: 'unconfigured_block',
+              raw_value: 'test',
+            },
+          ],
+        },
+      });
+
+      expect(result.data.page_content).toEqual([
+        {
+          __component: 'unconfigured_block',
+          raw_value: 'test',
+        },
+      ]);
+    });
+  });
 });

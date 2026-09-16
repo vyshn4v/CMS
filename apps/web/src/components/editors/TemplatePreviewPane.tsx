@@ -265,6 +265,14 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
               if (typeof subVal === 'string') {
                 scanTemplate(subVal);
                 scanEachLoops(subVal);
+              } else if (typeof subVal === 'object' && subVal !== null) {
+                // Dynamic Zone level: fieldsDraft[dzField][blockSlug][subfield]
+                Object.values(subVal).forEach((blockSubVal) => {
+                  if (typeof blockSubVal === 'string') {
+                    scanTemplate(blockSubVal);
+                    scanEachLoops(blockSubVal);
+                  }
+                });
               }
             });
           }

@@ -50,6 +50,7 @@ export const TemplateEditorPage: React.FC = () => {
 
   // Custom key inputs for adding extra computed keys to components
   const [newSubfieldInputs, setNewSubfieldInputs] = useState<Record<string, string>>({});
+  const [activeDzTabs, setActiveDzTabs] = useState<Record<string, string>>({});
 
   // UI State
   const [viewMode, setViewMode] = useState<'editor' | 'split' | 'preview'>('split');
@@ -156,6 +157,46 @@ export const TemplateEditorPage: React.FC = () => {
               } else {
                 next[f.name] = defaultSubObj;
               }
+            } else if (f.type === 'dynamiczone') {
+              const allowedIds: string[] =
+                f.dynamiczone?.allowedComponentIds ||
+                (f as any).allowedComponentIds ||
+                [];
+              const allowedComps = components.filter(
+                (c) => allowedIds.length === 0 || allowedIds.includes(c.id) || allowedIds.includes(c.slug),
+              );
+
+              const defaultDzObj: Record<string, any> = { __dynamicZone: true };
+              allowedComps.forEach((ac) => {
+                const acFields: FieldDefinition[] = safeParseSchema(ac.schema).fields || [];
+                const blockSubObj: Record<string, string> = {};
+                acFields.forEach((acf) => {
+                  blockSubObj[acf.name] = `{{this.${acf.name}}}`;
+                });
+                defaultDzObj[ac.slug] = blockSubObj;
+              });
+
+              const prevVal = prev[f.name] !== undefined ? prev[f.name] : existingSaved[f.name];
+              if (prevVal && typeof prevVal === 'object' && !Array.isArray(prevVal)) {
+                const merged: Record<string, any> = { ...defaultDzObj, ...prevVal };
+                allowedComps.forEach((ac) => {
+                  if (merged[ac.slug] && typeof merged[ac.slug] === 'object' && defaultDzObj[ac.slug]) {
+                    merged[ac.slug] = { ...defaultDzObj[ac.slug], ...merged[ac.slug] };
+                  } else if (!merged[ac.slug] && defaultDzObj[ac.slug]) {
+                    merged[ac.slug] = defaultDzObj[ac.slug];
+                  }
+                });
+                next[f.name] = merged;
+              } else if (typeof prevVal === 'string' && prevVal.trim().startsWith('{')) {
+                try {
+                  const parsed = JSON.parse(prevVal);
+                  next[f.name] = { ...defaultDzObj, ...parsed };
+                } catch {
+                  next[f.name] = defaultDzObj;
+                }
+              } else {
+                next[f.name] = defaultDzObj;
+              }
             } else {
               if (prev[f.name] !== undefined) {
                 next[f.name] = prev[f.name];
@@ -252,6 +293,92 @@ export const TemplateEditorPage: React.FC = () => {
       return {
         ...prev,
         [compFieldName]: current,
+      };
+    });
+  };
+
+  // Get dynamic zone block subfield template value
+  const getDzBlockSubfieldValue = (
+    dzFieldName: string,
+    blockSlug: string,
+    subfieldName: string,
+  ): string => {
+    const dz = fieldsDraft[dzFieldName];
+    if (typeof dz === 'object' && dz !== null && !Array.isArray(dz)) {
+      const block = dz[blockSlug];
+      if (typeof block === 'object' && block !== null && !Array.isArray(block)) {
+        return typeof block[subfieldName] === 'string'
+          ? block[subfieldName]
+          : block[subfieldName] !== undefined
+          ? String(block[subfieldName])
+          : '';
+      }
+    }
+    return '';
+  };
+
+  // Handle dynamic zone block subfield change
+  const handleDzBlockSubfieldChange = (
+    dzFieldName: string,
+    blockSlug: string,
+    subfieldName: string,
+    value: string,
+  ) => {
+    setFieldsDraft((prev) => {
+      const dz =
+        typeof prev[dzFieldName] === 'object' && prev[dzFieldName] !== null && !Array.isArray(prev[dzFieldName])
+          ? { ...prev[dzFieldName] }
+          : { __dynamicZone: true };
+      const block =
+        typeof dz[blockSlug] === 'object' && dz[blockSlug] !== null && !Array.isArray(dz[blockSlug])
+          ? { ...dz[blockSlug] }
+          : {};
+      block[subfieldName] = value;
+      dz[blockSlug] = block;
+      dz.__dynamicZone = true;
+      return {
+        ...prev,
+        [dzFieldName]: dz,
+      };
+    });
+  };
+
+  // Add a custom output key to a dynamic zone block
+  const handleAddDzCustomKey = (
+    dzFieldName: string,
+    blockSlug: string,
+    keyNameOverride?: string,
+  ) => {
+    const inputKey = `${dzFieldName}_${blockSlug}`;
+    const rawKey = (keyNameOverride || newSubfieldInputs[inputKey] || '').trim();
+    if (!rawKey) return;
+    const cleanKey = rawKey.replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!cleanKey) return;
+
+    handleDzBlockSubfieldChange(dzFieldName, blockSlug, cleanKey, `{{this.${cleanKey}}}`);
+    setNewSubfieldInputs((prev) => ({ ...prev, [inputKey]: '' }));
+  };
+
+  // Remove a custom output key from a dynamic zone block
+  const handleRemoveDzCustomKey = (
+    dzFieldName: string,
+    blockSlug: string,
+    subfieldName: string,
+  ) => {
+    setFieldsDraft((prev) => {
+      const dz =
+        typeof prev[dzFieldName] === 'object' && prev[dzFieldName] !== null && !Array.isArray(prev[dzFieldName])
+          ? { ...prev[dzFieldName] }
+          : { __dynamicZone: true };
+      const block =
+        typeof dz[blockSlug] === 'object' && dz[blockSlug] !== null && !Array.isArray(dz[blockSlug])
+          ? { ...dz[blockSlug] }
+          : {};
+      delete block[subfieldName];
+      dz[blockSlug] = block;
+      return {
+        ...prev,
+        [dzFieldName]: dz,
       };
     });
   };
@@ -968,123 +1095,371 @@ export const TemplateEditorPage: React.FC = () => {
                               </div>
                             </div>
                           ) : isDynamicZone ? (
-                            <div className="space-y-2.5">
+                            <div className="space-y-4">
                               {/* Dynamic Zone Banner */}
-                              <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-xs">
-                                <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-xs">
+                                <div className="flex items-center gap-2.5">
                                   <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                  <span className="font-semibold text-emerald-950 dark:text-emerald-200">
-                                    Dynamic Zone: {field.label || field.name}
-                                  </span>
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
-                                    {allowedComps.length > 0 ? `${allowedComps.length} allowed ${allowedComps.length === 1 ? 'component' : 'components'}` : 'All components'}
-                                  </span>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-bold text-emerald-950 dark:text-emerald-200">
+                                      Dynamic Zone: {field.label || field.name}
+                                    </span>
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                                      {allowedComps.length > 0
+                                        ? `${allowedComps.length} allowed ${allowedComps.length === 1 ? 'block' : 'blocks'}`
+                                        : 'All blocks allowed'}
+                                    </span>
+                                  </div>
                                 </div>
 
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setFieldsDraft((prev) => ({
-                                        ...prev,
-                                        [field.name]: `{{${field.name}}}`,
-                                      }))
-                                    }
-                                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition"
-                                  >
-                                    Pass-Through (Default)
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      let loopTpl = `{{#each ${field.name}}}\n`;
-                                      if (allowedComps.length > 0) {
-                                        allowedComps.forEach((ac) => {
-                                          const acSchema = safeParseSchema(ac.schema);
-                                          const acFields: any[] = acSchema.fields || [];
-                                          loopTpl += `  {{#ifEquals this.__component "${ac.slug}"}}\n    <section class="block-${ac.slug}">\n`;
-                                          if (acFields.length > 0) {
-                                            acFields.forEach((acf) => {
-                                              loopTpl += `      <p>{{this.${acf.name}}}</p>\n`;
-                                            });
-                                          } else {
-                                            loopTpl += `      <h2>{{this.title}}</h2>\n`;
-                                          }
-                                          loopTpl += `    </section>\n  {{/ifEquals}}\n`;
-                                        });
-                                      } else {
-                                        loopTpl += `  <div class="block-item">\n    <p>{{this.__component}}</p>\n  </div>\n`;
-                                      }
-                                      loopTpl += `{{/each}}`;
-                                      setFieldsDraft((prev) => ({ ...prev, [field.name]: loopTpl }));
-                                    }}
-                                    className="px-2 py-0.5 rounded text-[10px] font-medium bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition"
-                                    title="Generate multi-block discriminator template using actual allowed components"
-                                  >
-                                    Insert Block Loop
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setFieldsDraft((prev) => ({
-                                        ...prev,
-                                        [field.name]: `{{{json ${field.name}}}}`,
-                                      }))
-                                    }
-                                    className="px-2 py-0.5 rounded text-[10px] font-mono text-emerald-700 dark:text-emerald-300 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition"
-                                  >
-                                    {'{{{json ' + field.name + '}}}'}
-                                  </button>
-                                </div>
+                                <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
+                                  JSON array of blocks with __component outputs rendered JSON array
+                                </span>
                               </div>
 
-                              {/* Allowed component blocks helper pills */}
+                              {/* Block Navigation Tabs (if multiple blocks) */}
                               {allowedComps.length > 0 && (
-                                <div className="flex flex-wrap items-center gap-1.5 text-[11px] p-2 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
-                                  <span className="text-slate-500 font-medium mr-1 text-[10px]">
-                                    Allowed Blocks:
-                                  </span>
+                                <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setActiveDzTabs((prev) => ({ ...prev, [field.name]: 'all' }))
+                                    }
+                                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                                      (activeDzTabs[field.name] || 'all') === 'all'
+                                        ? 'bg-emerald-600 text-white shadow-xs'
+                                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                    }`}
+                                  >
+                                    All Blocks ({allowedComps.length})
+                                  </button>
                                   {allowedComps.map((ac) => {
                                     const acSchema = safeParseSchema(ac.schema);
-                                    const acFields: any[] = acSchema.fields || [];
-                                    const blockSnippet = `{{#ifEquals this.__component "${ac.slug}"}}\n  <div class="block-${ac.slug}">\n${
-                                      acFields.length > 0
-                                        ? acFields.map((acf) => `    <p>{{this.${acf.name}}}</p>`).join('\n')
-                                        : '    <p>{{this.title}}</p>'
-                                    }\n  </div>\n{{/ifEquals}}`;
-
+                                    const count = (acSchema.fields || []).length;
+                                    const isSel = activeDzTabs[field.name] === ac.slug;
                                     return (
                                       <button
-                                        key={ac.id}
+                                        key={ac.id || ac.slug}
                                         type="button"
-                                        onClick={() => {
-                                          const current = fieldsDraft[field.name] || '';
-                                          const updated = current ? `${current}\n${blockSnippet}` : blockSnippet;
-                                          setFieldsDraft((prev) => ({ ...prev, [field.name]: updated }));
-                                        }}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 font-mono text-[10px] text-emerald-700 dark:text-emerald-300 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition shadow-xs"
-                                        title={`Append #${ac.slug} block check snippet`}
+                                        onClick={() =>
+                                          setActiveDzTabs((prev) => ({ ...prev, [field.name]: ac.slug }))
+                                        }
+                                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition ${
+                                          isSel
+                                            ? 'bg-emerald-600 text-white font-semibold shadow-xs'
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                        }`}
                                       >
-                                        <Plus className="h-2.5 w-2.5 text-emerald-500" />
                                         <span>{ac.name}</span>
-                                        <span className="text-[9px] text-slate-400 font-sans">({acFields.length} {acFields.length === 1 ? 'field' : 'fields'})</span>
+                                        <span className={`text-[10px] ${isSel ? 'text-emerald-100' : 'text-slate-400'}`}>
+                                          ({count})
+                                        </span>
                                       </button>
                                     );
                                   })}
                                 </div>
                               )}
 
-                              <textarea
-                                rows={3}
-                                value={fieldsDraft[field.name] || ''}
-                                onChange={(e) =>
-                                  setFieldsDraft((prev) => ({ ...prev, [field.name]: e.target.value }))
-                                }
-                                placeholder={`{{${field.name}}} for direct pass-through, or dynamic block loop template`}
-                                className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 font-mono text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                              />
+                              {/* Allowed Components Block List */}
+                              <div className="space-y-4 pl-1">
+                                {allowedComps.length === 0 ? (
+                                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-center text-xs text-slate-500 border border-dashed border-slate-200 dark:border-slate-700">
+                                    No components currently allowed in this Dynamic Zone. Configure allowed components in Schema Builder.
+                                  </div>
+                                ) : (
+                                  (() => {
+                                    const currentTab = activeDzTabs[field.name] || 'all';
+                                    const blocksToRender =
+                                      currentTab === 'all'
+                                        ? allowedComps
+                                        : allowedComps.filter((c) => c.slug === currentTab);
+
+                                    return blocksToRender.map((ac) => {
+                                      const acSchema = safeParseSchema(ac.schema);
+                                      const acFields: FieldDefinition[] = acSchema.fields || [];
+
+                                      const dzBlockObj =
+                                        typeof fieldsDraft[field.name] === 'object' &&
+                                        fieldsDraft[field.name] !== null &&
+                                        !Array.isArray(fieldsDraft[field.name])
+                                          ? typeof fieldsDraft[field.name][ac.slug] === 'object' &&
+                                            fieldsDraft[field.name][ac.slug] !== null
+                                            ? fieldsDraft[field.name][ac.slug]
+                                            : {}
+                                          : {};
+                                      const acFieldNames = new Set(acFields.map((f) => f.name));
+                                      const extraBlockKeys = Object.keys(dzBlockObj).filter(
+                                        (k) => !acFieldNames.has(k) && k !== '__dynamicZone',
+                                      );
+                                      const allBlockSubNames = Array.from(
+                                        new Set([...acFields.map((f) => f.name), ...extraBlockKeys]),
+                                      );
+
+                                      return (
+                                        <div
+                                          key={ac.id || ac.slug}
+                                          className="rounded-xl border border-emerald-200/80 dark:border-emerald-900/50 bg-emerald-50/20 dark:bg-emerald-950/10 p-3.5 space-y-3 shadow-2xs"
+                                        >
+                                          {/* Block Header */}
+                                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-100 dark:border-emerald-900/40 pb-2">
+                                            <div className="flex items-center gap-2">
+                                              <Boxes className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                                Block: {ac.name}
+                                              </span>
+                                              <span className="font-mono text-[10px] bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded">
+                                                __component: "{ac.slug}"
+                                              </span>
+                                              <span className="text-[10px] text-slate-400">
+                                                ({acFields.length} {acFields.length === 1 ? 'field' : 'fields'})
+                                              </span>
+                                            </div>
+
+                                            {acFields.length > 0 && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const resetObj: Record<string, string> = {};
+                                                  acFields.forEach((acf) => {
+                                                    resetObj[acf.name] = `{{this.${acf.name}}}`;
+                                                  });
+                                                  setFieldsDraft((prev) => {
+                                                    const dz =
+                                                      typeof prev[field.name] === 'object' &&
+                                                      prev[field.name] !== null
+                                                        ? { ...prev[field.name] }
+                                                        : { __dynamicZone: true };
+                                                    dz[ac.slug] = resetObj;
+                                                    dz.__dynamicZone = true;
+                                                    return { ...prev, [field.name]: dz };
+                                                  });
+                                                }}
+                                                className="text-[10px] text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition"
+                                                title="Reset block subfields to default {{this.field}}"
+                                              >
+                                                Reset Block Defaults
+                                              </button>
+                                            )}
+                                          </div>
+
+                                          {/* Subfields list for this block */}
+                                          <div className="space-y-2.5">
+                                            {acFields.length === 0 && extraBlockKeys.length === 0 ? (
+                                              <p className="text-xs text-slate-400 italic py-2">
+                                                No fields defined in Schema Builder for this component block.
+                                              </p>
+                                            ) : (
+                                              <>
+                                                {acFields.map((cField) => {
+                                                  const isRich = cField.type === 'richtext';
+                                                  const isJsonField = cField.type === 'json';
+
+                                                  return (
+                                                    <div
+                                                      key={cField.name}
+                                                      className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-3 space-y-1.5 shadow-2xs"
+                                                    >
+                                                      <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                                        <div className="flex items-center gap-1.5">
+                                                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                                                            {cField.label || cField.name}
+                                                          </span>
+                                                          <span className="text-[10px] font-mono bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded">
+                                                            {cField.name} • {cField.type}
+                                                          </span>
+                                                        </div>
+
+                                                        {/* Scope variable insert pills */}
+                                                        {allBlockSubNames.length > 0 && (
+                                                          <div className="flex flex-wrap items-center gap-1">
+                                                            <span className="text-[10px] text-slate-400 mr-0.5">
+                                                              Insert:
+                                                            </span>
+                                                            {allBlockSubNames.map((sName) => (
+                                                              <button
+                                                                key={sName}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                  const cur = getDzBlockSubfieldValue(
+                                                                    field.name,
+                                                                    ac.slug,
+                                                                    cField.name,
+                                                                  );
+                                                                  const tag = `{{this.${sName}}}`;
+                                                                  const updated = cur ? `${cur} ${tag}` : tag;
+                                                                  handleDzBlockSubfieldChange(
+                                                                    field.name,
+                                                                    ac.slug,
+                                                                    cField.name,
+                                                                    updated,
+                                                                  );
+                                                                }}
+                                                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition"
+                                                                title={`Click to insert {{this.${sName}}}`}
+                                                              >
+                                                                <Plus className="h-2.5 w-2.5 text-emerald-500" />
+                                                                <span>{sName}</span>
+                                                              </button>
+                                                            ))}
+                                                          </div>
+                                                        )}
+                                                      </div>
+
+                                                      {isRich ? (
+                                                        <DualModeEditor
+                                                          content={getDzBlockSubfieldValue(
+                                                            field.name,
+                                                            ac.slug,
+                                                            cField.name,
+                                                          )}
+                                                          onChange={(val) =>
+                                                            handleDzBlockSubfieldChange(
+                                                              field.name,
+                                                              ac.slug,
+                                                              cField.name,
+                                                              val,
+                                                            )
+                                                          }
+                                                          templateType="CUSTOM"
+                                                          selectedSchema={selectedSchema}
+                                                          components={components}
+                                                          className="min-h-[180px]"
+                                                        />
+                                                      ) : isJsonField ? (
+                                                        <textarea
+                                                          rows={3}
+                                                          value={getDzBlockSubfieldValue(
+                                                            field.name,
+                                                            ac.slug,
+                                                            cField.name,
+                                                          )}
+                                                          onChange={(e) =>
+                                                            handleDzBlockSubfieldChange(
+                                                              field.name,
+                                                              ac.slug,
+                                                              cField.name,
+                                                              e.target.value,
+                                                            )
+                                                          }
+                                                          placeholder={`e.g. {{{json this.${cField.name}}}}`}
+                                                          className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 font-mono text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                                        />
+                                                      ) : (
+                                                        <input
+                                                          type="text"
+                                                          value={getDzBlockSubfieldValue(
+                                                            field.name,
+                                                            ac.slug,
+                                                            cField.name,
+                                                          )}
+                                                          onChange={(e) =>
+                                                            handleDzBlockSubfieldChange(
+                                                              field.name,
+                                                              ac.slug,
+                                                              cField.name,
+                                                              e.target.value,
+                                                            )
+                                                          }
+                                                          placeholder={`e.g. {{this.${cField.name}}}`}
+                                                          className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                                        />
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })}
+
+                                                {/* Extra custom computed keys */}
+                                                {extraBlockKeys.map((customKey) => (
+                                                  <div
+                                                    key={customKey}
+                                                    className="rounded-lg border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-3 space-y-1.5 shadow-2xs"
+                                                  >
+                                                    <div className="flex items-center justify-between">
+                                                      <div className="flex items-center gap-1.5">
+                                                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 font-mono">
+                                                          {customKey}
+                                                        </span>
+                                                        <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded">
+                                                          custom / mapped key
+                                                        </span>
+                                                      </div>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                          handleRemoveDzCustomKey(
+                                                            field.name,
+                                                            ac.slug,
+                                                            customKey,
+                                                          )
+                                                        }
+                                                        className="text-[11px] text-red-500 hover:text-red-700 transition"
+                                                      >
+                                                        Remove Key
+                                                      </button>
+                                                    </div>
+                                                    <input
+                                                      type="text"
+                                                      value={getDzBlockSubfieldValue(
+                                                        field.name,
+                                                        ac.slug,
+                                                        customKey,
+                                                      )}
+                                                      onChange={(e) =>
+                                                        handleDzBlockSubfieldChange(
+                                                          field.name,
+                                                          ac.slug,
+                                                          customKey,
+                                                          e.target.value,
+                                                        )
+                                                      }
+                                                      placeholder={`e.g. {{this.title}} - {{this.subtitle}}`}
+                                                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                                    />
+                                                  </div>
+                                                ))}
+                                              </>
+                                            )}
+
+                                            {/* Add custom output key to block */}
+                                            <div className="flex items-center gap-2 pt-1 text-xs">
+                                              <input
+                                                type="text"
+                                                placeholder={`Add custom key to ${ac.name}`}
+                                                value={
+                                                  newSubfieldInputs[`${field.name}_${ac.slug}`] || ''
+                                                }
+                                                onChange={(e) =>
+                                                  setNewSubfieldInputs((prev) => ({
+                                                    ...prev,
+                                                    [`${field.name}_${ac.slug}`]: e.target.value,
+                                                  }))
+                                                }
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleAddDzCustomKey(field.name, ac.slug);
+                                                  }
+                                                }}
+                                                className="w-52 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                              />
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  handleAddDzCustomKey(field.name, ac.slug)
+                                                }
+                                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-800 transition"
+                                              >
+                                                <Plus className="h-3 w-3" />
+                                                <span>Add Key</span>
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    });
+                                  })()
+                                )}
+                              </div>
                             </div>
                           ) : isRichOrBody ? (
                             <DualModeEditor

@@ -174,6 +174,119 @@ export class RenderService {
         if (subfieldTemplates) {
           const rawVal = context[key];
 
+          // Check if this is a Dynamic Zone template (contains polymorphic component blocks or marked with __dynamicZone)
+          const isDynamicZoneTemplate =
+            Boolean(subfieldTemplates.__dynamicZone) ||
+            Object.entries(subfieldTemplates).some(
+              ([k, v]) => k !== '__dynamicZone' && typeof v === 'object' && v !== null && !Array.isArray(v),
+            );
+
+          if (isDynamicZoneTemplate) {
+            // Dynamic Zone Evaluation: Each block item has __component matching an allowed component template
+            if (Array.isArray(rawVal)) {
+              const mappedArray = rawVal.map((item: any, idx: number) => {
+                if (!item || typeof item !== 'object') return item;
+                const compKey = item.__component || item.component || item._component || item.type;
+                let blockTpl: Record<string, any> | null = null;
+
+                if (compKey && subfieldTemplates![compKey] && typeof subfieldTemplates![compKey] === 'object') {
+                  blockTpl = subfieldTemplates![compKey];
+                } else if (compKey) {
+                  for (const [k, v] of Object.entries(subfieldTemplates!)) {
+                    if (k !== '__dynamicZone' && typeof v === 'object' && v !== null) {
+                      if (k.toLowerCase() === String(compKey).toLowerCase()) {
+                        blockTpl = v as Record<string, any>;
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                if (!blockTpl) {
+                  return item;
+                }
+
+                const itemObj: Record<string, any> = {
+                  __component: compKey || item.__component || 'block',
+                };
+                const itemScope = { ...context, ...item, this: item, '@index': idx };
+
+                for (const [subKey, subFormula] of Object.entries(blockTpl)) {
+                  if (subKey === '__dynamicZone') continue;
+                  if (typeof subFormula === 'string') {
+                    const subTrimmed = subFormula.trim();
+                    if (
+                      (subTrimmed === '' ||
+                        subTrimmed === `{{${subKey}}}` ||
+                        subTrimmed === `{{this.${subKey}}}`) &&
+                      item[subKey] !== undefined
+                    ) {
+                      itemObj[subKey] = item[subKey];
+                    } else {
+                      let val: any = this.handlebarsService.render(subFormula, itemScope);
+                      if (
+                        typeof val === 'string' &&
+                        ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']')))
+                      ) {
+                        try {
+                          val = JSON.parse(val);
+                        } catch {}
+                      }
+                      itemObj[subKey] = val;
+                    }
+                  } else {
+                    itemObj[subKey] = subFormula;
+                  }
+                }
+                return itemObj;
+              });
+
+              renderedFields[key] = mappedArray;
+              continue;
+            }
+
+            if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
+              const compKey = rawVal.__component || rawVal.component || rawVal._component || rawVal.type;
+              let blockTpl: Record<string, any> | null = null;
+              if (compKey && subfieldTemplates[compKey] && typeof subfieldTemplates[compKey] === 'object') {
+                blockTpl = subfieldTemplates[compKey];
+              }
+
+              if (blockTpl) {
+                const itemObj: Record<string, any> = {
+                  __component: compKey || 'block',
+                };
+                const scope = { ...context, ...rawVal, this: rawVal };
+                for (const [subKey, subFormula] of Object.entries(blockTpl)) {
+                  if (subKey === '__dynamicZone') continue;
+                  if (typeof subFormula === 'string') {
+                    const subTrimmed = subFormula.trim();
+                    if (
+                      (subTrimmed === '' ||
+                        subTrimmed === `{{${subKey}}}` ||
+                        subTrimmed === `{{this.${subKey}}}`) &&
+                      rawVal[subKey] !== undefined
+                    ) {
+                      itemObj[subKey] = rawVal[subKey];
+                    } else {
+                      let val: any = this.handlebarsService.render(subFormula, scope);
+                      itemObj[subKey] = val;
+                    }
+                  } else {
+                    itemObj[subKey] = subFormula;
+                  }
+                }
+                renderedFields[key] = itemObj;
+                continue;
+              }
+              renderedFields[key] = rawVal;
+              continue;
+            }
+
+            renderedFields[key] = [];
+            continue;
+          }
+
           // 1. If user passed a JSON array for this component -> component output is an array!
           if (Array.isArray(rawVal)) {
             const mappedArray = rawVal.map((item: any, idx: number) => {
