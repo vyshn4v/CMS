@@ -6,7 +6,6 @@ import { api } from './lib/api';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { ApiKeysPage } from './pages/common/SectionPages';
 import { ContentDashboardPage } from './pages/content/ContentDashboardPage';
 import { ContentListPage } from './pages/content/ContentListPage';
 import { ContentEditorPage } from './pages/content/ContentEditorPage';
@@ -17,6 +16,7 @@ import { TemplateEditorPage } from './pages/templates/TemplateEditorPage';
 import { SettingsLayout } from './pages/settings/SettingsLayout';
 import { MembersPage } from './pages/settings/MembersPage';
 import { RolesPage } from './pages/settings/RolesPage';
+import { ApiKeysPage } from './pages/settings/ApiKeysPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -1,6 +1,6 @@
 # CMS Headless — Project Implementation Tracker
 
-**Current Status**: **Phase 5 Completed** | **Phase 6 Pending (Next Up)**  
+**Current Status**: **Phase 6 Completed** | **Phase 7 Pending (Next Up)**  
 **Active Branch**: `dev`  
 **Services Running**: Backend API (`:5000`), Vite Web App (`:5173`), Docker Postgres (`:5434`), Docker Redis (`:6379`)
 
@@ -15,14 +15,14 @@
 | **3** | **Schema Builder** (JSONB Fields, Dynamic Zod Compiler, Drag & Drop Studio) | ✅ Completed | Data Modeling |
 | **4** | **Content Entries** (Dynamic Form Renderer, CRUD, Draft/Publish Workflow) | ✅ Completed | Content Authoring |
 | **5** | **Template Engine** (Handlebars, Dual-Mode TipTap/Monaco, Live Preview) | ✅ Completed | Template Authoring |
-| **6** | **Render API & API Keys** (`POST /render`, Key Generation/Hashing, Guard) | ⏳ **PENDING (UP NEXT)** | Public Integrations |
-| **7** | **Advanced Schema** (Relations, Composable Components, Dynamic Zones) | ⏳ Pending | Advanced Modeling |
+| **6** | **Render API & API Keys** (`POST /render`, Key Generation/Hashing, Guard) | ✅ **Completed** | Public Integrations |
+| **7** | **Advanced Schema** (Relations, Composable Components, Dynamic Zones) | ⏳ **PENDING (UP NEXT)** | Advanced Modeling |
 | **8** | **Caching & Audit** (Redis Template Cache, `AuditInterceptor`, Audit Viewer) | ⏳ Pending | Performance & Ops |
 | **9** | **Polish & Deploy** (E2E Tests, Docker Monolith, Oracle 1GB Free Tier) | ⏳ Pending | Production Launch |
 
 ---
 
-## ✅ Completed Phases (1 – 5)
+## ✅ Completed Phases (1 – 6)
 
 ### Phase 1: Foundation & Auth
 - [x] Nx Monorepo setup (`apps/api`, `apps/web`, `libs/shared-types`).
@@ -58,32 +58,26 @@
 - [x] Draft / Publish template workflow (`bodyDraft` -> `bodyPublished`).
 - [x] Live template preview modal with sample JSON context rendering.
 
----
-
-## ⏳ Pending Phases (6 – 9)
-
-### 🚀 Phase 6: Render API & API Keys (NEXT UP)
-*Goal: Allow external applications to consume and render published content templates via authenticated API calls.*
-
-- [ ] **API Key Module (`apps/api/src/modules/api-key/`)**:
-  - [ ] `POST /api/v1/orgs/:orgId/api-keys`: Generate key (`sk_live_...`), hash with SHA-256, store prefix + hash.
-  - [ ] `GET /api/v1/orgs/:orgId/api-keys`: List org API keys (masked with prefix).
-  - [ ] `DELETE /api/v1/orgs/:orgId/api-keys/:id`: Revoke / delete API key.
-- [ ] **Auth Guard (`ApiKeyGuard`)**:
-  - [ ] Validate `Authorization: Bearer sk_live_...` against hashed keys in database.
-- [ ] **Public Render Endpoint (`POST /api/v1/render`)**:
-  - [ ] Accepts payload: `{ schemaId, templateId, contentId, data, variables }`.
-  - [ ] Resolve template (by `templateId` or primary for `schemaId`).
-  - [ ] Merge published entry data (if `contentId` given) with incoming `data` and `variables`.
-  - [ ] Compile and evaluate Handlebars template.
-  - [ ] Return formatted response according to template type (`EMAIL`, `HTML_PAGE`, `JSON`).
-- [ ] **Frontend API Keys Management (`apps/web/src/pages/settings/ApiKeysPage.tsx`)**:
-  - [ ] List existing keys with creation date, last used date, and revoke action.
-  - [ ] Create API Key modal with "Copy Key" (shown only once).
+### Phase 6: Render API & API Keys
+- [x] API Key backend module (`apps/api/src/modules/api-key/`):
+  - [x] Cryptographic key generation (`sk_live_...`), SHA-256 hashing, prefix-only storage.
+  - [x] Endpoints for key listing (`GET /api-keys`), creation (`POST /api-keys`), and revocation (`DELETE /api-keys/:id`).
+  - [x] `ApiKeyGuard` enforcing Bearer token verification and auto-attaching organization context.
+- [x] Public Render API (`POST /api/v1/render`):
+  - [x] Authenticated via `ApiKeyGuard`.
+  - [x] Resolves target templates via immutable `schemaId` or explicit `templateId`.
+  - [x] Merges published entry content (`contentId`) with caller `data` and `variables`.
+  - [x] Supports `EMAIL`, `HTML_PAGE`, and `JSON` output payloads with Handlebars helpers.
+- [x] Frontend API Keys Management (`apps/web/src/pages/settings/ApiKeysPage.tsx`):
+  - [x] Keys table with prefix, created date, and last used timestamp.
+  - [x] Key creation modal and secure one-time secret display dialog with 1-click clipboard copy.
+  - [x] Revocation confirmation dialog with immediate access termination.
 
 ---
 
-### 📦 Phase 7: Advanced Schema — Relations, Components, Dynamic Zones
+## ⏳ Pending Phases (7 – 9)
+
+### 📦 Phase 7: Advanced Schema — Relations, Components, Dynamic Zones (NEXT UP)
 *Goal: Enable complex, nested Strapi-like composable schemas.*
 
 - [ ] **Relations**:

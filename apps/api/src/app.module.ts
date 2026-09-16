@@ -7,6 +7,8 @@ import { RoleModule } from './modules/role/role.module';
 import { SchemaModule } from './modules/schema/schema.module';
 import { ContentModule } from './modules/content/content.module';
 import { TemplateModule } from './modules/template/template.module';
+import { ApiKeyModule } from './modules/api-key/api-key.module';
+import { RenderModule } from './modules/render/render.module';
 
 /**
  * Root NestJS application module.
@@ -24,6 +26,8 @@ import { TemplateModule } from './modules/template/template.module';
     SchemaModule,
     ContentModule,
     TemplateModule,
+    ApiKeyModule,
+    RenderModule,
   ],
 })
 export class AppModule {}
