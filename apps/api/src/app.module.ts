@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import * as fs from 'fs';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -14,6 +17,23 @@ import { RenderModule } from './modules/render/render.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
+const resolveStaticPath = (): string | null => {
+  if (process.env.STATIC_PATH && fs.existsSync(process.env.STATIC_PATH)) {
+    return process.env.STATIC_PATH;
+  }
+  const fromCwd = join(process.cwd(), 'apps', 'web', 'dist');
+  if (fs.existsSync(fromCwd)) {
+    return fromCwd;
+  }
+  const fromDir = join(__dirname, '..', '..', 'web', 'dist');
+  if (fs.existsSync(fromDir)) {
+    return fromDir;
+  }
+  return null;
+};
+
+const staticPath = resolveStaticPath();
+
 /**
  * Root NestJS application module.
  */
@@ -23,6 +43,14 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
       isGlobal: true,
       envFilePath: ['.env', '.env.local'],
     }),
+    ...(staticPath
+      ? [
+          ServeStaticModule.forRoot({
+            rootPath: staticPath,
+            exclude: ['/api/(.*)'],
+          }),
+        ]
+      : []),
     PrismaModule,
     RedisModule,
     AuthModule,

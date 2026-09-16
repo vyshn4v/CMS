@@ -108,7 +108,7 @@ export class HandlebarsService {
    */
   public validateSyntax(templateStr: string): { valid: boolean; error?: string } {
     try {
-      this.hbs.compile(templateStr || '');
+      this.hbs.precompile(templateStr || '');
       return { valid: true };
     } catch (err: any) {
       return { valid: false, error: err.message };
