@@ -103,14 +103,20 @@ export const AppLayout: React.FC = () => {
                     <Link
                       key={s.id}
                       to={`/content/${s.slug}`}
-                      className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                         isModelActive
                           ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
                           : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                       }`}
                     >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                          isModelActive
+                            ? 'bg-indigo-600 dark:bg-indigo-400'
+                            : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      />
                       <span className="truncate">{s.name}</span>
-                      <span className="text-[10px] font-mono text-slate-400">/{s.slug}</span>
                     </Link>
                   );
                 })}
