@@ -52,5 +52,6 @@ prisma/dev.db-journal
 # Graphify output
 graphify-out/
 
-# Security audit reports
+# Security reports & documents
 *SECURITY_AUDIT*
+security/
