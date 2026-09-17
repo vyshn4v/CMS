@@ -19,6 +19,15 @@ async function bootstrap() {
   const port = configService.get<number>('PORT', 5000);
   const clientUrl = configService.get<string>('CLIENT_URL', 'http://localhost:5173');
 
+  // SEC-02: Cryptographic baseline validation
+  const jwtSecret = configService.get<string>('JWT_SECRET');
+  if (!jwtSecret || jwtSecret.length < 32 || jwtSecret.includes('super-secret') || jwtSecret.includes('placeholder')) {
+    logger.error(
+      'FATAL CONFIGURATION ERROR (SEC-02): JWT_SECRET must be configured with at least 32 cryptographically random characters and must not contain insecure placeholder values.',
+    );
+    process.exit(1);
+  }
+
   // Security and parser middlewares
   app.use(
     helmet({

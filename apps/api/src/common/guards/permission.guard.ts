@@ -42,14 +42,27 @@ export class PermissionGuard implements CanActivate {
       throw new ForbiddenException('User authentication required for permission check');
     }
 
-    // Extract orgId from header or route parameter
-    const orgId = (request.headers['x-org-id'] as string) || request.params.orgId;
+    // Extract and validate organization context
+    const headerOrgId = request.headers['x-org-id'] as string | undefined;
+    const paramOrgId = request.params?.orgId as string | undefined;
+
+    // Strict validation: if both route parameter and header are provided, they MUST match
+    if (headerOrgId && paramOrgId && headerOrgId !== paramOrgId) {
+      throw new BadRequestException(
+        'Mismatched organization context: X-Org-Id header does not match route :orgId parameter',
+      );
+    }
+
+    // Route parameter has canonical precedence as it points to the target resource
+    const orgId = paramOrgId || headerOrgId;
 
     if (!orgId) {
       throw new BadRequestException(
         'Organization context (X-Org-Id header or :orgId parameter) is required',
       );
     }
+
+    request.orgId = orgId;
 
     // 1. Check Redis cache first (TTL 5m)
     let userPermissionsArray: string[] | null = null;

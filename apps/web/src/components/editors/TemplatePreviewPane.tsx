@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { api } from '../../lib/api';
 import {
   Play,
@@ -702,7 +703,11 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
                           {isHtml ? (
                             <div
                               className="text-slate-900 dark:text-slate-100 text-sm leading-relaxed"
-                              dangerouslySetInnerHTML={{ __html: strVal }}
+                              dangerouslySetInnerHTML={{
+                                __html: DOMPurify.sanitize(strVal, {
+                                  USE_PROFILES: { html: true },
+                                }),
+                              }}
                             />
                           ) : (
                             <p className="font-mono text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
@@ -791,7 +796,11 @@ export const TemplatePreviewPane: React.FC<TemplatePreviewPaneProps> = ({
                         <div className="p-6 bg-white dark:bg-slate-950 min-h-[240px]">
                           <div
                             className="text-slate-900 dark:text-slate-100 text-sm leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: String(v) }}
+                            dangerouslySetInnerHTML={{
+                              __html: DOMPurify.sanitize(String(v), {
+                                USE_PROFILES: { html: true },
+                              }),
+                            }}
                           />
                         </div>
                       </div>

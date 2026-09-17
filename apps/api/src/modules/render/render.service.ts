@@ -135,17 +135,24 @@ export class RenderService {
     // 4. Model-driven Multi-Field Rendering
     const fieldsPublished = template.fieldsPublished as Record<string, any> | null;
     if (fieldsPublished && typeof fieldsPublished === 'object' && Object.keys(fieldsPublished).length > 0) {
-      // 0. Normalize dot keys (e.g. seo.meta_title) into nested object
-      const normalizedFields: Record<string, any> = {};
+      // 0. Normalize dot keys (e.g. seo.meta_title) into nested object (SEC-04: Prototype Pollution Protection)
+      const FORBIDDEN_PROPERTIES = new Set(['__proto__', 'constructor', 'prototype']);
+      const normalizedFields: Record<string, any> = Object.create(null);
       for (const [k, v] of Object.entries(fieldsPublished)) {
         if (k.includes('.')) {
-          const [parent, child] = k.split('.', 2);
+          const parts = k.split('.');
+          if (parts.some((part) => FORBIDDEN_PROPERTIES.has(part))) {
+            continue;
+          }
+          const [parent, child] = parts;
           if (!normalizedFields[parent] || typeof normalizedFields[parent] !== 'object') {
-            normalizedFields[parent] = {};
+            normalizedFields[parent] = Object.create(null);
           }
           normalizedFields[parent][child] = v;
         } else {
-          normalizedFields[k] = v;
+          if (!FORBIDDEN_PROPERTIES.has(k)) {
+            normalizedFields[k] = v;
+          }
         }
       }
 

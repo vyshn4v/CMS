@@ -449,17 +449,24 @@ export class TemplateService {
     // If we have field-by-field model output mappings:
     // If we have field-by-field model output mappings:
     if (fieldsSource && typeof fieldsSource === 'object' && Object.keys(fieldsSource).length > 0) {
-      // 0. Normalize fieldsSource: support dot keys (e.g. seo.meta_title) into nested object
-      const normalizedFields: Record<string, any> = {};
+      // 0. Normalize fieldsSource: support dot keys (e.g. seo.meta_title) into nested object (SEC-04: Prototype Pollution Protection)
+      const FORBIDDEN_PROPERTIES = new Set(['__proto__', 'constructor', 'prototype']);
+      const normalizedFields: Record<string, any> = Object.create(null);
       for (const [k, v] of Object.entries(fieldsSource)) {
         if (k.includes('.')) {
-          const [parent, child] = k.split('.', 2);
+          const parts = k.split('.');
+          if (parts.some((part) => FORBIDDEN_PROPERTIES.has(part))) {
+            continue;
+          }
+          const [parent, child] = parts;
           if (!normalizedFields[parent] || typeof normalizedFields[parent] !== 'object') {
-            normalizedFields[parent] = {};
+            normalizedFields[parent] = Object.create(null);
           }
           normalizedFields[parent][child] = v;
         } else {
-          normalizedFields[k] = v;
+          if (!FORBIDDEN_PROPERTIES.has(k)) {
+            normalizedFields[k] = v;
+          }
         }
       }
 
