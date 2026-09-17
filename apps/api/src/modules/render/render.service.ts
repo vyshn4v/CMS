@@ -26,15 +26,52 @@ export class RenderService {
   async render(orgId: string, request: RenderRequest): Promise<RenderData> {
     const { schemaId, templateId, contentId, data = {}, variables = {} } = request;
 
-    if (!templateId && !schemaId) {
-      throw new BadRequestException({
-        code: 'VALIDATION_ERROR',
-        message: 'Either "templateId" or "schemaId" must be provided to render',
-      });
+    if (!contentId) {
+      if (!templateId && !schemaId) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: 'At least one of "templateId", "schemaId", or "contentId" must be provided to render',
+        });
+      }
+      if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: 'The "data" payload is required when rendering with "templateId" or "schemaId" without a "contentId", as the template requires field values to map.',
+        });
+      }
     }
 
-    // 1. Resolve Target Template
+    // 1. Resolve Content Entry (if contentId provided)
+    let contentData: Record<string, any> = {};
+    let entry: any = null;
+    if (contentId) {
+      entry = await this.redisService.getPublishedEntry<any>(contentId);
+      if (!entry) {
+        entry = await this.prisma.contentEntry.findFirst({
+          where: { id: contentId, orgId },
+        });
+
+        if (!entry) {
+          throw new NotFoundException({
+            code: 'CONTENT_NOT_FOUND',
+            message: `Content entry ${contentId} not found in this organization`,
+          });
+        }
+
+        await this.redisService.setPublishedEntry(contentId, entry);
+      }
+
+      // In production render pipeline, publishedData is preferred
+      const entryData = entry.publishedData ?? entry.data;
+      if (entryData && typeof entryData === 'object' && !Array.isArray(entryData)) {
+        contentData = entryData as Record<string, any>;
+      }
+    }
+
+    // 2. Resolve Target Template
+    const effectiveSchemaId = schemaId || entry?.contentTypeId || null;
     let template: any = null;
+
     if (templateId) {
       template = await this.redisService.getPublishedTemplate<any>(templateId);
       if (!template) {
@@ -63,14 +100,14 @@ export class RenderService {
 
         await this.redisService.setPublishedTemplate(templateId, template);
       }
-    } else if (schemaId) {
-      const schemaTmplKey = `tmpl:pub:schema:${orgId}:${schemaId}`;
+    } else if (effectiveSchemaId) {
+      const schemaTmplKey = `tmpl:pub:schema:${orgId}:${effectiveSchemaId}`;
       template = await this.redisService.get<any>(schemaTmplKey);
       if (!template) {
-        // Find published template matching schemaId (Model)
+        // Find published template matching schemaId / model
         template = await this.prisma.template.findFirst({
           where: {
-            contentTypeId: schemaId,
+            contentTypeId: effectiveSchemaId,
             orgId,
             OR: [
               { fieldsPublished: { not: null } },
@@ -85,40 +122,32 @@ export class RenderService {
           },
         });
 
-        if (!template) {
-          throw new NotFoundException({
-            code: 'TEMPLATE_NOT_FOUND',
-            message: `No published template found associated with model ${schemaId}`,
-          });
+        if (template) {
+          await this.redisService.set(schemaTmplKey, template, 86400);
         }
-
-        await this.redisService.set(schemaTmplKey, template, 86400);
       }
     }
 
-    // 2. Resolve Content Entry (if contentId provided)
-    let contentData: Record<string, any> = {};
-    if (contentId) {
-      let entry = await this.redisService.getPublishedEntry<any>(contentId);
-      if (!entry) {
-        entry = await this.prisma.contentEntry.findFirst({
-          where: { id: contentId, orgId },
+    // If no template exists for this model/entry, gracefully return the raw content entry or data as pass-through
+    if (!template) {
+      if (contentId) {
+        const resObj: any = {
+          type: 'CUSTOM',
+          output: contentData,
+        };
+        Object.defineProperty(resObj, 'data', {
+          get: () => contentData,
+          enumerable: false,
+          configurable: true,
         });
-
-        if (!entry) {
-          throw new NotFoundException({
-            code: 'CONTENT_NOT_FOUND',
-            message: `Content entry ${contentId} not found in this organization`,
-          });
-        }
-
-        await this.redisService.setPublishedEntry(contentId, entry);
+        return resObj;
       }
 
-      // In production render pipeline, publishedData is preferred
-      const entryData = entry.publishedData ?? entry.data;
-      if (entryData && typeof entryData === 'object' && !Array.isArray(entryData)) {
-        contentData = entryData as Record<string, any>;
+      if (effectiveSchemaId) {
+        throw new NotFoundException({
+          code: 'TEMPLATE_NOT_FOUND',
+          message: `No published template found associated with model ${effectiveSchemaId}`,
+        });
       }
     }
 

@@ -22,6 +22,8 @@ describe('RenderService (SEC-04 Prototype Pollution Protection)', () => {
     };
 
     const redis = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
       getPublishedTemplate: jest.fn().mockResolvedValue(null),
       setPublishedTemplate: jest.fn().mockResolvedValue(undefined),
       getPublishedEntry: jest.fn().mockResolvedValue(null),
@@ -190,6 +192,66 @@ describe('RenderService (SEC-04 Prototype Pollution Protection)', () => {
 
     // Must NOT be concatenated into a single string
     expect(typeof result.output.seo).not.toBe('string');
+  });
+
+  it('throws a VALIDATION_ERROR if templateId or schemaId is used without contentId and without data', async () => {
+    await expect(
+      service.render('org-1', {
+        templateId: 'tpl-1',
+      }),
+    ).rejects.toThrow(
+      'The "data" payload is required when rendering with "templateId" or "schemaId" without a "contentId"',
+    );
+
+    await expect(
+      service.render('org-1', {
+        schemaId: 'schema-1',
+        data: {},
+      }),
+    ).rejects.toThrow(
+      'The "data" payload is required when rendering with "templateId" or "schemaId" without a "contentId"',
+    );
+  });
+
+  it('allows rendering with contentId without requiring templateId or data', async () => {
+    const template: any = {
+      id: 'tpl-content-only',
+      orgId: 'org-1',
+      type: 'CUSTOM',
+      contentTypeId: 'model-auto',
+      fieldsPublished: {
+        headline: '{{headline}}',
+      },
+      contentType: {
+        id: 'model-auto',
+        schema: { fields: [{ name: 'headline', type: 'text' }] },
+      },
+    };
+
+    const contentEntry: any = {
+      id: 'entry-standalone',
+      orgId: 'org-1',
+      contentTypeId: 'model-auto',
+      publishedData: {
+        headline: 'Saved in DB Headline',
+      },
+    };
+
+    handlebars.render.mockImplementation((tpl: string, scope: any) => {
+      if (tpl === '{{headline}}') return scope.headline;
+      return tpl;
+    });
+
+    prisma.template.findFirst.mockResolvedValue(template);
+    prisma.contentEntry.findFirst.mockResolvedValue(contentEntry);
+
+    // No templateId, no schemaId, no data passed!
+    const result = await service.render('org-1', {
+      contentId: 'entry-standalone',
+    });
+
+    expect(result.output.headline).toBe('Saved in DB Headline');
+    expect(result.type).toBe('CUSTOM');
   });
 });
 
