@@ -111,8 +111,9 @@ export class OrgController {
     @Param('orgId') orgId: string,
     @Param('memberId') memberId: string,
     @Body() body: UpdateMemberRoleInput,
+    @CurrentUser('sub') currentUserId: string,
   ) {
-    return this.orgService.updateMemberRole(orgId, memberId, body);
+    return this.orgService.updateMemberRole(orgId, memberId, body, currentUserId);
   }
 
   @Delete(':orgId/members/:memberId')

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import * as fs from 'fs';
@@ -16,6 +17,7 @@ import { ApiKeyModule } from './modules/api-key/api-key.module';
 import { RenderModule } from './modules/render/render.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { AppController } from './app.controller';
 
 const resolveStaticPath = (): string | null => {
   if (process.env.STATIC_PATH && fs.existsSync(process.env.STATIC_PATH)) {
@@ -51,6 +53,17 @@ const staticPath = resolveStaticPath();
           }),
         ]
       : []),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [
+        {
+          name: 'default',
+          ttl: config.get<number>('THROTTLE_TTL', 60) * 1000,
+          limit: config.get<number>('THROTTLE_LIMIT', 100),
+        },
+      ],
+    }),
     PrismaModule,
     RedisModule,
     AuthModule,
@@ -63,7 +76,12 @@ const staticPath = resolveStaticPath();
     RenderModule,
     AuditModule,
   ],
+  controllers: [AppController],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,

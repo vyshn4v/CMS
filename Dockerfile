@@ -75,9 +75,9 @@ USER nestjs
 
 EXPOSE 5000
 
-# Container Healthcheck verifying the public health/auth endpoint
+# Container Healthcheck verifying the public unauthenticated health endpoint (SEC-14)
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:5000/api/v1/auth/me || exit 1
+  CMD curl -f http://localhost:5000/api/v1/health || exit 1
 
 # Launch NestJS backend with memory budget tuned for Oracle 1GB VPS
 CMD ["node", "--max-old-space-size=180", "apps/api/dist/main.js"]

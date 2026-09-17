@@ -3,8 +3,10 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import {
   CreateOrganizationInput,
   UpdateOrganizationInput,
@@ -20,7 +22,10 @@ import {
  */
 @Injectable()
 export class OrgService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly redisService?: RedisService,
+  ) {}
 
   /**
    * List all organizations where the user is a member.
@@ -261,6 +266,7 @@ export class OrgService {
     orgId: string,
     memberId: string,
     input: UpdateMemberRoleInput,
+    currentUserId?: string,
   ): Promise<OrgMemberDto> {
     const member = await this.prisma.orgMember.findUnique({
       where: { id: memberId },
@@ -269,6 +275,11 @@ export class OrgService {
 
     if (!member || member.orgId !== orgId) {
       throw new NotFoundException('Member not found');
+    }
+
+    // SEC-07: Prevent self-modification of roles
+    if (currentUserId && member.userId === currentUserId) {
+      throw new ForbiddenException('You cannot modify your own role in the organization');
     }
 
     const role = await this.prisma.role.findFirst({
@@ -282,11 +293,40 @@ export class OrgService {
       throw new BadRequestException('Target role not found');
     }
 
+    // SEC-07: Only existing Super Admins can grant or revoke the Super Admin role
+    if (currentUserId) {
+      const callerMembership = await this.prisma.orgMember.findUnique({
+        where: {
+          userId_orgId: {
+            userId: currentUserId,
+            orgId,
+          },
+        },
+        include: { role: true },
+      });
+
+      const isCallerSuperAdmin = callerMembership?.role?.name === SystemRoles.SUPER_ADMIN;
+
+      if (
+        (role.name === SystemRoles.SUPER_ADMIN || member.role.name === SystemRoles.SUPER_ADMIN) &&
+        !isCallerSuperAdmin
+      ) {
+        throw new ForbiddenException(
+          'Only existing Super Admins can grant or revoke the Super Admin role',
+        );
+      }
+    }
+
     const updated = await this.prisma.orgMember.update({
       where: { id: memberId },
       data: { roleId: role.id },
       include: { user: true, role: true },
     });
+
+    // SEC-08: Invalidate Redis permissions cache on role change
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateUserPermissions(member.userId, orgId);
+    }
 
     return {
       id: updated.id,
@@ -340,6 +380,11 @@ export class OrgService {
     await this.prisma.orgMember.delete({
       where: { id: memberId },
     });
+
+    // SEC-08: Invalidate Redis permissions cache immediately upon removal
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateUserPermissions(member.userId, orgId);
+    }
 
     return { success: true };
   }

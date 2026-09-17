@@ -21,6 +21,8 @@
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/throttler": "^5.2.0",
     "@prisma/client": "^5.22.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.4",
     "cookie-parser": "^1.4.7",
     "dayjs": "^1.11.23",
     "handlebars": "^4.7.8",
