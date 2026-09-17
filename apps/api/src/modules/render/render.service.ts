@@ -123,14 +123,22 @@ export class RenderService {
     }
 
     // 3. Assemble Merged Render Context
-    const context: Record<string, any> = {
-      ...contentData,
-      ...data,
-      ...variables,
-      entry: contentData,
-      data,
-      variables,
-    };
+    // If contentId is supplied, stored contentData is authoritative and takes strict precedence over ad-hoc data.
+    const context: Record<string, any> = contentId
+      ? {
+          ...data,
+          ...contentData,
+          ...variables,
+          entry: contentData,
+          data: { ...data, ...contentData },
+          variables,
+        }
+      : {
+          ...data,
+          ...variables,
+          data,
+          variables,
+        };
 
     // 4. Model-driven Multi-Field Rendering
     const fieldsPublished = template.fieldsPublished as Record<string, any> | null;
