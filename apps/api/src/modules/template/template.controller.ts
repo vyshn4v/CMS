@@ -22,10 +22,13 @@ import {
   PreviewTemplateInput,
   TemplateType,
 } from '@cms/shared-types';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 
 /**
  * Controller exposing organization-scoped endpoints for template management, publishing, and previewing.
  */
+@ApiTags('Templates')
+@ApiBearerAuth('bearer')
 @Controller('orgs/:orgId/templates')
 @UseGuards(JwtAuthGuard, PermissionGuard)
 export class TemplateController {
@@ -36,6 +39,15 @@ export class TemplateController {
    */
   @Get()
   @RequirePermissions(Permissions.TEMPLATE_READ)
+  @ApiOperation({ summary: 'List templates', description: 'Returns all templates for an organization' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiQuery({ name: 'type', required: false, enum: ['EMAIL', 'WEB'] })
+  @ApiQuery({ name: 'contentTypeId', required: false, type: 'string' })
+  @ApiQuery({ name: 'status', required: false, type: 'string' })
+  @ApiQuery({ name: 'search', required: false, type: 'string' })
+  @ApiQuery({ name: 'page', required: false, type: 'string' })
+  @ApiQuery({ name: 'limit', required: false, type: 'string' })
+  @ApiResponse({ status: 200, description: 'List of templates' })
   async findAll(
     @Param('orgId') orgId: string,
     @Query('type') type?: TemplateType,
@@ -60,6 +72,10 @@ export class TemplateController {
    */
   @Post()
   @RequirePermissions(Permissions.TEMPLATE_CREATE)
+  @ApiOperation({ summary: 'Create template', description: 'Creates a new template' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiBody({ type: Object })
+  @ApiResponse({ status: 201, description: 'Template created successfully' })
   async create(
     @Param('orgId') orgId: string,
     @Body() body: CreateTemplateInput,
@@ -73,6 +89,10 @@ export class TemplateController {
   @Post('preview-raw')
   @RequirePermissions(Permissions.TEMPLATE_READ)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Preview raw template', description: 'Previews an unsaved template draft' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiBody({ type: Object })
+  @ApiResponse({ status: 200, description: 'Template preview' })
   async previewRaw(
     @Param('orgId') orgId: string,
     @Body() body: PreviewTemplateInput & { type?: TemplateType },
@@ -85,6 +105,10 @@ export class TemplateController {
    */
   @Get(':id')
   @RequirePermissions(Permissions.TEMPLATE_READ)
+  @ApiOperation({ summary: 'Get template', description: 'Get a template by ID' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiParam({ name: 'id', type: 'string', description: 'Template ID' })
+  @ApiResponse({ status: 200, description: 'Template details' })
   async findOne(
     @Param('orgId') orgId: string,
     @Param('id') id: string,
@@ -97,6 +121,11 @@ export class TemplateController {
    */
   @Patch(':id')
   @RequirePermissions(Permissions.TEMPLATE_UPDATE)
+  @ApiOperation({ summary: 'Update template', description: 'Updates a template draft' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiParam({ name: 'id', type: 'string', description: 'Template ID' })
+  @ApiBody({ type: Object })
+  @ApiResponse({ status: 200, description: 'Template updated successfully' })
   async update(
     @Param('orgId') orgId: string,
     @Param('id') id: string,
@@ -111,6 +140,11 @@ export class TemplateController {
   @Post(':id/publish')
   @RequirePermissions(Permissions.TEMPLATE_PUBLISH)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Publish template', description: 'Publishes a template draft' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiParam({ name: 'id', type: 'string', description: 'Template ID' })
+  @ApiBody({ type: Object, required: false })
+  @ApiResponse({ status: 200, description: 'Template published successfully' })
   async publish(
     @Param('orgId') orgId: string,
     @Param('id') id: string,
@@ -125,6 +159,10 @@ export class TemplateController {
   @Post(':id/unpublish')
   @RequirePermissions(Permissions.TEMPLATE_UPDATE)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unpublish template', description: 'Unpublishes a template' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiParam({ name: 'id', type: 'string', description: 'Template ID' })
+  @ApiResponse({ status: 200, description: 'Template unpublished successfully' })
   async unpublish(
     @Param('orgId') orgId: string,
     @Param('id') id: string,
@@ -137,6 +175,10 @@ export class TemplateController {
    */
   @Delete(':id')
   @RequirePermissions(Permissions.TEMPLATE_DELETE)
+  @ApiOperation({ summary: 'Delete template', description: 'Deletes a template' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiParam({ name: 'id', type: 'string', description: 'Template ID' })
+  @ApiResponse({ status: 200, description: 'Template deleted successfully' })
   async remove(
     @Param('orgId') orgId: string,
     @Param('id') id: string,
@@ -150,6 +192,11 @@ export class TemplateController {
   @Post(':id/preview')
   @RequirePermissions(Permissions.TEMPLATE_READ)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Preview template', description: 'Previews an existing template' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiParam({ name: 'id', type: 'string', description: 'Template ID' })
+  @ApiBody({ type: Object })
+  @ApiResponse({ status: 200, description: 'Template preview' })
   async preview(
     @Param('orgId') orgId: string,
     @Param('id') id: string,

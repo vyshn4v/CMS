@@ -12,6 +12,7 @@ import {
   LogOut,
   Building2,
   BookOpen,
+  ExternalLink,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/auth.store';
@@ -191,17 +192,16 @@ export const AppLayout: React.FC = () => {
             Audit Logs
           </Link>
 
-          <Link
-            to="/docs"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
-              location.pathname === '/docs'
-                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
+          <a
+            href="http://localhost:5000/api/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             <BookOpen className="h-4 w-4" />
             API Docs
-          </Link>
+            <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+          </a>
 
           <Link
             to="/settings/members"

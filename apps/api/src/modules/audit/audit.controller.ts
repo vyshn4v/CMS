@@ -10,10 +10,13 @@ import { JwtAuthGuard } from '../auth/guards/auth.guards';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { Permissions, AuditLogQueryDto, AuditLogListResponse } from '@cms/shared-types';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
 
 /**
  * Controller exposing audit log queries for an organization.
  */
+@ApiTags('Audit')
+@ApiBearerAuth('bearer')
 @Controller('orgs/:orgId/audit-logs')
 @UseGuards(JwtAuthGuard, PermissionGuard)
 export class AuditController {
@@ -21,6 +24,17 @@ export class AuditController {
 
   @Get()
   @RequirePermissions(Permissions.AUDIT_READ)
+  @ApiOperation({ summary: 'List audit logs', description: 'Returns all audit logs for an organization' })
+  @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
+  @ApiQuery({ name: 'page', required: false, type: 'string' })
+  @ApiQuery({ name: 'limit', required: false, type: 'string' })
+  @ApiQuery({ name: 'action', required: false, type: 'string' })
+  @ApiQuery({ name: 'resourceType', required: false, type: 'string' })
+  @ApiQuery({ name: 'userId', required: false, type: 'string' })
+  @ApiQuery({ name: 'search', required: false, type: 'string' })
+  @ApiQuery({ name: 'startDate', required: false, type: 'string' })
+  @ApiQuery({ name: 'endDate', required: false, type: 'string' })
+  @ApiResponse({ status: 200, description: 'List of audit logs' })
   async findAll(
     @Param('orgId') orgId: string,
     @Query('page') page?: string,
