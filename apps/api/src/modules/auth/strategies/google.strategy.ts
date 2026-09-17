@@ -15,12 +15,11 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     redisService: RedisService,
   ) {
     super({
-      clientID: configService.get<string>('GOOGLE_CLIENT_ID', 'placeholder-client-id'),
-      clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET', 'placeholder-client-secret'),
-      callbackURL: configService.get<string>(
-        'GOOGLE_CALLBACK_URL',
+      clientID: configService.get<string>('GOOGLE_CLIENT_ID') || 'placeholder-client-id',
+      clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET') || 'placeholder-client-secret',
+      callbackURL:
+        configService.get<string>('GOOGLE_CALLBACK_URL') ||
         'http://localhost:5000/api/v1/auth/google/callback',
-      ),
       scope: ['email', 'profile'],
       store: new OAuthStateStore(redisService),
     });

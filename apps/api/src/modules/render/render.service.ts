@@ -109,8 +109,10 @@ export class RenderService {
       }
     } else if (effectiveSchemaId) {
       const schemaTmplKey = `tmpl:pub:schema:${orgId}:${effectiveSchemaId}`;
-      template = await this.redisService.get<any>(schemaTmplKey);
-      if (!template) {
+      const cached = await this.redisService.get<any>(schemaTmplKey);
+      if (cached) {
+        template = cached.__none ? null : cached;
+      } else {
         // Find published template matching schemaId / model
         template = await this.prisma.template.findFirst({
           where: {
@@ -128,6 +130,9 @@ export class RenderService {
 
         if (template) {
           await this.redisService.set(schemaTmplKey, template, 86400);
+        } else {
+          // Negative caching to prevent database penetration on invalid/unlinked models (TTL 60s)
+          await this.redisService.set(schemaTmplKey, { __none: true }, 60);
         }
       }
     }

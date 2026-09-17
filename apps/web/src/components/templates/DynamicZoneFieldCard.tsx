@@ -62,6 +62,10 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
   const handleAddKey = (blockSlug: string) => {
     const key = customKeyInputs[blockSlug]?.trim();
     if (!key) return;
+    const dz = fieldsDraft[field.name];
+    if (dz && typeof dz === 'object' && dz[blockSlug] && typeof dz[blockSlug] === 'object') {
+      if (key in dz[blockSlug]) return;
+    }
     onAddCustomKey(field.name, blockSlug, key);
     setCustomKeyInputs((prev) => ({ ...prev, [blockSlug]: '' }));
   };

@@ -53,8 +53,9 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
   };
 
   const handleAddKey = () => {
-    if (!customKeyInput.trim()) return;
-    onAddCustomKey(field.name, customKeyInput.trim());
+    const key = customKeyInput.trim();
+    if (!key || extraCustomKeys.includes(key) || compFieldNames.has(key)) return;
+    onAddCustomKey(field.name, key);
     setCustomKeyInput('');
   };
 

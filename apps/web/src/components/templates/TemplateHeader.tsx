@@ -65,6 +65,7 @@ export const TemplateHeader: React.FC<TemplateHeaderProps> = ({
               value={name}
               onChange={(e) => onNameChange(e.target.value)}
               placeholder="Template Name..."
+              aria-label="Template Name"
               className="text-sm font-bold text-slate-900 dark:text-slate-100 bg-transparent border-b border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-indigo-500 focus:outline-none transition-colors px-1 py-0.5 rounded"
             />
             {isEditing && (

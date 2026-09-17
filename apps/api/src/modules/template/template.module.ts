@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TemplateService } from './template.service';
 import { TemplateController } from './template.controller';
+import { HandlebarsService } from './handlebars.service';
 import { TemplateEngineService } from './template-engine.service';
 
 /**
