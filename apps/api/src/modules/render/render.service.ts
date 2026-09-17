@@ -59,6 +59,13 @@ export class RenderService {
         await this.redisService.setPublishedEntry(contentId, entry);
       }
 
+      if (schemaId && entry && entry.contentTypeId !== schemaId) {
+        throw new BadRequestException({
+          code: 'SCHEMA_MISMATCH',
+          message: `Content entry ${contentId} does not belong to model ${schemaId}`,
+        });
+      }
+
       // In production render pipeline, publishedData is preferred
       const entryData = entry.publishedData ?? entry.data;
       if (entryData && typeof entryData === 'object' && !Array.isArray(entryData)) {
