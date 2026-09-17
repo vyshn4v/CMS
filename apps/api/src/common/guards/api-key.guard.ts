@@ -21,9 +21,11 @@ export class ApiKeyGuard implements CanActivate {
     let rawToken: string | null = null;
 
     if (authHeader && typeof authHeader === 'string') {
-      const parts = authHeader.trim().split(' ');
-      if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-        rawToken = parts[1];
+      const trimmed = authHeader.trim();
+      if (trimmed.toLowerCase().startsWith('bearer ')) {
+        rawToken = trimmed.slice(7).trim();
+      } else {
+        rawToken = trimmed;
       }
     }
 
@@ -34,7 +36,7 @@ export class ApiKeyGuard implements CanActivate {
     if (!rawToken) {
       throw new UnauthorizedException({
         code: 'UNAUTHORIZED',
-        message: 'Missing API Key. Provide via "Authorization: Bearer <key>" header',
+        message: 'Missing API Key. Provide via "Authorization: Bearer <key>", "Authorization: <key>", or "x-api-key: <key>" header',
       });
     }
 

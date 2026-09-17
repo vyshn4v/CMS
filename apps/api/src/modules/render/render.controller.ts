@@ -19,6 +19,7 @@ import { RenderRequestDto } from './dto/render.dto';
  */
 @ApiTags('Render')
 @ApiSecurity('api-key')
+@ApiSecurity('x-api-key')
 @Controller('render')
 @UseGuards(ApiKeyGuard)
 export class RenderController {
