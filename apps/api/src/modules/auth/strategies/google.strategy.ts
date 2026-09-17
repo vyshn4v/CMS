@@ -2,13 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile, VerifyCallback } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
+import { RedisService } from '../../redis/redis.service';
+import { OAuthStateStore } from './oauth-state.store';
 
 /**
  * Passport strategy handling Google OAuth 2.0 redirection and callback verification.
  */
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    redisService: RedisService,
+  ) {
     super({
       clientID: configService.get<string>('GOOGLE_CLIENT_ID', 'placeholder-client-id'),
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET', 'placeholder-client-secret'),
@@ -17,7 +22,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
         'http://localhost:5000/api/v1/auth/google/callback',
       ),
       scope: ['email', 'profile'],
-      state: true,
+      store: new OAuthStateStore(redisService),
     });
   }
 
