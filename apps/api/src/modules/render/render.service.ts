@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { HandlebarsService } from '../template/handlebars.service';
 import { RedisService } from '../redis/redis.service';
@@ -30,13 +26,15 @@ export class RenderService {
       if (!templateId && !schemaId) {
         throw new BadRequestException({
           code: 'VALIDATION_ERROR',
-          message: 'At least one of "templateId", "schemaId", or "contentId" must be provided to render',
+          message:
+            'At least one of "templateId", "schemaId", or "contentId" must be provided to render',
         });
       }
       if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
         throw new BadRequestException({
           code: 'VALIDATION_ERROR',
-          message: 'The "data" payload is required when rendering with "templateId" or "schemaId" without a "contentId", as the template requires field values to map.',
+          message:
+            'The "data" payload is required when rendering with "templateId" or "schemaId" without a "contentId", as the template requires field values to map.',
         });
       }
     }
@@ -109,10 +107,7 @@ export class RenderService {
           where: {
             contentTypeId: effectiveSchemaId,
             orgId,
-            OR: [
-              { fieldsPublished: { not: null } },
-              { bodyPublished: { not: null } },
-            ],
+            OR: [{ fieldsPublished: { not: null } }, { bodyPublished: { not: null } }],
           },
           orderBy: { updatedAt: 'desc' },
           include: {
@@ -171,7 +166,11 @@ export class RenderService {
 
     // 4. Model-driven Multi-Field Rendering
     const fieldsPublished = template.fieldsPublished as Record<string, any> | null;
-    if (fieldsPublished && typeof fieldsPublished === 'object' && Object.keys(fieldsPublished).length > 0) {
+    if (
+      fieldsPublished &&
+      typeof fieldsPublished === 'object' &&
+      Object.keys(fieldsPublished).length > 0
+    ) {
       // 0. Normalize dot keys (e.g. seo.meta_title) into nested object (SEC-04: Prototype Pollution Protection)
       const FORBIDDEN_PROPERTIES = new Set(['__proto__', 'constructor', 'prototype']);
       const normalizedFields: Record<string, any> = Object.create(null);
@@ -195,18 +194,28 @@ export class RenderService {
 
       const renderedFields: Record<string, any> = {};
       const modelFields: any[] = (template.contentType?.schema as any)?.fields || [];
-      const allowedFields = modelFields.length > 0 ? new Set(modelFields.map((f: any) => f.name)) : null;
+      const allowedFields =
+        modelFields.length > 0 ? new Set(modelFields.map((f: any) => f.name)) : null;
 
       for (const [key, rawTpl] of Object.entries(normalizedFields)) {
         if (allowedFields && !allowedFields.has(key)) {
-          continue;
+          const isSubAlias =
+            (key === 'sub' || key === 'subj' || key === 'subject') &&
+            (allowedFields.has('sub') || allowedFields.has('subj') || allowedFields.has('subject'));
+          if (!isSubAlias) {
+            continue;
+          }
         }
 
         // A. Handle structured component template (object of subfield templates)
         let subfieldTemplates: Record<string, any> | null = null;
         if (rawTpl && typeof rawTpl === 'object' && !Array.isArray(rawTpl)) {
           subfieldTemplates = rawTpl as Record<string, any>;
-        } else if (typeof rawTpl === 'string' && rawTpl.trim().startsWith('{') && rawTpl.trim().endsWith('}')) {
+        } else if (
+          typeof rawTpl === 'string' &&
+          rawTpl.trim().startsWith('{') &&
+          rawTpl.trim().endsWith('}')
+        ) {
           try {
             const parsed = JSON.parse(rawTpl);
             if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
@@ -216,7 +225,11 @@ export class RenderService {
         }
 
         // Fallback: Check if fieldsDraft contains structured subfield definitions
-        if (!subfieldTemplates && template.fieldsDraft && typeof template.fieldsDraft === 'object') {
+        if (
+          !subfieldTemplates &&
+          template.fieldsDraft &&
+          typeof template.fieldsDraft === 'object'
+        ) {
           const draftTpl = (template.fieldsDraft as any)[key];
           if (draftTpl && typeof draftTpl === 'object' && !Array.isArray(draftTpl)) {
             subfieldTemplates = draftTpl;
@@ -247,7 +260,8 @@ export class RenderService {
           const isDynamicZoneTemplate =
             Boolean(subfieldTemplates.__dynamicZone) ||
             Object.entries(subfieldTemplates).some(
-              ([k, v]) => k !== '__dynamicZone' && typeof v === 'object' && v !== null && !Array.isArray(v),
+              ([k, v]) =>
+                k !== '__dynamicZone' && typeof v === 'object' && v !== null && !Array.isArray(v),
             );
 
           if (isDynamicZoneTemplate) {
@@ -258,7 +272,11 @@ export class RenderService {
                 const compKey = item.__component || item.component || item._component || item.type;
                 let blockTpl: Record<string, any> | null = null;
 
-                if (compKey && subfieldTemplates![compKey] && typeof subfieldTemplates![compKey] === 'object') {
+                if (
+                  compKey &&
+                  subfieldTemplates![compKey] &&
+                  typeof subfieldTemplates![compKey] === 'object'
+                ) {
                   blockTpl = subfieldTemplates![compKey];
                 } else if (compKey) {
                   for (const [k, v] of Object.entries(subfieldTemplates!)) {
@@ -295,7 +313,8 @@ export class RenderService {
                       let val: any = this.handlebarsService.render(subFormula, itemScope);
                       if (
                         typeof val === 'string' &&
-                        ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']')))
+                        ((val.startsWith('{') && val.endsWith('}')) ||
+                          (val.startsWith('[') && val.endsWith(']')))
                       ) {
                         try {
                           val = JSON.parse(val);
@@ -315,9 +334,14 @@ export class RenderService {
             }
 
             if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
-              const compKey = rawVal.__component || rawVal.component || rawVal._component || rawVal.type;
+              const compKey =
+                rawVal.__component || rawVal.component || rawVal._component || rawVal.type;
               let blockTpl: Record<string, any> | null = null;
-              if (compKey && subfieldTemplates[compKey] && typeof subfieldTemplates[compKey] === 'object') {
+              if (
+                compKey &&
+                subfieldTemplates[compKey] &&
+                typeof subfieldTemplates[compKey] === 'object'
+              ) {
                 blockTpl = subfieldTemplates[compKey];
               }
 
@@ -381,7 +405,8 @@ export class RenderService {
                     let val: any = this.handlebarsService.render(subFormula, itemScope);
                     if (
                       typeof val === 'string' &&
-                      ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']')))
+                      ((val.startsWith('{') && val.endsWith('}')) ||
+                        (val.startsWith('[') && val.endsWith(']')))
                     ) {
                       try {
                         val = JSON.parse(val);
@@ -419,7 +444,8 @@ export class RenderService {
                   let val: any = this.handlebarsService.render(subFormula, scope);
                   if (
                     typeof val === 'string' &&
-                    ((val.startsWith('{') && val.endsWith('}')) || (val.startsWith('[') && val.endsWith(']')))
+                    ((val.startsWith('{') && val.endsWith('}')) ||
+                      (val.startsWith('[') && val.endsWith(']')))
                   ) {
                     try {
                       val = JSON.parse(val);
@@ -461,7 +487,10 @@ export class RenderService {
         }
 
         // 2. Render via Handlebars
-        let renderedVal: any = this.handlebarsService.render(typeof rawTpl === 'string' ? rawTpl : '', context);
+        let renderedVal: any = this.handlebarsService.render(
+          typeof rawTpl === 'string' ? rawTpl : '',
+          context,
+        );
 
         // 3. Graceful fallback: If Handlebars produced "[object Object]" and original input was an object/array, preserve original
         if (
@@ -477,10 +506,7 @@ export class RenderService {
         // 4. Auto-parse JSON string outputs (e.g. from {{{json field}}})
         if (typeof renderedVal === 'string') {
           const s = renderedVal.trim();
-          if (
-            (s.startsWith('{') && s.endsWith('}')) ||
-            (s.startsWith('[') && s.endsWith(']'))
-          ) {
+          if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
             try {
               renderedVal = JSON.parse(s);
             } catch {
