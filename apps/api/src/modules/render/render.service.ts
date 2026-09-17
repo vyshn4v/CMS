@@ -186,6 +186,31 @@ export class RenderService {
           } catch {}
         }
 
+        // Fallback: Check if fieldsDraft contains structured subfield definitions
+        if (!subfieldTemplates && template.fieldsDraft && typeof template.fieldsDraft === 'object') {
+          const draftTpl = (template.fieldsDraft as any)[key];
+          if (draftTpl && typeof draftTpl === 'object' && !Array.isArray(draftTpl)) {
+            subfieldTemplates = draftTpl;
+          }
+        }
+
+        // Ensure component and dynamic zone fields are never concatenated into a single string
+        const modelFieldDef = modelFields.find((f: any) => f.name === key);
+        if (!subfieldTemplates && modelFieldDef?.type === 'component') {
+          const rawVal = context[key];
+          if (typeof rawVal === 'object' && rawVal !== null) {
+            renderedFields[key] = rawVal;
+            continue;
+          }
+        }
+        if (!subfieldTemplates && modelFieldDef?.type === 'dynamiczone') {
+          const rawVal = context[key];
+          if (Array.isArray(rawVal)) {
+            renderedFields[key] = rawVal;
+            continue;
+          }
+        }
+
         if (subfieldTemplates) {
           const rawVal = context[key];
 
@@ -438,25 +463,16 @@ export class RenderService {
         renderedFields[key] = renderedVal;
       }
 
-      return {
+      const resObj: any = {
         type: template.type,
-        data: renderedFields,
         output: renderedFields,
-        model: template.contentType
-          ? {
-              id: template.contentType.id,
-              name: template.contentType.name,
-              slug: template.contentType.slug,
-            }
-          : null,
-        template: {
-          id: template.id,
-          name: template.name,
-        },
-        subject: renderedFields.subject || renderedFields.sub || '',
-        body: renderedFields.body || renderedFields.html || '',
-        html: renderedFields.html || renderedFields.body || '',
-      } as any;
+      };
+      Object.defineProperty(resObj, 'data', {
+        get: () => renderedFields,
+        enumerable: false,
+        configurable: true,
+      });
+      return resObj;
     }
 
     // 5. Fallback Legacy Render
@@ -469,44 +485,31 @@ export class RenderService {
         if (template.subjectPublished) {
           subject = this.handlebarsService.render(template.subjectPublished, context);
         }
-        return {
+        const output = { subject, body: renderedBody };
+        const resObj: any = {
           type: 'EMAIL',
-          subject,
-          body: renderedBody,
-          data: { subject, body: renderedBody },
-          output: { subject, body: renderedBody },
-          model: template.contentType
-            ? {
-                id: template.contentType.id,
-                name: template.contentType.name,
-                slug: template.contentType.slug,
-              }
-            : null,
-          template: {
-            id: template.id,
-            name: template.name,
-          },
-        } as any;
+          output,
+        };
+        Object.defineProperty(resObj, 'data', {
+          get: () => output,
+          enumerable: false,
+          configurable: true,
+        });
+        return resObj;
       }
 
       case 'HTML_PAGE': {
-        return {
+        const output = { html: renderedBody };
+        const resObj: any = {
           type: 'HTML_PAGE',
-          html: renderedBody,
-          data: { html: renderedBody },
-          output: { html: renderedBody },
-          model: template.contentType
-            ? {
-                id: template.contentType.id,
-                name: template.contentType.name,
-                slug: template.contentType.slug,
-              }
-            : null,
-          template: {
-            id: template.id,
-            name: template.name,
-          },
-        } as any;
+          output,
+        };
+        Object.defineProperty(resObj, 'data', {
+          get: () => output,
+          enumerable: false,
+          configurable: true,
+        });
+        return resObj;
       }
 
       case 'JSON': {
@@ -516,44 +519,30 @@ export class RenderService {
         } catch {
           parsed = { raw: renderedBody };
         }
-        return {
+        const resObj: any = {
           type: 'JSON',
-          payload: parsed,
-          data: parsed,
           output: parsed,
-          model: template.contentType
-            ? {
-                id: template.contentType.id,
-                name: template.contentType.name,
-                slug: template.contentType.slug,
-              }
-            : null,
-          template: {
-            id: template.id,
-            name: template.name,
-          },
-        } as any;
+        };
+        Object.defineProperty(resObj, 'data', {
+          get: () => parsed,
+          enumerable: false,
+          configurable: true,
+        });
+        return resObj;
       }
 
       default: {
-        return {
+        const output = { body: renderedBody };
+        const resObj: any = {
           type: 'CUSTOM',
-          data: { body: renderedBody },
-          output: { body: renderedBody },
-          html: renderedBody,
-          body: renderedBody,
-          model: template.contentType
-            ? {
-                id: template.contentType.id,
-                name: template.contentType.name,
-                slug: template.contentType.slug,
-              }
-            : null,
-          template: {
-            id: template.id,
-            name: template.name,
-          },
-        } as any;
+          output,
+        };
+        Object.defineProperty(resObj, 'data', {
+          get: () => output,
+          enumerable: false,
+          configurable: true,
+        });
+        return resObj;
       }
     }
   }

@@ -654,18 +654,10 @@ curl -X POST "http://localhost:5000/api/v1/render" \
 {
   "status": 200,
   "data": {
-    "rendered": {
+    "type": "EMAIL",
+    "output": {
       "subject": "Invoice INV-2026-001 Due Soon",
-      "html": "<html><body><h2>Invoice for Alice Smith</h2><p>Amount: $499.00</p></body></html>"
-    },
-    "template": {
-      "id": "7b8e1f0c-4d3a-4b2e-9c1a-8f0b7e6d5c4b",
-      "name": "Invoice Notification",
-      "type": "EMAIL"
-    },
-    "model": {
-      "id": "c1f6b860-23ef-4899-b1d5-bc9eb8907fcb",
-      "name": "Invoice Model"
+      "body": "<html><body><h2>Invoice for Alice Smith</h2><p>Amount: $499.00</p></body></html>"
     }
   }
 }

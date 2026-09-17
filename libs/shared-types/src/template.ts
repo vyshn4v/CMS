@@ -88,30 +88,40 @@ export interface RenderRequestDto {
 
 export interface RenderEmailResponse {
   type: 'EMAIL';
-  subject: string;
-  body: string;
-  data?: Record<string, any>;
-  output?: Record<string, any>;
+  output: {
+    subject: string;
+    body: string;
+  };
+  subject?: string;
+  body?: string;
+  data?: {
+    subject: string;
+    body: string;
+  };
 }
 
 export interface RenderHtmlResponse {
   type: 'HTML_PAGE';
-  html: string;
-  data?: Record<string, any>;
-  output?: Record<string, any>;
+  output: {
+    html: string;
+  };
+  html?: string;
+  data?: {
+    html: string;
+  };
 }
 
 export interface RenderJsonResponse {
   type: 'JSON';
-  payload: Record<string, any>;
+  output: Record<string, any>;
   data?: Record<string, any>;
-  output?: Record<string, any>;
+  payload?: Record<string, any>;
 }
 
 export interface RenderModelResponse {
   type?: TemplateType;
-  data: Record<string, any>; // User-defined output fields according to the Model! (e.g. { sub: '...', body: '...' })
-  output?: Record<string, any>;
+  output: Record<string, any>; // Discrete rendered output fields according to the Model
+  data?: Record<string, any>;
   model?: {
     id: string;
     name: string;
@@ -132,3 +142,4 @@ export type RenderOutputData =
   | RenderEmailResponse
   | RenderHtmlResponse
   | RenderJsonResponse;
+

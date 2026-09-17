@@ -73,10 +73,25 @@ describe('RenderService (SEC-04 Prototype Pollution Protection)', () => {
     expect((Object.prototype as any).polluted2).toBeUndefined();
     expect((({} as any)).polluted).toBeUndefined();
 
-    // Check that safe fields still rendered properly
+    // Check that safe fields still rendered properly in output
+    expect(result.output.normalField).toBe('safeValue');
+    expect(result.output.seo).toBeDefined();
+    expect(result.output.seo.meta_title).toBe('Safe Title');
+
+    // Backward compatibility getter
     expect(result.data.normalField).toBe('safeValue');
-    expect(result.data.seo).toBeDefined();
-    expect(result.data.seo.meta_title).toBe('Safe Title');
+
+    // Verify model and template metadata are excluded from the output
+    expect(result.model).toBeUndefined();
+    expect(result.template).toBeUndefined();
+
+    // Verify JSON serialization contains ONLY type and output (no duplicate data key or metadata)
+    const json = JSON.parse(JSON.stringify(result));
+    expect(json.output).toBeDefined();
+    expect(json.output.normalField).toBe('safeValue');
+    expect(json.data).toBeUndefined();
+    expect(json.model).toBeUndefined();
+    expect(json.template).toBeUndefined();
   });
 
   it('strictly prioritizes stored contentEntry data over conflicting body data when contentId is supplied', async () => {
@@ -117,4 +132,64 @@ describe('RenderService (SEC-04 Prototype Pollution Protection)', () => {
       }),
     );
   });
+
+  it('preserves component subfields as discrete structured objects rather than concatenating them', async () => {
+    const template: any = {
+      id: 'tpl-comp',
+      orgId: 'org-1',
+      type: 'CUSTOM',
+      fieldsPublished: {
+        seo: {
+          meta_title: 'Title: {{this.meta_title}}',
+          meta_desc: 'Desc: {{this.meta_desc}}',
+        },
+        page_title: '{{page_title}}',
+      },
+      contentType: {
+        schema: {
+          fields: [
+            { name: 'page_title', type: 'text' },
+            { name: 'seo', type: 'component' },
+          ],
+        },
+      },
+    };
+
+    const contentEntry: any = {
+      id: 'entry-comp-1',
+      orgId: 'org-1',
+      publishedData: {
+        page_title: 'My Landing Page',
+        seo: {
+          meta_title: 'Launch 2026',
+          meta_desc: 'Next gen platform',
+          __component: 'seo-meta',
+        },
+      },
+    };
+
+    handlebars.render.mockImplementation((tpl: string, scope: any) => {
+      if (tpl === 'Title: {{this.meta_title}}') return `Title: ${scope.meta_title}`;
+      if (tpl === 'Desc: {{this.meta_desc}}') return `Desc: ${scope.meta_desc}`;
+      if (tpl === '{{page_title}}') return scope.page_title;
+      return tpl;
+    });
+
+    prisma.template.findFirst.mockResolvedValue(template);
+    prisma.contentEntry.findFirst.mockResolvedValue(contentEntry);
+
+    const result = await service.render('org-1', {
+      templateId: 'tpl-comp',
+      contentId: 'entry-comp-1',
+    });
+
+    expect(result.output.page_title).toBe('My Landing Page');
+    expect(typeof result.output.seo).toBe('object');
+    expect(result.output.seo.meta_title).toBe('Title: Launch 2026');
+    expect(result.output.seo.meta_desc).toBe('Desc: Next gen platform');
+
+    // Must NOT be concatenated into a single string
+    expect(typeof result.output.seo).not.toBe('string');
+  });
 });
+
