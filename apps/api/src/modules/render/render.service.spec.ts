@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RenderService } from './render.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { HandlebarsService } from '../template/handlebars.service';
+import { TemplateEngineService } from '../template/template-engine.service';
 import { RedisService } from '../redis/redis.service';
 
 describe('RenderService (SEC-04 Prototype Pollution Protection)', () => {
@@ -33,6 +34,7 @@ describe('RenderService (SEC-04 Prototype Pollution Protection)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RenderService,
+        TemplateEngineService,
         { provide: PrismaService, useValue: prisma },
         { provide: HandlebarsService, useValue: handlebars },
         { provide: RedisService, useValue: redis },

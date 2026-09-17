@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TemplateService } from './template.service';
 import { HandlebarsService } from './handlebars.service';
+import { TemplateEngineService } from './template-engine.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
@@ -38,6 +39,7 @@ describe('TemplateService - Component Subfield & Array Rendering', () => {
       providers: [
         TemplateService,
         HandlebarsService,
+        TemplateEngineService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: RedisService, useValue: mockRedisService },
       ],
