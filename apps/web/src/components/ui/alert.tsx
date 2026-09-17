@@ -12,24 +12,24 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const typeStyles: Record<AlertType, { wrapper: string; icon: React.ReactNode; text: string }> = {
   info: {
-    wrapper: 'bg-sky-500/10 border-sky-500/20 text-sky-300',
-    icon: <Info className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />,
-    text: 'text-sky-200',
+    wrapper: 'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-900/50 text-sky-800 dark:text-sky-200',
+    icon: <Info className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5" />,
+    text: 'text-sky-800 dark:text-sky-200',
   },
   success: {
-    wrapper: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
-    icon: <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />,
-    text: 'text-emerald-200',
+    wrapper: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-200',
+    icon: <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />,
+    text: 'text-emerald-800 dark:text-emerald-200',
   },
   warning: {
-    wrapper: 'bg-amber-500/10 border-amber-500/20 text-amber-300',
-    icon: <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />,
-    text: 'text-amber-200',
+    wrapper: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-200',
+    icon: <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />,
+    text: 'text-amber-800 dark:text-amber-200',
   },
   error: {
-    wrapper: 'bg-rose-500/10 border-rose-500/20 text-rose-300',
-    icon: <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />,
-    text: 'text-rose-200',
+    wrapper: 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-red-800 dark:text-red-200',
+    icon: <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />,
+    text: 'text-red-800 dark:text-red-200',
   },
 };
 
@@ -55,13 +55,13 @@ export const Alert: React.FC<AlertProps> = ({
     >
       {current.icon}
       <div className="flex-1">
-        {title && <h4 className="font-semibold text-white mb-0.5">{title}</h4>}
+        {title && <h4 className="font-semibold text-slate-900 dark:text-white mb-0.5">{title}</h4>}
         <div className={current.text}>{children}</div>
       </div>
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className="text-slate-400 hover:text-white transition-colors p-0.5 -mr-1 -mt-1 rounded"
+          className="text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors p-0.5 -mr-1 -mt-1 rounded"
           aria-label="Dismiss alert"
         >
           <X className="w-3.5 h-3.5" />

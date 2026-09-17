@@ -59,14 +59,14 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
   };
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3.5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3.5 shadow-sm">
       {/* Field Label Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-200">
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
             {field.label || field.name}
           </span>
-          <span className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/60">
+          <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
             key: "{field.name}" • component
           </span>
         </div>
@@ -76,15 +76,15 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
       </div>
 
       {/* Component Info Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-violet-500/10 border border-violet-500/20 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-violet-50/70 dark:bg-violet-950/30 border border-violet-200/70 dark:border-violet-900/40 text-xs">
         <div className="flex items-center gap-2.5">
-          <Boxes className="w-4 h-4 text-violet-400 shrink-0" />
+          <Boxes className="w-4 h-4 text-violet-600 dark:text-violet-400 shrink-0" />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-violet-200">
+            <span className="font-bold text-violet-950 dark:text-violet-200">
               Component: {compDef ? compDef.name : field.label || field.name}
             </span>
             {compDef?.slug && (
-              <span className="font-mono text-[10px] text-violet-300 bg-violet-500/20 px-1.5 py-0.5 rounded">
+              <span className="font-mono text-[10px] text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/50 px-1.5 py-0.5 rounded">
                 {compDef.slug}
               </span>
             )}
@@ -94,7 +94,7 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
           </div>
         </div>
 
-        <span className="text-[10px] text-violet-400 font-medium">
+        <span className="text-[10px] text-violet-600 dark:text-violet-400 font-medium">
           {isRepeatable
             ? 'JSON array input maps to rendered array'
             : 'JSON object input maps to rendered object'}
@@ -104,8 +104,8 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
       {/* Subfields List */}
       <div className="space-y-3">
         {compFields.length === 0 && extraCustomKeys.length === 0 ? (
-          <div className="p-4 rounded-xl bg-slate-950/40 text-center space-y-2 border border-dashed border-slate-800">
-            <p className="text-xs text-slate-400">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-center space-y-2 border border-dashed border-slate-200 dark:border-slate-700">
+            <p className="text-xs text-slate-500">
               No subfields defined for component <strong>{compDef?.name || field.name}</strong>.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
@@ -114,7 +114,7 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
                   key={sug}
                   type="button"
                   onClick={() => onAddCustomKey(field.name, sug)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-violet-500/40 bg-violet-500/5 text-[11px] font-mono text-violet-400 hover:bg-violet-500/10 transition"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-dashed border-violet-300 dark:border-violet-700 bg-white dark:bg-slate-800 text-[11px] font-mono text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/30 transition"
                 >
                   <Plus className="w-2.5 h-2.5" />
                   <span>+ {sug}</span>
@@ -132,14 +132,14 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
               return (
                 <div
                   key={cField.name}
-                  className="rounded-xl border border-slate-800/80 bg-slate-950/40 p-3 space-y-2"
+                  className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-3 space-y-2 shadow-xs"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-1.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold text-slate-200">
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                         {cField.label || cField.name}
                       </span>
-                      <span className="text-[10px] font-mono bg-violet-500/10 text-violet-400 border border-violet-500/20 px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-mono bg-violet-100/70 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 px-1.5 py-0.5 rounded">
                         {cField.name} • {cField.type}
                       </span>
                     </div>
@@ -157,9 +157,9 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
                               const updated = cur ? `${cur} ${tag}` : tag;
                               onFieldChange(field.name, cField.name, updated);
                             }}
-                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 hover:bg-violet-500/20 text-violet-300 border border-slate-700 hover:border-violet-500/40 transition"
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 hover:bg-violet-50 dark:hover:bg-violet-900/40 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-800 transition"
                           >
-                            <Plus className="w-2.5 h-2.5 text-violet-400" />
+                            <Plus className="w-2.5 h-2.5 text-violet-500 dark:text-violet-400" />
                             <span>{sName}</span>
                           </button>
                         ))}
@@ -182,7 +182,7 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
                       value={getSubfieldValue(cField.name)}
                       onChange={(e) => onFieldChange(field.name, cField.name, e.target.value)}
                       placeholder={`e.g. {{{json this.${cField.name}}}}`}
-                      className="w-full rounded-lg border border-slate-800 bg-slate-900 p-2.5 font-mono text-xs text-slate-200 focus:outline-none focus:border-violet-500"
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-2.5 font-mono text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500"
                     />
                   ) : (
                     <input
@@ -190,7 +190,7 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
                       value={getSubfieldValue(cField.name)}
                       onChange={(e) => onFieldChange(field.name, cField.name, e.target.value)}
                       placeholder={`e.g. {{this.${cField.name}}}`}
-                      className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-violet-500"
+                      className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500"
                     />
                   )}
                 </div>
@@ -201,11 +201,11 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
             {extraCustomKeys.map((customKey) => (
               <div
                 key={customKey}
-                className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-3 space-y-2"
+                className="rounded-xl border border-violet-200/80 dark:border-violet-800/60 bg-violet-50/30 dark:bg-violet-950/20 p-3 space-y-2"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-slate-200 font-mono">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 font-mono">
                       {customKey}
                     </span>
                     <Badge variant="purple" size="sm">
@@ -216,7 +216,7 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
                     variant="ghost"
                     size="xs"
                     onClick={() => onRemoveCustomKey(field.name, customKey)}
-                    className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                    className="text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10"
                     leftIcon={<Trash2 className="w-3 h-3" />}
                   >
                     Remove
@@ -227,7 +227,7 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
                   value={getSubfieldValue(customKey)}
                   onChange={(e) => onFieldChange(field.name, customKey, e.target.value)}
                   placeholder={`e.g. {{this.first}} {{this.last}}`}
-                  className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-violet-500"
+                  className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:border-violet-500"
                 />
               </div>
             ))}
@@ -236,7 +236,7 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
       </div>
 
       {/* Footer Controls: Add Custom Key & Reset */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -249,13 +249,13 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
                 handleAddKey();
               }
             }}
-            className="w-52 rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-violet-500"
+            className="w-52 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-violet-500"
           />
           <Button
             variant="secondary"
             size="xs"
             onClick={handleAddKey}
-            leftIcon={<Plus className="w-3 h-3 text-violet-400" />}
+            leftIcon={<Plus className="w-3 h-3 text-violet-500 dark:text-violet-400" />}
           >
             Add Key
           </Button>
@@ -272,7 +272,7 @@ export const ComponentFieldCard: React.FC<ComponentFieldCardProps> = ({
               });
               onResetDefaults(field.name, resetObj);
             }}
-            className="text-slate-400 hover:text-slate-200"
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             leftIcon={<RotateCcw className="w-3 h-3" />}
           >
             Reset Defaults

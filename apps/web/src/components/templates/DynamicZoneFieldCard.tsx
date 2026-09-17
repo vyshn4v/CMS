@@ -70,28 +70,28 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
     activeTab === 'all' ? allowedComps : allowedComps.filter((c) => c.slug === activeTab);
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3.5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4 space-y-3.5 shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-200">
+          <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
             {field.label || field.name}
           </span>
-          <span className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/60">
+          <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700/60">
             key: "{field.name}" • dynamiczone
           </span>
         </div>
-        <span className="text-[10px] text-slate-400">
+        <span className="text-[10px] text-slate-500 dark:text-slate-400">
           Polymorphic __component discriminator mapping
         </span>
       </div>
 
       {/* Dynamic Zone Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 text-xs">
         <div className="flex items-center gap-2.5">
-          <Layers className="w-4 h-4 text-emerald-400 shrink-0" />
+          <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-emerald-200">
+            <span className="font-semibold text-emerald-950 dark:text-emerald-200">
               Dynamic Zone: {field.label || field.name}
             </span>
             <Badge variant="success" size="sm">
@@ -102,21 +102,21 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
           </div>
         </div>
 
-        <span className="text-[10px] text-emerald-400 font-medium">
+        <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">
           Polymorphic blocks array outputs rendered items
         </span>
       </div>
 
       {/* Tabs */}
       {allowedComps.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-800 pb-2">
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2">
           <button
             type="button"
             onClick={() => setActiveTab('all')}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition ${
               activeTab === 'all'
-                ? 'bg-emerald-600 text-white font-semibold'
-                : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                ? 'bg-emerald-600 text-white font-semibold shadow-xs'
+                : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800'
             }`}
           >
             All Blocks ({allowedComps.length})
@@ -132,12 +132,12 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
                 onClick={() => setActiveTab(ac.slug)}
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition ${
                   isSel
-                    ? 'bg-emerald-600 text-white font-semibold'
-                    : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                    ? 'bg-emerald-600 text-white font-semibold shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800'
                 }`}
               >
                 <span>{ac.name}</span>
-                <span className={`text-[10px] ${isSel ? 'text-emerald-100' : 'text-slate-500'}`}>
+                <span className={`text-[10px] ${isSel ? 'text-emerald-100' : 'text-slate-400 dark:text-slate-500'}`}>
                   ({count})
                 </span>
               </button>
@@ -149,7 +149,7 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
       {/* Blocks List */}
       <div className="space-y-4">
         {allowedComps.length === 0 ? (
-          <div className="p-4 rounded-xl bg-slate-950/40 text-center text-xs text-slate-400 border border-dashed border-slate-800">
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/40 text-center text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-200 dark:border-slate-800">
             No components currently allowed in this Dynamic Zone. Configure allowed components in Schema Builder.
           </div>
         ) : (
@@ -178,19 +178,19 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
             return (
               <div
                 key={ac.id || ac.slug}
-                className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 space-y-3"
+                className="rounded-xl border border-emerald-200/80 dark:border-emerald-900/50 bg-emerald-50/30 dark:bg-emerald-950/10 p-3.5 space-y-3"
               >
                 {/* Block Header */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-500/20 pb-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/60 dark:border-emerald-900/40 pb-2">
                   <div className="flex items-center gap-2">
-                    <Boxes className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-xs font-bold text-slate-200">
+                    <Boxes className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
                       Block: {ac.name}
                     </span>
-                    <span className="font-mono text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">
+                    <span className="font-mono text-[10px] bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/30">
                       __component: "{ac.slug}"
                     </span>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
                       ({acFields.length} {acFields.length === 1 ? 'field' : 'fields'})
                     </span>
                   </div>
@@ -206,7 +206,7 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
                         });
                         onResetDefaults(field.name, ac.slug, resetObj);
                       }}
-                      className="text-slate-400 hover:text-slate-200"
+                      className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                       leftIcon={<RotateCcw className="w-3 h-3" />}
                     >
                       Reset Block
@@ -223,14 +223,14 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
                     return (
                       <div
                         key={cField.name}
-                        className="rounded-lg border border-slate-800 bg-slate-900/80 p-3 space-y-1.5"
+                        className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-3 space-y-1.5 shadow-2xs"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-1.5">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-semibold text-slate-200">
+                            <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                               {cField.label || cField.name}
                             </span>
-                            <span className="text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-mono bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200/70 dark:border-emerald-500/20 px-1.5 py-0.5 rounded">
                               {cField.name} • {cField.type}
                             </span>
                           </div>
@@ -248,9 +248,9 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
                                     const updated = cur ? `${cur} ${tag}` : tag;
                                     onFieldChange(field.name, ac.slug, cField.name, updated);
                                   }}
-                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-800 hover:bg-emerald-500/20 text-emerald-300 border border-slate-700 hover:border-emerald-500/40 transition"
+                                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition"
                                 >
-                                  <Plus className="w-2.5 h-2.5 text-emerald-400" />
+                                  <Plus className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
                                   <span>{sName}</span>
                                 </button>
                               ))}
@@ -277,7 +277,7 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
                               onFieldChange(field.name, ac.slug, cField.name, e.target.value)
                             }
                             placeholder={`e.g. {{{json this.${cField.name}}}}`}
-                            className="w-full rounded-lg border border-slate-800 bg-slate-900 p-2.5 font-mono text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-2.5 font-mono text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500"
                           />
                         ) : (
                           <input
@@ -287,7 +287,7 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
                               onFieldChange(field.name, ac.slug, cField.name, e.target.value)
                             }
                             placeholder={`e.g. {{this.${cField.name}}}`}
-                            className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500"
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500"
                           />
                         )}
                       </div>
@@ -298,17 +298,17 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
                   {extraBlockKeys.map((customKey) => (
                     <div
                       key={customKey}
-                      className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-1.5"
+                      className="rounded-lg border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-500/5 p-3 space-y-1.5"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-200 font-mono">
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 font-mono">
                           {customKey}
                         </span>
                         <Button
                           variant="ghost"
                           size="xs"
                           onClick={() => onRemoveCustomKey(field.name, ac.slug, customKey)}
-                          className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                          className="text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10"
                           leftIcon={<Trash2 className="w-3 h-3" />}
                         >
                           Remove
@@ -321,14 +321,14 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
                           onFieldChange(field.name, ac.slug, customKey, e.target.value)
                         }
                         placeholder={`e.g. {{this.first}} {{this.last}}`}
-                        className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500"
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
                   ))}
                 </div>
 
                 {/* Footer: Add custom key */}
-                <div className="flex items-center gap-2 pt-2 border-t border-emerald-500/20 text-xs">
+                <div className="flex items-center gap-2 pt-2 border-t border-emerald-200/60 dark:border-emerald-500/20 text-xs">
                   <input
                     type="text"
                     placeholder={`Add custom key to ${ac.name}`}
@@ -342,13 +342,13 @@ export const DynamicZoneFieldCard: React.FC<DynamicZoneFieldCardProps> = ({
                         handleAddKey(ac.slug);
                       }
                     }}
-                    className="w-52 rounded-lg border border-slate-800 bg-slate-900 px-2.5 py-1 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+                    className="w-52 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
                   />
                   <Button
                     variant="secondary"
                     size="xs"
                     onClick={() => handleAddKey(ac.slug)}
-                    leftIcon={<Plus className="w-3 h-3 text-emerald-400" />}
+                    leftIcon={<Plus className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />}
                   >
                     Add Key
                   </Button>

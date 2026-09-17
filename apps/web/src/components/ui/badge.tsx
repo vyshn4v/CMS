@@ -19,23 +19,30 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  default: 'bg-slate-800 text-slate-300 border-slate-700',
-  success: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  danger: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-  purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  blue: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-  outline: 'bg-transparent text-slate-300 border-slate-700',
+  default:
+    'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
+  success:
+    'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
+  warning:
+    'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
+  danger:
+    'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800',
+  purple:
+    'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800',
+  blue:
+    'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800',
+  outline:
+    'bg-transparent text-slate-600 border-slate-300 dark:text-slate-400 dark:border-slate-700',
 };
 
 const dotStyles: Record<BadgeVariant, string> = {
-  default: 'bg-slate-400',
-  success: 'bg-emerald-400',
-  warning: 'bg-amber-400',
-  danger: 'bg-rose-400',
-  purple: 'bg-purple-400',
-  blue: 'bg-sky-400',
-  outline: 'bg-slate-400',
+  default: 'bg-slate-400 dark:bg-slate-500',
+  success: 'bg-emerald-500 dark:bg-emerald-400',
+  warning: 'bg-amber-500 dark:bg-amber-400',
+  danger: 'bg-red-500 dark:bg-red-400',
+  purple: 'bg-purple-500 dark:bg-purple-400',
+  blue: 'bg-blue-500 dark:bg-blue-400',
+  outline: 'bg-slate-400 dark:bg-slate-500',
 };
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -50,7 +57,7 @@ export const Badge: React.FC<BadgeProps> = ({
     <span
       className={cn(
         'inline-flex items-center gap-1.5 font-medium border rounded-full',
-        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs',
+        size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs',
         variantStyles[variant],
         className,
       )}

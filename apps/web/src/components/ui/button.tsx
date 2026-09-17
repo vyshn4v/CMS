@@ -23,14 +23,14 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  default: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm shadow-indigo-950/20 active:bg-indigo-700',
-  primary: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm shadow-indigo-950/20 active:bg-indigo-700',
-  secondary: 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:bg-slate-900',
-  outline: 'border border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white active:bg-slate-900',
-  ghost: 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 active:bg-slate-800',
-  danger: 'bg-rose-600 hover:bg-rose-500 text-white shadow-sm shadow-rose-950/20 active:bg-rose-700',
-  'danger-outline': 'border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50',
-  success: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm active:bg-emerald-700',
+  default: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs',
+  primary: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs',
+  secondary: 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-xs',
+  outline: 'border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300',
+  ghost: 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60',
+  danger: 'bg-red-600 hover:bg-red-700 text-white shadow-xs',
+  'danger-outline': 'border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40',
+  success: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -61,7 +61,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          'inline-flex items-center justify-center transition-all duration-150 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed cursor-pointer',
+          'inline-flex items-center justify-center transition-all duration-150 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed cursor-pointer',
           variantStyles[variant],
           sizeStyles[size],
           className,

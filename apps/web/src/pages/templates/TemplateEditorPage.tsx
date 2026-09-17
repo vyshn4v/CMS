@@ -373,7 +373,7 @@ export const TemplateEditorPage: React.FC = () => {
   const modelFields: FieldDefinition[] = safeParseSchema(selectedSchema?.schema).fields || [];
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 text-slate-100 p-6 space-y-4">
+    <div className="flex flex-col flex-1 h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Header Toolbar */}
       <TemplateHeader
         name={name}
@@ -395,15 +395,15 @@ export const TemplateEditorPage: React.FC = () => {
       />
 
       {/* Model Selection Bar */}
-      <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
-        <span className="font-semibold text-slate-300">Target Output Model:</span>
+      <div className="flex flex-wrap items-center gap-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 px-6 py-2.5 shrink-0 text-xs">
+        <span className="font-semibold text-slate-700 dark:text-slate-300">Target Output Model:</span>
         <select
           value={contentTypeId}
           onChange={(e) => setContentTypeId(e.target.value)}
-          className={`rounded-lg border px-3 py-1.5 font-medium transition focus:outline-none ${
+          className={`rounded-lg border px-3 py-1 font-semibold focus:outline-none transition ${
             !contentTypeId
-              ? 'border-amber-500/50 bg-amber-500/10 text-amber-300'
-              : 'border-slate-700 bg-slate-800 text-slate-200'
+              ? 'border-amber-400 bg-amber-50/50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200'
+              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200'
           }`}
         >
           <option value="">-- Please select a Model --</option>
@@ -414,7 +414,7 @@ export const TemplateEditorPage: React.FC = () => {
           ))}
         </select>
         {selectedSchema && (
-          <span className="text-slate-400 font-mono text-[11px]">
+          <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-0.5 text-[10px] font-mono text-slate-600 dark:text-slate-300">
             {modelFields.length} {modelFields.length === 1 ? 'field' : 'fields'} configured
           </span>
         )}
@@ -422,18 +422,20 @@ export const TemplateEditorPage: React.FC = () => {
 
       {/* Error Banner */}
       {generalError && (
-        <Alert type="error" onDismiss={() => setGeneralError(null)}>
-          {generalError}
-        </Alert>
+        <div className="mx-6 mt-4">
+          <Alert type="error" onDismiss={() => setGeneralError(null)}>
+            {generalError}
+          </Alert>
+        </div>
       )}
 
       {/* Main Workspace Layout */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden p-6">
         <div className="h-full flex gap-6">
           {/* Editor Column */}
           {(viewMode === 'editor' || viewMode === 'split') && (
             <div
-              className={`flex flex-col h-full overflow-y-auto space-y-4 pr-1 ${
+              className={`flex flex-col h-full overflow-y-auto space-y-4 ${
                 viewMode === 'split' ? 'w-1/2' : 'w-full'
               }`}
             >
@@ -495,14 +497,14 @@ export const TemplateEditorPage: React.FC = () => {
                     return (
                       <div
                         key={field.name}
-                        className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-2.5 shadow-sm"
+                        className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-2.5 shadow-sm"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-200">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                               {field.label || field.name}
                             </span>
-                            <span className="text-[10px] font-mono bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/60">
+                            <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">
                               key: "{field.name}" • {field.type}
                             </span>
                           </div>
@@ -530,7 +532,7 @@ export const TemplateEditorPage: React.FC = () => {
                               setFieldsDraft((prev) => ({ ...prev, [field.name]: e.target.value }))
                             }
                             placeholder={`e.g. {{${field.name}}}`}
-                            className="w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500"
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           />
                         )}
                       </div>
@@ -539,22 +541,36 @@ export const TemplateEditorPage: React.FC = () => {
                 </div>
               ) : (
                 /* Empty Model Prompt */
-                <div className="flex flex-col items-center justify-center h-full min-h-[380px] text-center p-8 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4">
-                    <Layers className="w-6 h-6" />
+                <div className="flex flex-col items-center justify-center h-full min-h-[420px] text-center p-8 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="h-14 w-14 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 shadow-sm">
+                    <Layers className="h-7 w-7" />
                   </div>
-                  <h3 className="text-base font-semibold text-white">
-                    Please select a model to continue
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    Please select one model to continue
                   </h3>
-                  <p className="text-xs text-slate-400 mt-2 max-w-sm leading-relaxed">
-                    Templates map directly to model fields. Select a model from the dropdown above or create a new model.
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-md leading-relaxed">
+                    Templates require an associated Model defining the output schema format (e.g. Email, Push Notification, SMS, HTML Document, or Custom JSON). Please select a model to configure template formulas.
                   </p>
-                  <Link
-                    to="/schemas/new"
-                    className="mt-4 inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
-                  >
-                    Create New Model
-                  </Link>
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                    <select
+                      value={contentTypeId}
+                      onChange={(e) => setContentTypeId(e.target.value)}
+                      className="rounded-lg border border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/50 px-4 py-2 text-xs font-semibold text-indigo-700 dark:text-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    >
+                      <option value="">-- Choose an Output Model --</option>
+                      {schemas.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} (/{s.slug})
+                        </option>
+                      ))}
+                    </select>
+                    <Link
+                      to="/schemas/new"
+                      className="rounded-lg border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                    >
+                      Create New Model
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

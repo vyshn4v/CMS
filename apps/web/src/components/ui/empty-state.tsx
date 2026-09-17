@@ -19,18 +19,20 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center p-8 text-center rounded-xl border border-dashed border-slate-800 bg-slate-900/30',
+        'flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/30',
         className,
       )}
     >
       {icon && (
-        <div className="w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-slate-400 mb-3.5 shadow-sm">
+        <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3.5 shadow-xs">
           {icon}
         </div>
       )}
-      <h3 className="text-sm font-medium text-white">{title}</h3>
+      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{title}</h3>
       {description && (
-        <p className="text-xs text-slate-400 max-w-sm mt-1 leading-relaxed">{description}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mt-1 leading-relaxed">
+          {description}
+        </p>
       )}
       {action && <div className="mt-4">{action}</div>}
     </div>

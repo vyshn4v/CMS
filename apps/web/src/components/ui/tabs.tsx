@@ -27,7 +27,7 @@ export const Tabs: React.FC<TabsProps> = ({
   return (
     <div
       className={cn(
-        'inline-flex items-center p-1 bg-slate-900 border border-slate-800 rounded-xl select-none',
+        'inline-flex items-center p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl select-none',
         className,
       )}
     >
@@ -43,8 +43,8 @@ export const Tabs: React.FC<TabsProps> = ({
               'inline-flex items-center gap-1.5 rounded-lg font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed',
               size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-xs',
               isActive
-                ? 'bg-slate-800 text-white shadow-sm font-semibold'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40',
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-800/40',
             )}
           >
             {tab.icon && <span className="shrink-0">{tab.icon}</span>}
@@ -53,7 +53,9 @@ export const Tabs: React.FC<TabsProps> = ({
               <span
                 className={cn(
                   'px-1.5 py-0.2 rounded-full text-[10px] font-semibold',
-                  isActive ? 'bg-indigo-500/20 text-indigo-300' : 'bg-slate-800 text-slate-400',
+                  isActive
+                    ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400',
                 )}
               >
                 {tab.count}
