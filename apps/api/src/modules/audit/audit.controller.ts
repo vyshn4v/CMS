@@ -9,8 +9,9 @@ import { AuditService } from './audit.service';
 import { JwtAuthGuard } from '../auth/guards/auth.guards';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
-import { Permissions, AuditLogQueryDto, AuditLogListResponse } from '@cms/shared-types';
+import { Permissions, AuditLogListResponse } from '@cms/shared-types';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { AuditLogQueryDto } from './dto/audit.dto';
 
 /**
  * Controller exposing audit log queries for an organization.

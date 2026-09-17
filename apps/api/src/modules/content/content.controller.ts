@@ -22,6 +22,7 @@ import {
   ContentQueryOptions,
 } from '@cms/shared-types';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { CreateEntryDto, UpdateEntryDto, PublishEntryDto, ContentQueryDto } from './dto/content.dto';
 
 /**
  * Controller handling Content Entry CRUD and Draft/Publish operations.
@@ -56,7 +57,7 @@ export class ContentController {
   @ApiOperation({ summary: 'Create entry', description: 'Creates a new entry' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'slug', type: 'string', description: 'Content type slug or schema ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: CreateEntryDto })
   @ApiResponse({ status: 201, description: 'Entry created successfully' })
   async createEntry(
     @Param('orgId') orgId: string,
@@ -90,7 +91,7 @@ export class ContentController {
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'slug', type: 'string', description: 'Content type slug or schema ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'Entry ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: UpdateEntryDto })
   @ApiResponse({ status: 200, description: 'Entry updated successfully' })
   async updateEntry(
     @Param('orgId') orgId: string,
@@ -122,7 +123,7 @@ export class ContentController {
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'slug', type: 'string', description: 'Content type slug or schema ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'Entry ID' })
-  @ApiBody({ type: Object, required: false })
+  @ApiBody({ type: PublishEntryDto, required: false })
   @ApiResponse({ status: 200, description: 'Entry published successfully' })
   async publishEntry(
     @Param('orgId') orgId: string,

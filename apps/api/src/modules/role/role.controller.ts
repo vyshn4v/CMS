@@ -14,6 +14,7 @@ import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { Permissions, CreateRoleInput, UpdateRoleInput } from '@cms/shared-types';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { CreateRoleDto, UpdateRoleDto } from './dto/role.dto';
 
 /**
  * Controller handling permission listings and organization-scoped roles.
@@ -45,7 +46,7 @@ export class RoleController {
   @RequirePermissions(Permissions.ROLE_CREATE)
   @ApiOperation({ summary: 'Create role', description: 'Creates a new role' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: CreateRoleDto })
   @ApiResponse({ status: 201, description: 'Role created successfully' })
   async createRole(@Param('orgId') orgId: string, @Body() body: CreateRoleInput) {
     return this.roleService.createRole(orgId, body);
@@ -56,7 +57,7 @@ export class RoleController {
   @ApiOperation({ summary: 'Update role', description: 'Updates a role' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'Role ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: UpdateRoleDto })
   @ApiResponse({ status: 200, description: 'Role updated successfully' })
   async updateRole(
     @Param('orgId') orgId: string,

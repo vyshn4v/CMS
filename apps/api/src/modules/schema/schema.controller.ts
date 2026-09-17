@@ -18,6 +18,7 @@ import {
   UpdateContentTypeInput,
 } from '@cms/shared-types';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { CreateContentTypeDto, UpdateContentTypeDto } from './dto/schema.dto';
 
 /**
  * Controller handling Content Type schema definition endpoints.
@@ -42,7 +43,7 @@ export class SchemaController {
   @RequirePermissions(Permissions.SCHEMA_CREATE)
   @ApiOperation({ summary: 'Create schema', description: 'Creates a new schema' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: CreateContentTypeDto })
   @ApiResponse({ status: 201, description: 'Schema created successfully' })
   async createSchema(
     @Param('orgId') orgId: string,
@@ -82,7 +83,7 @@ export class SchemaController {
   @ApiOperation({ summary: 'Update schema', description: 'Updates schema details' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'Schema ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: UpdateContentTypeDto })
   @ApiResponse({ status: 200, description: 'Schema updated successfully' })
   async updateSchema(
     @Param('orgId') orgId: string,

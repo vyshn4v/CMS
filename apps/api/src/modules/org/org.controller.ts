@@ -21,6 +21,12 @@ import {
   UpdateMemberRoleInput,
 } from '@cms/shared-types';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+  InviteMemberDto,
+  UpdateMemberRoleDto,
+} from './dto/org.dto';
 
 /**
  * Controller handling organization settings, memberships, and member invitations.
@@ -41,7 +47,7 @@ export class OrgController {
 
   @Post()
   @ApiOperation({ summary: 'Create organization', description: 'Creates a new organization' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: CreateOrganizationDto })
   @ApiResponse({ status: 201, description: 'Organization created successfully' })
   async createOrg(
     @CurrentUser('sub') userId: string,
@@ -63,7 +69,7 @@ export class OrgController {
   @RequirePermissions(Permissions.ORG_UPDATE)
   @ApiOperation({ summary: 'Update organization', description: 'Updates organization details' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: UpdateOrganizationDto })
   @ApiResponse({ status: 200, description: 'Organization updated successfully' })
   async updateOrg(
     @Param('orgId') orgId: string,
@@ -85,7 +91,7 @@ export class OrgController {
   @RequirePermissions(Permissions.ORG_INVITE)
   @ApiOperation({ summary: 'Invite member', description: 'Invites a user to the organization' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: InviteMemberDto })
   @ApiResponse({ status: 201, description: 'Member invited successfully' })
   async inviteMember(
     @Param('orgId') orgId: string,
@@ -99,7 +105,7 @@ export class OrgController {
   @ApiOperation({ summary: 'Update member role', description: 'Updates the role of an organization member' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'memberId', type: 'string', description: 'Member ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: UpdateMemberRoleDto })
   @ApiResponse({ status: 200, description: 'Member role updated successfully' })
   async updateMemberRole(
     @Param('orgId') orgId: string,

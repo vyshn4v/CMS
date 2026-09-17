@@ -23,6 +23,7 @@ import {
   TemplateType,
 } from '@cms/shared-types';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { CreateTemplateDto, UpdateTemplateDto, PreviewTemplateDto, PublishTemplateDto } from './dto/template.dto';
 
 /**
  * Controller exposing organization-scoped endpoints for template management, publishing, and previewing.
@@ -74,7 +75,7 @@ export class TemplateController {
   @RequirePermissions(Permissions.TEMPLATE_CREATE)
   @ApiOperation({ summary: 'Create template', description: 'Creates a new template' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: CreateTemplateDto })
   @ApiResponse({ status: 201, description: 'Template created successfully' })
   async create(
     @Param('orgId') orgId: string,
@@ -91,7 +92,7 @@ export class TemplateController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Preview raw template', description: 'Previews an unsaved template draft' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: PreviewTemplateDto })
   @ApiResponse({ status: 200, description: 'Template preview' })
   async previewRaw(
     @Param('orgId') orgId: string,
@@ -124,7 +125,7 @@ export class TemplateController {
   @ApiOperation({ summary: 'Update template', description: 'Updates a template draft' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'Template ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: UpdateTemplateDto })
   @ApiResponse({ status: 200, description: 'Template updated successfully' })
   async update(
     @Param('orgId') orgId: string,
@@ -143,7 +144,7 @@ export class TemplateController {
   @ApiOperation({ summary: 'Publish template', description: 'Publishes a template draft' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'Template ID' })
-  @ApiBody({ type: Object, required: false })
+  @ApiBody({ type: PublishTemplateDto, required: false })
   @ApiResponse({ status: 200, description: 'Template published successfully' })
   async publish(
     @Param('orgId') orgId: string,
@@ -195,7 +196,7 @@ export class TemplateController {
   @ApiOperation({ summary: 'Preview template', description: 'Previews an existing template' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'Template ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: PreviewTemplateDto })
   @ApiResponse({ status: 200, description: 'Template preview' })
   async preview(
     @Param('orgId') orgId: string,

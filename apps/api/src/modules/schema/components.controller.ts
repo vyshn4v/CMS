@@ -16,6 +16,7 @@ import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator';
 import { Permissions, CreateComponentInput, UpdateComponentInput } from '@cms/shared-types';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { CreateComponentDto, UpdateComponentDto } from './dto/schema.dto';
 
 /**
  * Controller managing reusable components library for organizations.
@@ -62,7 +63,7 @@ export class ComponentsController {
   @RequirePermissions(Permissions.SCHEMA_CREATE)
   @ApiOperation({ summary: 'Create component', description: 'Creates a new component' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: CreateComponentDto })
   @ApiResponse({ status: 201, description: 'Component created successfully' })
   async createComponent(
     @Param('orgId') orgId: string,
@@ -79,7 +80,7 @@ export class ComponentsController {
   @ApiOperation({ summary: 'Update component', description: 'Updates an existing component' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
   @ApiParam({ name: 'id', type: 'string', description: 'Component ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: UpdateComponentDto })
   @ApiResponse({ status: 200, description: 'Component updated successfully' })
   async updateComponent(
     @Param('orgId') orgId: string,

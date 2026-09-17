@@ -11,6 +11,7 @@ import { RenderService } from './render.service';
 import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { RenderRequest } from '@cms/shared-types';
 import { ApiTags, ApiSecurity, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { RenderRequestDto } from './dto/render.dto';
 
 /**
  * Public endpoint allowing external consumer applications to render published
@@ -29,7 +30,7 @@ export class RenderController {
   @Post()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Render template', description: 'Renders a template with provided data' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: RenderRequestDto })
   @ApiResponse({ status: 200, description: 'Template rendered successfully' })
   async render(@Req() req: any, @Body() body: RenderRequest) {
     const orgId = req.orgId;

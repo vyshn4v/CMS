@@ -16,6 +16,7 @@ import { RequirePermissions } from '../../common/decorators/require-permissions.
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Permissions, CreateApiKeyInput } from '@cms/shared-types';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { CreateApiKeyDto } from './dto/api-key.dto';
 
 /**
  * Controller exposing endpoints for organization API key generation, listing, and revocation.
@@ -46,7 +47,7 @@ export class ApiKeyController {
   @RequirePermissions(Permissions.APIKEY_CREATE)
   @ApiOperation({ summary: 'Create API key', description: 'Creates a new API key' })
   @ApiParam({ name: 'orgId', type: 'string', description: 'Organization ID' })
-  @ApiBody({ type: Object })
+  @ApiBody({ type: CreateApiKeyDto })
   @ApiResponse({ status: 201, description: 'API key created successfully' })
   async createKey(
     @Param('orgId') orgId: string,
