@@ -165,6 +165,10 @@ model ContentEntry {
   org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
+  @@index([orgId, contentTypeId])
+  @@index([orgId, status])
+  @@index([orgId, createdAt])
+  @@index([contentTypeId, status])
   @@map("content_entries")
 }
 
@@ -188,6 +192,8 @@ model Template {
   org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   contentType ContentType? @relation(fields: [contentTypeId], references: [id], onDelete: SetNull)
 
+  @@index([orgId, contentTypeId])
+  @@index([orgId, status])
   @@map("templates")
 }
 
@@ -206,6 +212,8 @@ model ApiKey {
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdBy User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
+  @@index([orgId, isActive])
+  @@index([keyPrefix])
   @@map("api_keys")
 }
 
@@ -223,5 +231,8 @@ model AuditLog {
   org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([orgId, createdAt(sort: Desc)])
+  @@index([orgId, action])
+  @@index([orgId, resourceType])
   @@map("audit_logs")
 }

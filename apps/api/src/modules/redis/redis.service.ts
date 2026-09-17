@@ -202,4 +202,36 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async invalidateAllOrgPermissions(orgId: string): Promise<void> {
     await this.delByPattern(`user:perms:*:${orgId}`);
   }
+
+  // ============================================================================
+  // 4. JWT Token Revocation & User Denylist (SEC-17, TTL: 7 days)
+  // ============================================================================
+
+  /**
+   * Records a user token revocation timestamp in Redis with a 7-day TTL.
+   * Any JWT issued before this timestamp will be rejected by JwtStrategy.
+   */
+  async revokeUserTokens(userId: string): Promise<void> {
+    if (!this.isReady() || !this.client) return;
+    try {
+      await this.client.set(`revoked:user:${userId}`, Date.now().toString(), 'EX', 7 * 86400);
+    } catch (err: any) {
+      this.logger.warn(`Failed to set token revocation for user "${userId}": ${err.message}`);
+    }
+  }
+
+  /**
+   * Checks whether a token issued at `tokenIat` (seconds) was revoked for the given user.
+   */
+  async isTokenRevoked(userId: string, tokenIat: number): Promise<boolean> {
+    if (!this.isReady() || !this.client) return false;
+    try {
+      const revokedAt = await this.client.get(`revoked:user:${userId}`);
+      if (!revokedAt) return false;
+      return tokenIat * 1000 < parseInt(revokedAt, 10);
+    } catch (err: any) {
+      this.logger.warn(`Failed to check token revocation for user "${userId}": ${err.message}`);
+      return false;
+    }
+  }
 }

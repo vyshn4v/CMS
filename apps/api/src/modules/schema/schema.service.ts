@@ -13,6 +13,7 @@ import {
   CreateComponentInput,
   UpdateComponentInput,
 } from '@cms/shared-types';
+import * as safeRegex from 'safe-regex2';
 
 /**
  * Service managing Content Type schema creation, updates, and validations.
@@ -223,6 +224,33 @@ export class SchemaService {
 
       if (reserved.has(field.name.toLowerCase())) {
         throw new BadRequestException(`"${field.name}" is a reserved system field name`);
+      }
+
+      // SEC-09: ReDoS validation on custom regex patterns
+      if (field.validations?.pattern) {
+        if (field.validations.pattern.length > 250) {
+          throw new BadRequestException(
+            `Regex pattern for field "${field.name}" exceeds the maximum allowed length of 250 characters`,
+          );
+        }
+
+        const isSafe = (safeRegex as any).default
+          ? (safeRegex as any).default(field.validations.pattern)
+          : (safeRegex as any)(field.validations.pattern);
+
+        if (!isSafe) {
+          throw new BadRequestException(
+            `Regex pattern for field "${field.name}" contains catastrophic backtracking (ReDoS risk) and was rejected`,
+          );
+        }
+
+        try {
+          new RegExp(field.validations.pattern);
+        } catch {
+          throw new BadRequestException(
+            `Regex pattern for field "${field.name}" is not a syntactically valid regular expression`,
+          );
+        }
       }
 
       names.add(field.name.toLowerCase());

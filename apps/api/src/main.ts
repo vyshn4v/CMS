@@ -57,26 +57,37 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalInterceptors(new TransformInterceptor());
 
-  const options = new DocumentBuilder()
-    .setTitle('CMS Headless API')
-    .setDescription('REST API documentation for the CMS Headless content management system')
-    .setVersion('1.0')
-    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'bearer')
-    .addApiKey({ type: 'apiKey', in: 'header', name: 'Authorization' }, 'api-key')
-    .addTag('Auth')
-    .addTag('Organizations')
-    .addTag('Schemas')
-    .addTag('Components')
-    .addTag('Content')
-    .addTag('Templates')
-    .addTag('Render')
-    .addTag('API Keys')
-    .addTag('Roles')
-    .addTag('Audit')
-    .build();
-  
-  const document = SwaggerModule.createDocument(app, options);
-  SwaggerModule.setup('api/docs', app, document);
+  // SEC-15: Swagger / OpenAPI Production Access Gate
+  const isProduction = configService.get<string>('NODE_ENV') === 'production';
+  const enableSwaggerInProd = configService.get<string>('ENABLE_SWAGGER_IN_PROD') === 'true';
+
+  if (!isProduction || enableSwaggerInProd) {
+    const options = new DocumentBuilder()
+      .setTitle('CMS Headless API')
+      .setDescription('REST API documentation for the CMS Headless content management system')
+      .setVersion('1.0')
+      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'bearer')
+      .addApiKey({ type: 'apiKey', in: 'header', name: 'Authorization' }, 'api-key')
+      .addTag('Auth')
+      .addTag('Organizations')
+      .addTag('Schemas')
+      .addTag('Components')
+      .addTag('Content')
+      .addTag('Templates')
+      .addTag('Render')
+      .addTag('API Keys')
+      .addTag('Roles')
+      .addTag('Audit')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, options);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+    logger.log(`Swagger documentation initialized at: http://localhost:${port}/api/docs`);
+  } else {
+    logger.log('Swagger documentation disabled in production (set ENABLE_SWAGGER_IN_PROD=true to override)');
+  }
 
   await app.listen(port);
   logger.log(`CMS Backend API is running at: http://localhost:${port}/api/v1`);

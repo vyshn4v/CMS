@@ -4,13 +4,15 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
 import { AuditService } from '../../modules/audit/audit.service';
 
+const SENSITIVE_PATTERN = /password|secret|token|key|authorization|bearer/i;
+
 /**
- * Interceptor that automatically records audit logs for successful mutating API requests
- * (POST, PATCH, PUT, DELETE) across organizations.
+ * Interceptor that automatically records audit logs for mutating API requests
+ * (POST, PATCH, PUT, DELETE) across organizations, including failure and security rejection events.
  */
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -74,6 +76,34 @@ export class AuditInterceptor implements NestInterceptor {
           ipAddress,
         });
       }),
+      catchError((err) => {
+        if (orgId) {
+          const resourceType = this.resolveResourceType(path);
+          const statusCode = err?.status || err?.statusCode || 500;
+          const action =
+            statusCode === 401 || statusCode === 403
+              ? 'SECURITY_REJECTION'
+              : 'FAILED_MUTATION';
+          const resourceId = req.params?.id || null;
+          const details = {
+            statusCode,
+            error: err?.name || 'Error',
+            message: err?.message || 'Request failed',
+            payload: this.sanitizeDetails(req.body),
+          };
+
+          this.auditService.createLog({
+            orgId,
+            userId,
+            action,
+            resourceType,
+            resourceId,
+            details,
+            ipAddress,
+          });
+        }
+        return throwError(() => err);
+      }),
     );
   }
 
@@ -101,11 +131,25 @@ export class AuditInterceptor implements NestInterceptor {
 
   private sanitizeDetails(body: any): Record<string, any> | null {
     if (!body || typeof body !== 'object') return null;
-    const clone = { ...body };
-    // Redact sensitive keys
-    ['password', 'secret', 'key', 'token'].forEach((k) => {
-      if (clone[k]) clone[k] = '***REDACTED***';
-    });
-    return clone;
+    return this.deepMask(body);
+  }
+
+  private deepMask(obj: any): any {
+    if (!obj || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.deepMask(item));
+    }
+
+    const sanitized: Record<string, any> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (SENSITIVE_PATTERN.test(k)) {
+        sanitized[k] = '***REDACTED***';
+      } else if (typeof v === 'object' && v !== null) {
+        sanitized[k] = this.deepMask(v);
+      } else {
+        sanitized[k] = v;
+      }
+    }
+    return sanitized;
   }
 }

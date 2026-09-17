@@ -59,6 +59,14 @@ describe('HandlebarsService', () => {
       const output = service.render(template, context);
       expect(output).toContain('"role": "ADMIN"');
     });
+
+    it('SEC-12: should escape dangerous HTML characters in json helper', () => {
+      const template = 'Data: {{json payload}}';
+      const context = { payload: { evil: '</script><script>alert(1)</script>' } };
+      const output = service.render(template, context);
+      expect(output).not.toContain('</script>');
+      expect(output).toContain('\\u003C/script\\u003E');
+    });
   });
 
   describe('Validation & Errors', () => {

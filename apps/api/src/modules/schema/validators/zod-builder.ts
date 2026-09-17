@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { FieldDefinition, SchemaDefinition } from '@cms/shared-types';
+import * as safeRegex from 'safe-regex2';
 
 /**
  * Dynamically builds a Zod validator object from a ContentType's stored JSONB schema.
@@ -27,10 +28,20 @@ export function buildZodSchema(schemaDef: SchemaDefinition): z.ZodObject<any> {
           );
         }
         if (field.validations?.pattern) {
-          strVal = strVal.regex(
-            new RegExp(field.validations.pattern),
-            field.validations.regexErrorMessage || 'Invalid format',
-          );
+          const isSafe = (safeRegex as any).default
+            ? (safeRegex as any).default(field.validations.pattern)
+            : (safeRegex as any)(field.validations.pattern);
+
+          if (isSafe && field.validations.pattern.length <= 250) {
+            try {
+              strVal = strVal.regex(
+                new RegExp(field.validations.pattern),
+                field.validations.regexErrorMessage || 'Invalid format',
+              );
+            } catch {
+              // Ignore invalid syntax
+            }
+          }
         }
         validator = strVal;
         break;

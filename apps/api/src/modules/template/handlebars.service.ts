@@ -57,10 +57,17 @@ export class HandlebarsService {
       return a !== b ? options.fn(this) : options.inverse(this);
     });
 
-    // Pretty JSON serializer helper
+    // Pretty JSON serializer helper (SEC-12: Escape dangerous HTML breakout entities)
     this.hbs.registerHelper('json', (obj: any) => {
       try {
-        return new this.hbs.SafeString(JSON.stringify(obj, null, 2));
+        const rawJson = JSON.stringify(obj, null, 2);
+        if (!rawJson) return '';
+        const safeJson = rawJson
+          .replace(/</g, '\\u003C')
+          .replace(/>/g, '\\u003E')
+          .replace(/\u2028/g, '\\u2028')
+          .replace(/\u2029/g, '\\u2029');
+        return new this.hbs.SafeString(safeJson);
       } catch {
         return '';
       }
