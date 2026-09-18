@@ -28,20 +28,26 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
   const [search, setSearch] = useState('');
   const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
 
-  const { data, isLoading } = useQuery<{ data: any[] }>({
+  const { data: responseData, isLoading } = useQuery<any>({
     queryKey: ['scheduled-emails', orgId, statusFilter, search],
     queryFn: async () => {
       const params: any = {};
       if (statusFilter !== 'ALL') params.status = statusFilter;
       if (search.trim()) params.search = search.trim();
       const res = await api.get(`/orgs/${orgId}/scheduled-emails`, { params });
-      return res.data;
+      return res.data?.data || res.data || [];
     },
     enabled: !!orgId,
     refetchInterval: 4000, // Live poll every 4s to track execution state
   });
 
-  const emails = data?.data || [];
+  const emails: any[] = Array.isArray(responseData)
+    ? responseData
+    : Array.isArray(responseData?.data)
+    ? responseData.data
+    : Array.isArray(responseData?.items)
+    ? responseData.items
+    : [];
 
   const cancelMutation = useMutation({
     mutationFn: async (id: string) => {

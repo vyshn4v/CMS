@@ -27,34 +27,58 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // 1. Fetch available Templates
-  const { data: templates = [] } = useQuery<any[]>({
+  const { data: templatesData, isLoading: isLoadingTemplates } = useQuery<any>({
     queryKey: ['templates', orgId],
     queryFn: async () => {
       const res = await api.get(`/orgs/${orgId}/templates`);
-      return res.data.data;
+      return res.data?.data || res.data || [];
     },
     enabled: !!orgId && isOpen,
   });
 
   // 2. Fetch available Models (Schemas)
-  const { data: schemas = [] } = useQuery<any[]>({
+  const { data: schemasData, isLoading: isLoadingSchemas } = useQuery<any>({
     queryKey: ['schemas', orgId],
     queryFn: async () => {
       const res = await api.get(`/orgs/${orgId}/schemas`);
-      return res.data.data;
+      return res.data?.data || res.data || [];
     },
     enabled: !!orgId && isOpen,
   });
 
   // 3. Fetch available Dynamic Queues
-  const { data: queues = [] } = useQuery<any[]>({
+  const { data: queuesData, isLoading: isLoadingQueues } = useQuery<any>({
     queryKey: ['queues', orgId],
     queryFn: async () => {
       const res = await api.get(`/orgs/${orgId}/queues`);
-      return res.data.data;
+      return res.data?.data || res.data || [];
     },
     enabled: !!orgId && isOpen,
   });
+
+  const templates: any[] = Array.isArray(templatesData)
+    ? templatesData
+    : Array.isArray(templatesData?.items)
+    ? templatesData.items
+    : Array.isArray(templatesData?.data)
+    ? templatesData.data
+    : [];
+
+  const schemas: any[] = Array.isArray(schemasData)
+    ? schemasData
+    : Array.isArray(schemasData?.items)
+    ? schemasData.items
+    : Array.isArray(schemasData?.data)
+    ? schemasData.data
+    : [];
+
+  const queues: any[] = Array.isArray(queuesData)
+    ? queuesData
+    : Array.isArray(queuesData?.items)
+    ? queuesData.items
+    : Array.isArray(queuesData?.data)
+    ? queuesData.data
+    : [];
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -146,13 +170,18 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
               className="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
             >
-              <option value="">Select a template...</option>
+              <option value="">{isLoadingTemplates ? 'Loading templates...' : 'Select a template...'}</option>
               {templates.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name} ({t.type})
                 </option>
               ))}
             </select>
+            {templates.length === 0 && !isLoadingTemplates && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                No templates found. Please create an email template in Templates Studio first.
+              </p>
+            )}
           </div>
 
           <div>
@@ -164,7 +193,9 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
               onChange={(e) => setContentTypeId(e.target.value)}
               className="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="">None (Dynamic Raw Payload)</option>
+              <option value="">
+                {isLoadingSchemas ? 'Loading models...' : 'None (Dynamic Raw Payload)'}
+              </option>
               {schemas.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} ({s.slug})
@@ -183,13 +214,18 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
               className="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               required
             >
-              <option value="">Select a dynamic queue...</option>
+              <option value="">{isLoadingQueues ? 'Loading queues...' : 'Select a dynamic queue...'}</option>
               {queues.map((q) => (
                 <option key={q.id} value={q.id}>
                   {q.name} ({q.concurrency} workers)
                 </option>
               ))}
             </select>
+            {queues.length === 0 && !isLoadingQueues && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                No dynamic queues found. Please create a queue in the Queues tab first.
+              </p>
+            )}
           </div>
 
           <div>
@@ -223,9 +259,11 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
           </Button>
           <Button
             type="submit"
+            variant="primary"
+            isLoading={createMutation.isPending}
             disabled={!name.trim() || !templateId || !queueId || createMutation.isPending}
           >
-            {createMutation.isPending ? 'Creating...' : 'Create Scheduler'}
+            Create Scheduler
           </Button>
         </div>
       </form>

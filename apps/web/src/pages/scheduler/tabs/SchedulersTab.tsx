@@ -17,16 +17,22 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedForDispatch, setSelectedForDispatch] = useState<any | null>(null);
 
-  const { data, isLoading } = useQuery<{ data: any[] }>({
+  const { data: responseData, isLoading } = useQuery<any>({
     queryKey: ['schedulers', orgId],
     queryFn: async () => {
       const res = await api.get(`/orgs/${orgId}/schedulers`);
-      return res.data;
+      return res.data?.data || res.data || [];
     },
     enabled: !!orgId,
   });
 
-  const schedulers = data?.data || [];
+  const schedulers: any[] = Array.isArray(responseData)
+    ? responseData
+    : Array.isArray(responseData?.data)
+    ? responseData.data
+    : Array.isArray(responseData?.items)
+    ? responseData.items
+    : [];
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -39,20 +45,21 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Email Schedulers
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 mt-0.5">
             Pre-configured email delivery pipelines bound to templates, models, and BullMQ queues.
           </p>
         </div>
         <Button
+          variant="primary"
+          size="sm"
+          leftIcon={<Plus className="w-4 h-4" />}
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-1.5 text-xs"
         >
-          <Plus className="h-3.5 w-3.5" />
           Create Scheduler
         </Button>
       </div>
@@ -65,8 +72,12 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
           title="No schedulers configured"
           description="Create your first email scheduler to start dispatching transactional emails."
           action={
-            <Button onClick={() => setIsCreateOpen(true)} size="sm">
-              <Plus className="h-3.5 w-3.5 mr-1" />
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus className="w-4 h-4" />}
+              onClick={() => setIsCreateOpen(true)}
+            >
               Create Scheduler
             </Button>
           }

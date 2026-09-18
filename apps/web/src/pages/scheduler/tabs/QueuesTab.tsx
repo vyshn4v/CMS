@@ -16,15 +16,23 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const { data: queues = [], isLoading } = useQuery<any[]>({
+  const { data: queuesData, isLoading } = useQuery<any>({
     queryKey: ['queues', orgId],
     queryFn: async () => {
       const res = await api.get(`/orgs/${orgId}/queues`);
-      return res.data.data;
+      return res.data?.data || res.data || [];
     },
     enabled: !!orgId,
     refetchInterval: 5000,
   });
+
+  const queues: any[] = Array.isArray(queuesData)
+    ? queuesData
+    : Array.isArray(queuesData?.data)
+    ? queuesData.data
+    : Array.isArray(queuesData?.items)
+    ? queuesData.items
+    : [];
 
   const deleteMutation = useMutation({
     mutationFn: async (queueId: string) => {
@@ -42,20 +50,21 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
       {/* Dynamic Reinitialization Banner */}
       <ReinitializeBanner orgId={orgId} hasPendingQueues={hasPending} />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
             Dynamic BullMQ Queues
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-500 mt-0.5">
             Runtime worker pools backed by Redis for delayed and immediate email dispatches.
           </p>
         </div>
         <Button
+          variant="primary"
+          size="sm"
+          leftIcon={<Plus className="w-4 h-4" />}
           onClick={() => setIsCreateOpen(true)}
-          className="flex items-center gap-1.5 text-xs"
         >
-          <Plus className="h-3.5 w-3.5" />
           Create Queue
         </Button>
       </div>
@@ -68,8 +77,12 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
           title="No queues initialized"
           description="Create your first BullMQ queue to power your email scheduler."
           action={
-            <Button onClick={() => setIsCreateOpen(true)} size="sm">
-              <Plus className="h-3.5 w-3.5 mr-1" />
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus className="w-4 h-4" />}
+              onClick={() => setIsCreateOpen(true)}
+            >
               Add Queue
             </Button>
           }
