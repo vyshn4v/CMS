@@ -8,3 +8,4 @@ export * from './template';
 export * from './api-key';
 export * from './render';
 export * from './audit';
+export * from './scheduler';
