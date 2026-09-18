@@ -20,6 +20,7 @@ import { MembersPage } from './pages/settings/MembersPage';
 import { RolesPage } from './pages/settings/RolesPage';
 import { ApiKeysPage } from './pages/settings/ApiKeysPage';
 import { AuditLogPage } from './pages/settings/AuditLogPage';
+import { SchedulerHubPage } from './pages/scheduler/SchedulerHubPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -125,6 +126,9 @@ export const App: React.FC = () => {
             <Route path="templates" element={<TemplatesListPage />} />
             <Route path="templates/new" element={<TemplateEditorPage />} />
             <Route path="templates/:id" element={<TemplateEditorPage />} />
+
+            {/* Email Scheduler Hub */}
+            <Route path="scheduler" element={<SchedulerHubPage />} />
 
             {/* Settings & RBAC */}
             <Route path="settings" element={<SettingsLayout />}>

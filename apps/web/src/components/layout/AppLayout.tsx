@@ -6,6 +6,7 @@ import {
   Boxes,
   FileText,
   FileCode,
+  CalendarClock,
   Key,
   History,
   Settings,
@@ -166,6 +167,18 @@ export const AppLayout: React.FC = () => {
           >
             <FileCode className="h-4 w-4" />
             Templates
+          </Link>
+
+          <Link
+            to="/scheduler"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname.startsWith('/scheduler')
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <CalendarClock className="h-4 w-4" />
+            Scheduler
           </Link>
 
           <Link

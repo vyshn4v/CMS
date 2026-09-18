@@ -1,0 +1,170 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, Send, Trash2, CalendarClock, FileCode, Layers, Cpu } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Badge } from '../../../components/ui/badge';
+import { EmptyState } from '../../../components/ui/empty-state';
+import { api } from '../../../lib/api';
+import { CreateSchedulerModal } from '../components/CreateSchedulerModal';
+import { DispatchModal } from '../components/DispatchModal';
+
+interface SchedulersTabProps {
+  orgId: string;
+}
+
+export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
+  const queryClient = useQueryClient();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedForDispatch, setSelectedForDispatch] = useState<any | null>(null);
+
+  const { data, isLoading } = useQuery<{ data: any[] }>({
+    queryKey: ['schedulers', orgId],
+    queryFn: async () => {
+      const res = await api.get(`/orgs/${orgId}/schedulers`);
+      return res.data;
+    },
+    enabled: !!orgId,
+  });
+
+  const schedulers = data?.data || [];
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/orgs/${orgId}/schedulers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedulers', orgId] });
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Email Schedulers
+          </h2>
+          <p className="text-xs text-slate-500">
+            Pre-configured email delivery pipelines bound to templates, models, and BullMQ queues.
+          </p>
+        </div>
+        <Button
+          onClick={() => setIsCreateOpen(true)}
+          className="flex items-center gap-1.5 text-xs"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Create Scheduler
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="p-8 text-center text-xs text-slate-400">Loading schedulers...</div>
+      ) : schedulers.length === 0 ? (
+        <EmptyState
+          icon={<CalendarClock className="h-8 w-8 text-slate-400" />}
+          title="No schedulers configured"
+          description="Create your first email scheduler to start dispatching transactional emails."
+          action={
+            <Button onClick={() => setIsCreateOpen(true)} size="sm">
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Create Scheduler
+            </Button>
+          }
+        />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 text-slate-500">
+                <th className="py-3 px-4 font-semibold">Scheduler Name</th>
+                <th className="py-3 px-4 font-semibold">Template</th>
+                <th className="py-3 px-4 font-semibold">Bound Model</th>
+                <th className="py-3 px-4 font-semibold">Queue</th>
+                <th className="py-3 px-4 font-semibold">Default Recipient</th>
+                <th className="py-3 px-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+              {schedulers.map((s) => (
+                <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
+                  <td className="py-3 px-4">
+                    <div className="font-semibold text-slate-900 dark:text-slate-100">
+                      {s.name}
+                    </div>
+                    {s.description && (
+                      <div className="text-[11px] text-slate-400 truncate max-w-xs">
+                        {s.description}
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-3 px-4">
+                    <Badge variant="default" className="inline-flex items-center gap-1 font-mono">
+                      <FileCode className="h-3 w-3" />
+                      {s.template?.name || s.templateId}
+                    </Badge>
+                  </td>
+                  <td className="py-3 px-4">
+                    {s.contentType ? (
+                      <Badge variant="blue" className="inline-flex items-center gap-1">
+                        <Layers className="h-3 w-3" />
+                        {s.contentType.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">
+                    <span className="inline-flex items-center gap-1 font-medium">
+                      <Cpu className="h-3 w-3 text-slate-400" />
+                      {s.queue?.name || s.queueId}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 font-mono text-slate-500">
+                    {s.defaultTo || '—'}
+                  </td>
+                  <td className="py-3 px-4 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        size="sm"
+                        onClick={() => setSelectedForDispatch(s)}
+                        className="h-7 text-xs flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800"
+                      >
+                        <Send className="h-3 w-3" />
+                        Dispatch
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Delete scheduler "${s.name}"?`)) {
+                            deleteMutation.mutate(s.id);
+                          }
+                        }}
+                        className="text-slate-400 hover:text-rose-600 h-7 w-7 p-0"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <CreateSchedulerModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        orgId={orgId}
+      />
+
+      <DispatchModal
+        isOpen={!!selectedForDispatch}
+        onClose={() => setSelectedForDispatch(null)}
+        orgId={orgId}
+        scheduler={selectedForDispatch}
+      />
+    </div>
+  );
+};
