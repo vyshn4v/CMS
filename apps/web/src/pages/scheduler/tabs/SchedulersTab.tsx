@@ -144,12 +144,25 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                       {s.queue?.name || s.queueId}
                     </span>
                   </td>
-                  <td className="py-3 px-4 font-mono text-slate-500 text-[11px]">
-                    {s.defaultTo || (
-                      <span className="inline-flex items-center gap-1 text-slate-400">
-                        <Mail className="w-3 h-3 text-indigo-400" /> .env admin
-                      </span>
-                    )}
+                  <td className="py-3 px-4 text-slate-500 text-[11px] space-y-0.5">
+                    <div className="font-mono">
+                      <span className="text-[10px] text-slate-400 font-sans">To: </span>
+                      {s.defaultTo || (
+                        <span className="inline-flex items-center gap-1 text-slate-400">
+                          <Mail className="w-3 h-3 text-indigo-400" /> .env admin
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-mono text-[10px] text-slate-400">
+                      <span className="font-sans">From: </span>
+                      {s.defaultFrom ? (
+                        <span className="text-slate-600 dark:text-slate-300 font-medium truncate inline-block max-w-[140px] align-bottom">
+                          {s.defaultFrom}
+                        </span>
+                      ) : (
+                        <span>.env SMTP_FROM</span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">

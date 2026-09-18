@@ -7,6 +7,11 @@ export class DispatchEmailDto {
   @IsOptional()
   schedulerId?: string;
 
+  @ApiPropertyOptional({ example: 'Acme Notifications <notifications@acme.com>', description: 'Sender address override (defaults to scheduler defaultFrom or SMTP_FROM in .env)' })
+  @IsString()
+  @IsOptional()
+  from?: string;
+
   @ApiPropertyOptional({ example: 'customer@example.com', description: 'Recipient email address (defaults to .env user if omitted)' })
   @IsString()
   @IsOptional()

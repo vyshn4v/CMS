@@ -21,6 +21,7 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
   scheduler,
 }) => {
   const queryClient = useQueryClient();
+  const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [cc, setCc] = useState('');
   const [scheduleType, setScheduleType] = useState<'immediate' | 'delayed'>('immediate');
@@ -32,6 +33,7 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
 
   useEffect(() => {
     if (scheduler) {
+      setFrom(scheduler.defaultFrom || '');
       setTo(scheduler.defaultTo || '');
       setCc(scheduler.defaultCc || '');
       if (scheduler.sourceType === 'ENTRY' && scheduler.entry) {
@@ -60,6 +62,7 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
       }
 
       const res = await api.post(`/orgs/${orgId}/schedulers/${scheduler.id}/dispatch`, {
+        from: from.trim() || undefined,
         to: to.trim() || undefined,
         cc: cc.trim() || undefined,
         scheduledFor: dateIso,
@@ -78,6 +81,7 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
   });
 
   const handleClose = () => {
+    setFrom('');
     setTo('');
     setCc('');
     setScheduleType('immediate');
@@ -130,6 +134,21 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Sender Email (From) <span className="text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <Input
+              type="text"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              placeholder="Leave empty to use scheduler default or SMTP_FROM from .env"
+            />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              If left blank, defaults to {scheduler?.defaultFrom ? `scheduler default (${scheduler.defaultFrom})` : 'SMTP_FROM in .env'}.
+            </span>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Recipient Email (To) <span className="text-slate-400 font-normal">(Optional)</span>

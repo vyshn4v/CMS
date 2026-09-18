@@ -138,6 +138,7 @@ export class EmailWorkerProcessor {
 
       // 3. SMTP Delivery
       await this.emailSenderService.sendEmail({
+        from: scheduledEmail.from || undefined,
         to: scheduledEmail.to,
         cc: scheduledEmail.cc,
         bcc: scheduledEmail.bcc,

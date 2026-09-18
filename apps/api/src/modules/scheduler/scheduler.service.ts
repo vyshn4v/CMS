@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { QueueManagerService } from '../queue/queue-manager.service';
 import { CreateSchedulerDto } from './dto/create-scheduler.dto';
@@ -18,6 +19,7 @@ export class SchedulerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly queueManagerService: QueueManagerService,
+    private readonly configService: ConfigService,
   ) {}
 
   // ============================================================================
@@ -79,6 +81,24 @@ export class SchedulerService {
     }
 
     return scheduler;
+  }
+
+  getSystemDefaults() {
+    const defaultSmtpFrom =
+      this.configService.get<string>('SMTP_FROM') ||
+      process.env.SMTP_FROM ||
+      'CMS Notifications <noreply@cms.local>';
+
+    const defaultRecipient =
+      this.configService.get<string>('DEFAULT_EMAIL_RECIPIENT') ||
+      process.env.DEFAULT_EMAIL_RECIPIENT ||
+      process.env.SMTP_USER ||
+      'admin@cms.local';
+
+    return {
+      defaultSmtpFrom,
+      defaultRecipient,
+    };
   }
 
   async createScheduler(orgId: string, dto: CreateSchedulerDto) {
@@ -143,6 +163,7 @@ export class SchedulerService {
         sourceType,
         entryId,
         queueId: dto.queueId,
+        defaultFrom: dto.defaultFrom?.trim() || null,
         defaultTo: dto.defaultTo,
         defaultCc: dto.defaultCc,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
@@ -197,6 +218,7 @@ export class SchedulerService {
         ...(dto.sourceType !== undefined && { sourceType: dto.sourceType }),
         ...(dto.entryId !== undefined && { entryId: dto.entryId }),
         ...(dto.queueId !== undefined && { queueId: dto.queueId }),
+        ...(dto.defaultFrom !== undefined && { defaultFrom: dto.defaultFrom?.trim() || null }),
         ...(dto.defaultTo !== undefined && { defaultTo: dto.defaultTo }),
         ...(dto.defaultCc !== undefined && { defaultCc: dto.defaultCc }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
@@ -277,6 +299,17 @@ export class SchedulerService {
       };
     }
 
+    // Resolve sender address (From)
+    const defaultEnvFrom =
+      this.configService.get<string>('SMTP_FROM') ||
+      process.env.SMTP_FROM ||
+      'CMS Notifications <noreply@cms.local>';
+
+    const senderFrom =
+      (dto.from && dto.from.trim()) ||
+      scheduler.defaultFrom ||
+      defaultEnvFrom;
+
     // Calculate delay
     const now = new Date();
     const scheduledTime = dto.scheduledFor ? new Date(dto.scheduledFor) : now;
@@ -288,6 +321,7 @@ export class SchedulerService {
         orgId,
         schedulerId: scheduler.id,
         queueId: targetQueueId,
+        from: senderFrom,
         to: recipientTo,
         cc: recipientCc,
         bcc: recipientBcc,
@@ -313,6 +347,7 @@ export class SchedulerService {
     return {
       scheduledEmailId: scheduledEmail.id,
       status: ScheduledEmailStatus.SCHEDULED,
+      from: senderFrom,
       to: recipientTo,
       scheduledFor: scheduledTime.toISOString(),
       delayMs,

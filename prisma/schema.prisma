@@ -286,6 +286,7 @@ model EmailScheduler {
   entryId       String?   @map("entry_id")
   name          String
   description   String?
+  defaultFrom   String?   @map("default_from")   // Optional custom sender address (defaults to SMTP_FROM in .env)
   defaultTo     String?   @map("default_to")     // Optional fallback recipient
   defaultCc     String?   @map("default_cc")
   isActive      Boolean   @default(true) @map("is_active")
@@ -309,6 +310,7 @@ model ScheduledEmail {
   schedulerId   String               @map("scheduler_id")
   queueId       String               @map("queue_id")
   bullJobId     String?              @map("bull_job_id")
+  from          String?              @map("from")           // Resolved sender address (defaults to SMTP_FROM in .env)
   to            String
   cc            String?
   bcc           String?

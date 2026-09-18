@@ -84,6 +84,12 @@ export const EmailDetailsDrawer: React.FC<EmailDetailsDrawerProps> = ({
         {/* Recipient & Metadata Grid */}
         <div className="grid grid-cols-2 gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
           <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 block">Sender (From)</span>
+            <span className="font-mono text-xs font-medium text-slate-700 dark:text-slate-300 truncate block">
+              {email.from || '(Default: SMTP_FROM env)'}
+            </span>
+          </div>
+          <div>
             <span className="text-[10px] uppercase font-bold text-slate-400 block">Recipient (To)</span>
             <span className="font-mono font-medium">{email.to}</span>
           </div>

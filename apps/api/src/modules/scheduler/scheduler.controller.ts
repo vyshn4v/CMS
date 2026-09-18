@@ -53,6 +53,14 @@ export class SchedulerController {
     return this.schedulerService.listSchedulers(orgId, page, limit);
   }
 
+  @Get('system-defaults')
+  @RequirePermissions(Permissions.SCHEDULER_READ)
+  @ApiOperation({ summary: 'Get system-level scheduler defaults (SMTP_FROM and admin recipient)' })
+  @ApiParam({ name: 'orgId', type: 'string' })
+  async getSystemDefaults() {
+    return this.schedulerService.getSystemDefaults();
+  }
+
   @Get(':id')
   @RequirePermissions(Permissions.SCHEDULER_READ)
   @ApiOperation({ summary: 'Get details of a specific scheduler' })

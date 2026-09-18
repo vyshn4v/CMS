@@ -37,6 +37,11 @@ export class CreateSchedulerDto {
   @IsNotEmpty()
   queueId: string;
 
+  @ApiPropertyOptional({ example: 'Acme Notifications <notifications@acme.com>', description: 'Custom sender address (defaults to SMTP_FROM in .env if not specified)' })
+  @IsString()
+  @IsOptional()
+  defaultFrom?: string;
+
   @ApiPropertyOptional({ example: 'billing@company.com', description: 'Default fallback recipient email' })
   @IsEmail()
   @IsOptional()

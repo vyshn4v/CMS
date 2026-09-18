@@ -21,12 +21,23 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [defaultFrom, setDefaultFrom] = useState('');
   const [contentTypeId, setContentTypeId] = useState('');
   const [sourceType, setSourceType] = useState<'TEMPLATE' | 'ENTRY'>('TEMPLATE');
   const [templateId, setTemplateId] = useState('');
   const [entryId, setEntryId] = useState('');
   const [queueId, setQueueId] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch System Defaults (SMTP_FROM and admin recipient)
+  const { data: systemDefaults } = useQuery<{ defaultSmtpFrom: string; defaultRecipient: string }>({
+    queryKey: ['scheduler-system-defaults', orgId],
+    queryFn: async () => {
+      const res = await api.get(`/orgs/${orgId}/schedulers/system-defaults`);
+      return res.data?.data || res.data;
+    },
+    enabled: !!orgId && isOpen,
+  });
 
   // 1. Fetch available Models / Schemas
   const { data: schemasData, isLoading: isLoadingSchemas } = useQuery<any>({
@@ -150,6 +161,7 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
       const res = await api.post(`/orgs/${orgId}/schedulers`, {
         name,
         description: description || undefined,
+        defaultFrom: defaultFrom.trim() || undefined,
         contentTypeId,
         sourceType,
         templateId: sourceType === 'TEMPLATE' ? templateId : undefined,
@@ -170,6 +182,7 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
   const handleClose = () => {
     setName('');
     setDescription('');
+    setDefaultFrom('');
     setContentTypeId('');
     setSourceType('TEMPLATE');
     setTemplateId('');
@@ -251,6 +264,28 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
                 No dynamic queues found. Please create a queue in the Queues tab first.
               </p>
             )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Sender Email Address (SMTP From) <span className="text-slate-400 font-normal">(Optional)</span>
+            </label>
+            <Input
+              value={defaultFrom}
+              onChange={(e) => setDefaultFrom(e.target.value)}
+              placeholder={
+                systemDefaults?.defaultSmtpFrom
+                  ? `Default: ${systemDefaults.defaultSmtpFrom}`
+                  : 'e.g. Acme Notifications <notifications@acme.com>'
+              }
+            />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Sender address for this scheduler. If left blank, defaults to{' '}
+              <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[10px] text-indigo-500">
+                SMTP_FROM
+              </code>{' '}
+              ({systemDefaults?.defaultSmtpFrom || 'configured in .env'}).
+            </p>
           </div>
         </div>
 

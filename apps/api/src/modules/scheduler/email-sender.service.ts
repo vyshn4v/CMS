@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
 export interface SendMailOptions {
+  from?: string | null;
   to: string;
   cc?: string | null;
   bcc?: string | null;
@@ -53,6 +54,7 @@ export class EmailSenderService {
    */
   async sendEmail(options: SendMailOptions): Promise<{ messageId: string }> {
     const from =
+      (options.from && options.from.trim()) ||
       this.configService.get<string>('SMTP_FROM') ||
       process.env.SMTP_FROM ||
       'CMS Notifications <noreply@cms.local>';

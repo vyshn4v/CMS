@@ -37,6 +37,11 @@ export class UpdateSchedulerDto {
   @IsOptional()
   queueId?: string;
 
+  @ApiPropertyOptional({ example: 'Acme Notifications <notifications@acme.com>' })
+  @IsString()
+  @IsOptional()
+  defaultFrom?: string;
+
   @ApiPropertyOptional()
   @IsEmail()
   @IsOptional()

@@ -46,6 +46,7 @@ export interface EmailSchedulerDto {
   entryId?: string | null;
   name: string;
   description?: string | null;
+  defaultFrom?: string | null;
   defaultTo?: string | null;
   defaultCc?: string | null;
   isActive: boolean;
@@ -78,6 +79,7 @@ export interface EmailSchedulerDto {
 export interface CreateEmailSchedulerDto {
   name: string;
   description?: string;
+  defaultFrom?: string;
   templateId?: string;
   contentTypeId: string;
   sourceType?: SchedulerSourceType;
@@ -91,6 +93,7 @@ export interface CreateEmailSchedulerDto {
 export interface UpdateEmailSchedulerDto {
   name?: string;
   description?: string;
+  defaultFrom?: string;
   templateId?: string;
   contentTypeId?: string | null;
   sourceType?: SchedulerSourceType;
@@ -102,6 +105,7 @@ export interface UpdateEmailSchedulerDto {
 }
 
 export interface DispatchEmailDto {
+  from?: string; // Optional: custom sender (defaults to scheduler defaultFrom or .env SMTP_FROM)
   to?: string; // Optional: defaults to .env user if omitted
   cc?: string;
   bcc?: string;
@@ -116,6 +120,7 @@ export interface ScheduledEmailDto {
   schedulerId: string;
   queueId: string;
   bullJobId?: string | null;
+  from?: string | null;
   to: string;
   cc?: string | null;
   bcc?: string | null;
@@ -146,4 +151,9 @@ export interface ReinitializeQueuesResponseDto {
   message: string;
   activeQueues: string[];
   totalInitialized: number;
+}
+
+export interface SchedulerSystemDefaultsDto {
+  defaultSmtpFrom: string;
+  defaultRecipient: string;
 }
