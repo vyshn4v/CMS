@@ -21,6 +21,7 @@ Welcome to the **Headless CMS API Reference**. This documentation covers all RES
    - [8. Public Render API (`/api/v1/render`)](#8-public-render-api)
    - [9. API Key Management (`/api/v1/orgs/:orgId/api-keys`)](#9-api-key-management)
    - [10. Audit Logs (`/api/v1/orgs/:orgId/audit-logs`)](#10-audit-logs)
+   - [11. Email Scheduler & Queues (`/api/v1/orgs/:orgId/schedulers`, `/queues`, `/scheduled-emails`)](#11-email-scheduler--queues)
 7. [Handlebars Helper Reference](#handlebars-helper-reference)
 8. [Error Codes & Troubleshooting](#error-codes--troubleshooting)
 
@@ -729,6 +730,117 @@ GET /api/v1/orgs/:orgId/audit-logs?page=1&limit=25&action=PUBLISH&resourceType=C
 - `userId` (filter by actor)
 - `search` (keyword match against metadata or IP)
 - `startDate`, `endDate` (ISO date range)
+
+---
+
+### 11. Email Scheduler & Queues
+
+The Email Scheduler subsystem provides delayed transactional email pipelines using dynamic BullMQ queues backed by Redis, Handlebars template rendering, and SMTP delivery.
+
+#### Schedulers (`/api/v1/orgs/:orgId/schedulers`)
+
+##### 1. List Schedulers
+```http
+GET /api/v1/orgs/:orgId/schedulers?page=1&limit=20
+```
+**Permission**: `scheduler.read` or `content.read`
+
+##### 2. Create Scheduler
+```http
+POST /api/v1/orgs/:orgId/schedulers
+```
+**Permission**: `scheduler.create` or `content.create`
+```json
+{
+  "name": "Order Confirmation Dispatcher",
+  "description": "Sends transactional invoice to customers",
+  "templateId": "tmpl-uuid-123",
+  "contentTypeId": "schema-uuid-456",
+  "queueId": "queue-uuid-789",
+  "defaultTo": "billing@customer.com",
+  "defaultCc": null
+}
+```
+
+##### 3. Trigger / Dispatch Email
+```http
+POST /api/v1/orgs/:orgId/schedulers/:id/dispatch
+```
+**Auth**: User JWT or Header `X-API-Key: sk_live_...`
+```json
+{
+  "to": "alice@customer.com",
+  "cc": "orders@internal.com",
+  "scheduledFor": "2026-09-18T18:30:00Z",
+  "queueId": "queue-uuid-override",
+  "data": {
+    "orderNumber": "ORD-5541",
+    "customerName": "Alice",
+    "amount": 199.99
+  }
+}
+```
+*Note: If `scheduledFor` is omitted or in the past, the email sends immediately.*
+
+**Response (202 Accepted)**:
+```json
+{
+  "success": true,
+  "data": {
+    "scheduledEmailId": "job-uuid-101",
+    "status": "SCHEDULED",
+    "to": "alice@customer.com",
+    "scheduledFor": "2026-09-18T18:30:00.000Z",
+    "delayMs": 27000000
+  }
+}
+```
+
+#### Dynamic Queues (`/api/v1/orgs/:orgId/queues`)
+
+##### 1. List Queues
+```http
+GET /api/v1/orgs/:orgId/queues
+```
+
+##### 2. Create Dynamic Queue
+```http
+POST /api/v1/orgs/:orgId/queues
+```
+```json
+{
+  "name": "high-priority-orders",
+  "description": "Critical alerts queue",
+  "concurrency": 10
+}
+```
+*Creates queue with status `PENDING_INITIALIZATION` until reinitialized.*
+
+##### 3. Reinitialize Queues (Worker Reload)
+```http
+POST /api/v1/orgs/:orgId/queues/reinitialize
+```
+Dynamically loads and registers all configured queues in BullMQ without server restarts.
+
+#### Scheduled Emails (`/api/v1/orgs/:orgId/scheduled-emails`)
+
+##### 1. List Scheduled Emails
+```http
+GET /api/v1/orgs/:orgId/scheduled-emails?status=SCHEDULED&page=1&limit=25
+```
+**Statuses**: `SCHEDULED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`
+
+##### 2. Cancel Scheduled Email
+```http
+POST /api/v1/orgs/:orgId/scheduled-emails/:id/cancel
+```
+Removes the job from BullMQ and sets status to `CANCELLED`.
+
+##### 3. Retry Failed Email
+```http
+POST /api/v1/orgs/:orgId/scheduled-emails/:id/retry
+```
+Immediately reschedules a failed email for delivery.
 
 ---
 
