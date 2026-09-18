@@ -16,6 +16,8 @@ import { TemplateModule } from './modules/template/template.module';
 import { ApiKeyModule } from './modules/api-key/api-key.module';
 import { RenderModule } from './modules/render/render.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { QueueModule } from './modules/queue/queue.module';
+import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AppController } from './app.controller';
 
@@ -75,6 +77,8 @@ const staticPath = resolveStaticPath();
     ApiKeyModule,
     RenderModule,
     AuditModule,
+    QueueModule,
+    SchedulerModule,
   ],
   controllers: [AppController],
   providers: [
