@@ -1,6 +1,6 @@
 # CMS Headless — Project Implementation Tracker
 
-**Current Status**: **Phase 8 Completed** | **Phase 10 Pending (Next Up: Email Scheduler Engine)**  
+**Current Status**: **Phase 10 Completed** | **Phase 11 Pending (Next Up: Scheduler Hub UI)**  
 **Active Branch**: `dev`  
 **Services Running**: Backend API (`:5000`), Vite Web App (`:5173`), Docker Postgres (`:5434`), Docker Redis (`:6379`)
 
@@ -19,8 +19,8 @@
 | **7** | **Advanced Schema** (Relations, Composable Components, Dynamic Zones) | ✅ Completed | Advanced Modeling |
 | **8** | **Caching & Audit** (Redis Template Cache, `AuditInterceptor`, Audit Viewer) | ✅ Completed | Performance & Ops |
 | **9** | **Polish & Deploy** (E2E Tests, Docker Monolith, Oracle 1GB Free Tier) | ⏳ Pending | Production Launch |
-| **10** | **Email Scheduler Engine** (Prisma Schema, BullMQ, Dynamic Queues, SMTP) | ⏳ **PENDING (UP NEXT)** | Backend Queue Engine |
-| **11** | **Scheduler Hub UI** (Dedicated `/scheduler` Route, 3 Tabs, Reinit Banner) | ⏳ Pending | Frontend Hub & Operations |
+| **10** | **Email Scheduler Engine** (Prisma Schema, BullMQ, Dynamic Queues, SMTP) | ✅ **Completed** | Backend Queue Engine |
+| **11** | **Scheduler Hub UI** (Dedicated `/scheduler` Route, 3 Tabs, Reinit Banner) | ⏳ **PENDING (UP NEXT)** | Frontend Hub & Operations |
 
 ---
 
@@ -126,32 +126,28 @@
   - [x] `GET /orgs/:orgId/audit-logs` endpoint with pagination and filtering.
   - [x] Frontend audit timeline log viewer (`/settings/audit-logs`).
 
----
-
-## ⏳ Pending Phases (9 – 11)
-
-### ⚡ Phase 10: Email Scheduler & Dynamic Queue Engine (NEXT UP)
-*Goal: Asynchronous delayed email scheduling with runtime BullMQ queue pools, Handlebars rendering, and strict SMTP delivery.*
-
-- [ ] **Database & Dependencies**:
-  - [ ] Add Prisma models: `EmailQueue`, `EmailScheduler`, `ScheduledEmail`.
-  - [ ] Add Enums: `QueueStatus` (`ACTIVE`, `PENDING_INITIALIZATION`, `PAUSED`, `ERROR`), `ScheduledEmailStatus` (`SCHEDULED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`).
-  - [ ] Install dependencies in `apps/api`: `bullmq`, `nodemailer`, `@types/nodemailer`.
-  - [ ] Define shared DTOs & interfaces in `libs/shared-types`.
-- [ ] **Dynamic Queue & Worker Engine**:
-  - [ ] Implement `QueueManagerService` for runtime BullMQ `Queue` and `Worker` pools with configurable concurrency.
-  - [ ] Implement on-demand queue reinitialization method (`POST /api/v1/orgs/:orgId/queues/reinitialize`) to spin up new workers dynamically without server restarts.
-  - [ ] Implement `EmailSenderService` (Nodemailer) with strict `.env` SMTP verification (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) throwing error if missing.
-  - [ ] Implement `EmailWorkerProcessor` handling delayed jobs, template/model data rendering, and status updates with 3 retries and exponential backoff.
-- [ ] **REST API Endpoints**:
-  - [ ] `QueueModule` & `QueueController` (`GET /queues`, `POST /queues`, `POST /queues/reinitialize`).
-  - [ ] `SchedulerModule` & `SchedulerController` (`GET /schedulers`, `POST /schedulers`, `GET /schedulers/:id`, `PATCH /schedulers/:id`, `DELETE /schedulers/:id`).
-  - [ ] Trigger/Dispatch endpoint: `POST /orgs/:orgId/schedulers/:id/dispatch` (supporting user JWT & org `ApiKeyGuard`).
-  - [ ] `ScheduledEmailModule` & `ScheduledEmailController` (Job monitor listing, `POST /scheduled-emails/:id/cancel`, `POST /scheduled-emails/:id/retry`).
+### Phase 10: Email Scheduler & Dynamic Queue Engine
+- [x] **Database & Dependencies**:
+  - [x] Added Prisma models: `EmailQueue`, `EmailScheduler`, `ScheduledEmail`.
+  - [x] Added Enums: `QueueStatus` (`ACTIVE`, `PENDING_INITIALIZATION`, `PAUSED`, `ERROR`), `ScheduledEmailStatus` (`SCHEDULED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`).
+  - [x] Installed dependencies in `apps/api`: `bullmq`, `nodemailer`, `@types/nodemailer`.
+  - [x] Defined shared DTOs & interfaces in `libs/shared-types`.
+- [x] **Dynamic Queue & Worker Engine**:
+  - [x] Implemented `QueueManagerService` managing runtime BullMQ `Queue` and `Worker` pools with dynamic concurrency.
+  - [x] Implemented on-demand queue reinitialization method (`POST /api/v1/orgs/:orgId/queues/reinitialize`) to spin up new workers dynamically without server restarts.
+  - [x] Implemented `EmailSenderService` (Nodemailer) with strict `.env` SMTP verification (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) throwing error if missing.
+  - [x] Implemented `EmailWorkerProcessor` handling delayed jobs, template/model data rendering, and status updates with 3 retries and exponential backoff.
+- [x] **REST API Endpoints**:
+  - [x] `QueueModule` & `QueueController` (`GET /queues`, `POST /queues`, `POST /queues/reinitialize`, `DELETE /queues/:id`).
+  - [x] `SchedulerModule` & `SchedulerController` (`GET /schedulers`, `POST /schedulers`, `GET /schedulers/:id`, `PATCH /schedulers/:id`, `DELETE /schedulers/:id`).
+  - [x] Trigger/Dispatch endpoint: `POST /orgs/:orgId/schedulers/:id/dispatch` (supporting user JWT) and `POST /api/v1/schedulers/dispatch` (org `ApiKeyGuard`).
+  - [x] `ScheduledEmailController` (Job monitor listing, `POST /scheduled-emails/:id/cancel`, `POST /scheduled-emails/:id/retry`).
 
 ---
 
-### 🖥️ Phase 11: Dedicated Scheduler Hub UI & Integrations
+## ⏳ Pending Phases (11 & 9)
+
+### 🖥️ Phase 11: Dedicated Scheduler Hub UI & Integrations (NEXT UP)
 *Goal: Dedicated visual management hub for configuring schedulers, scheduling delayed emails, and managing dynamic BullMQ queues.*
 
 - [ ] **Routing & Layout**:
