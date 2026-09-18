@@ -165,6 +165,10 @@
     - [x] Dynamic queues table with concurrency and worker status indicators.
     - [x] `CreateQueueModal` creating queues in `PENDING_INITIALIZATION` state.
     - [x] Dynamic **"Reinitialize Queues"** alert banner displayed when uninitialized queues are detected.
+  - [x] **Schema-Driven Pipeline Modes & Automated Delivery Policy**:
+    - [x] Primary schema (model) selection in scheduler builder.
+    - [x] Interactive mode selector: **Dynamic Template** (runtime input payloads aligned to schema field mapping) vs **Predefined Entry** (dispatches static saved content from selected database entry).
+    - [x] Automated recipient & copy policy: defaults strictly to `.env` administrator if recipient is omitted; always sends audit BCC copy to `.env` administrator when an external destination is specified.
 
 ---
 
