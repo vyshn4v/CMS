@@ -83,11 +83,73 @@ export class SchedulerService {
     return scheduler;
   }
 
-  getSystemDefaults() {
-    const defaultSmtpFrom =
+  /**
+   * Resolves the full RFC 5322 From address: "Display Name <email@domain.com>"
+   * - If customFrom is only a name (e.g. "vyshnav Testing"), binds it with the authenticated SMTP email.
+   * - If customFrom is full format ("Name <email@domain.com>"), returns it.
+   * - If customFrom is only an email ("email@domain.com"), formats it with default name.
+   * - If omitted/empty, defaults to SMTP_FROM in .env.
+   */
+  resolveSenderAddress(customFrom?: string | null): string {
+    const defaultFrom =
       this.configService.get<string>('SMTP_FROM') ||
       process.env.SMTP_FROM ||
       'CMS Notifications <noreply@cms.local>';
+
+    const envUser =
+      this.configService.get<string>('SMTP_USER') ||
+      process.env.SMTP_USER ||
+      'noreply@cms.local';
+
+    let defaultName = 'CMS Notifications';
+    let defaultEmail = envUser;
+
+    const match = defaultFrom.match(/^(?:(.*)<([^>]+)>|([^<]+))$/);
+    if (match) {
+      if (match[1] && match[2]) {
+        defaultName = match[1].trim();
+        defaultEmail = match[2].trim();
+      } else if (match[3]) {
+        if (match[3].includes('@')) {
+          defaultEmail = match[3].trim();
+        } else {
+          defaultName = match[3].trim();
+        }
+      }
+    }
+
+    if (!customFrom || !customFrom.trim()) {
+      return defaultName ? `${defaultName} <${defaultEmail}>` : defaultEmail;
+    }
+
+    const trimmed = customFrom.trim();
+    if (trimmed.includes('<') && trimmed.includes('>')) {
+      return trimmed;
+    }
+    if (trimmed.includes('@')) {
+      return defaultName ? `${defaultName} <${trimmed}>` : trimmed;
+    }
+    return `${trimmed} <${defaultEmail}>`;
+  }
+
+  getSystemDefaults() {
+    const defaultSmtpFrom = this.resolveSenderAddress(null);
+    let defaultSenderName = 'CMS Notifications';
+    let defaultSenderEmail = 'noreply@cms.local';
+
+    const match = defaultSmtpFrom.match(/^(?:(.*)<([^>]+)>|([^<]+))$/);
+    if (match) {
+      if (match[1] && match[2]) {
+        defaultSenderName = match[1].trim();
+        defaultSenderEmail = match[2].trim();
+      } else if (match[3]) {
+        if (match[3].includes('@')) {
+          defaultSenderEmail = match[3].trim();
+        } else {
+          defaultSenderName = match[3].trim();
+        }
+      }
+    }
 
     const defaultRecipient =
       this.configService.get<string>('DEFAULT_EMAIL_RECIPIENT') ||
@@ -97,6 +159,8 @@ export class SchedulerService {
 
     return {
       defaultSmtpFrom,
+      defaultSenderName,
+      defaultSenderEmail,
       defaultRecipient,
     };
   }
@@ -300,15 +364,7 @@ export class SchedulerService {
     }
 
     // Resolve sender address (From)
-    const defaultEnvFrom =
-      this.configService.get<string>('SMTP_FROM') ||
-      process.env.SMTP_FROM ||
-      'CMS Notifications <noreply@cms.local>';
-
-    const senderFrom =
-      (dto.from && dto.from.trim()) ||
-      scheduler.defaultFrom ||
-      defaultEnvFrom;
+    const senderFrom = this.resolveSenderAddress(dto.from || scheduler.defaultFrom);
 
     // Calculate delay
     const now = new Date();

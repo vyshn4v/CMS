@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Send, Clock, Calendar, Layers, FileCode, CheckCircle2 } from 'lucide-react';
 import { Modal } from '../../../components/ui/modal';
 import { Button } from '../../../components/ui/button';
@@ -29,6 +29,21 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
   const [payloadJson, setPayloadJson] = useState('{\n  "name": "Alex",\n  "amount": 99.00\n}');
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch System Defaults (SMTP_FROM and admin recipient)
+  const { data: systemDefaults } = useQuery<{
+    defaultSmtpFrom: string;
+    defaultSenderName: string;
+    defaultSenderEmail: string;
+    defaultRecipient: string;
+  }>({
+    queryKey: ['scheduler-system-defaults', orgId],
+    queryFn: async () => {
+      const res = await api.get(`/orgs/${orgId}/schedulers/system-defaults`);
+      return res.data?.data || res.data;
+    },
+    enabled: !!orgId && isOpen,
+  });
+
   const isEntryMode = scheduler?.sourceType === 'ENTRY';
 
   useEffect(() => {
@@ -44,6 +59,20 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
       }
     }
   }, [scheduler]);
+
+  const previewSenderAddress = useMemo(() => {
+    const raw = from.trim() || scheduler?.defaultFrom?.trim() || '';
+    const defaultEmail = systemDefaults?.defaultSenderEmail || 'system.vyshnavpc@gmail.com';
+    const defaultFull = systemDefaults?.defaultSmtpFrom || `CMS Notifications <${defaultEmail}>`;
+
+    if (!raw) return defaultFull;
+    if (raw.includes('<') && raw.includes('>')) return raw;
+    if (raw.includes('@')) {
+      const defName = systemDefaults?.defaultSenderName || 'CMS Notifications';
+      return `${defName} <${raw}>`;
+    }
+    return `${raw} <${defaultEmail}>`;
+  }, [from, scheduler, systemDefaults]);
 
   const dispatchMutation = useMutation({
     mutationFn: async () => {
@@ -136,17 +165,27 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Sender Email (From) <span className="text-slate-400 font-normal">(Optional)</span>
+              Sender Name / Display Name (From) <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
             <Input
               type="text"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              placeholder="Leave empty to use scheduler default or SMTP_FROM from .env"
+              placeholder={
+                scheduler?.defaultFrom ||
+                systemDefaults?.defaultSenderName ||
+                'e.g. "CMS Notifications" or custom sender'
+              }
             />
-            <span className="text-[11px] text-slate-400 mt-1 block">
-              If left blank, defaults to {scheduler?.defaultFrom ? `scheduler default (${scheduler.defaultFrom})` : 'SMTP_FROM in .env'}.
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
+              If left blank, defaults to scheduler configuration {scheduler?.defaultFrom ? `("${scheduler.defaultFrom}")` : ''} or <code className="font-mono text-[10px]">SMTP_FROM</code>.
             </span>
+            <div className="mt-1.5 p-2 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-[11px] flex items-center justify-between">
+              <span className="text-slate-500 dark:text-slate-400">Recipients will see:</span>
+              <span className="font-mono font-semibold text-indigo-700 dark:text-indigo-300">
+                {previewSenderAddress}
+              </span>
+            </div>
           </div>
 
           <div>

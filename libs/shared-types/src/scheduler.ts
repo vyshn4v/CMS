@@ -155,5 +155,7 @@ export interface ReinitializeQueuesResponseDto {
 
 export interface SchedulerSystemDefaultsDto {
   defaultSmtpFrom: string;
+  defaultSenderName: string;
+  defaultSenderEmail: string;
   defaultRecipient: string;
 }

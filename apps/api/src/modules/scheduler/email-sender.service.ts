@@ -53,11 +53,20 @@ export class EmailSenderService {
    * Sends an email via SMTP. Throws error if send fails or SMTP is unconfigured.
    */
   async sendEmail(options: SendMailOptions): Promise<{ messageId: string }> {
-    const from =
-      (options.from && options.from.trim()) ||
+    const defaultEnvFrom =
       this.configService.get<string>('SMTP_FROM') ||
       process.env.SMTP_FROM ||
       'CMS Notifications <noreply@cms.local>';
+
+    const envUser =
+      this.configService.get<string>('SMTP_USER') ||
+      process.env.SMTP_USER ||
+      'noreply@cms.local';
+
+    let from = (options.from && options.from.trim()) || defaultEnvFrom;
+    if (!from.includes('<') && !from.includes('@')) {
+      from = `${from} <${envUser}>`;
+    }
 
     const transporter = this.getTransporter();
 

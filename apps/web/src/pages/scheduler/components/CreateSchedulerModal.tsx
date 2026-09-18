@@ -30,7 +30,12 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   // Fetch System Defaults (SMTP_FROM and admin recipient)
-  const { data: systemDefaults } = useQuery<{ defaultSmtpFrom: string; defaultRecipient: string }>({
+  const { data: systemDefaults } = useQuery<{
+    defaultSmtpFrom: string;
+    defaultSenderName: string;
+    defaultSenderEmail: string;
+    defaultRecipient: string;
+  }>({
     queryKey: ['scheduler-system-defaults', orgId],
     queryFn: async () => {
       const res = await api.get(`/orgs/${orgId}/schedulers/system-defaults`);
@@ -38,6 +43,20 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
     },
     enabled: !!orgId && isOpen,
   });
+
+  const previewSenderAddress = useMemo(() => {
+    const raw = defaultFrom.trim();
+    const defaultEmail = systemDefaults?.defaultSenderEmail || 'system.vyshnavpc@gmail.com';
+    const defaultFull = systemDefaults?.defaultSmtpFrom || `CMS Notifications <${defaultEmail}>`;
+
+    if (!raw) return defaultFull;
+    if (raw.includes('<') && raw.includes('>')) return raw;
+    if (raw.includes('@')) {
+      const defName = systemDefaults?.defaultSenderName || 'CMS Notifications';
+      return `${defName} <${raw}>`;
+    }
+    return `${raw} <${defaultEmail}>`;
+  }, [defaultFrom, systemDefaults]);
 
   // 1. Fetch available Models / Schemas
   const { data: schemasData, isLoading: isLoadingSchemas } = useQuery<any>({
@@ -268,24 +287,28 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
 
           <div className="md:col-span-2">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Sender Email Address (SMTP From) <span className="text-slate-400 font-normal">(Optional)</span>
+              Sender Name / Display Name (From) <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
             <Input
               value={defaultFrom}
               onChange={(e) => setDefaultFrom(e.target.value)}
-              placeholder={
-                systemDefaults?.defaultSmtpFrom
-                  ? `Default: ${systemDefaults.defaultSmtpFrom}`
-                  : 'e.g. Acme Notifications <notifications@acme.com>'
-              }
+              placeholder={`e.g. "${systemDefaults?.defaultSenderName || 'CMS Notifications'}" or custom name`}
             />
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-              Sender address for this scheduler. If left blank, defaults to{' '}
+              Customize the sender name for this scheduler. If only a name is given, it automatically sends as{' '}
+              <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[10px] text-indigo-500">
+                {`{Name} <${systemDefaults?.defaultSenderEmail || 'system email'}>`}
+              </code>. Leave blank to default to{' '}
               <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[10px] text-indigo-500">
                 SMTP_FROM
-              </code>{' '}
-              ({systemDefaults?.defaultSmtpFrom || 'configured in .env'}).
+              </code>.
             </p>
+            <div className="mt-2 p-2 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-[11px] flex items-center justify-between">
+              <span className="text-slate-500 dark:text-slate-400">Recipients will see:</span>
+              <span className="font-mono font-semibold text-indigo-700 dark:text-indigo-300">
+                {previewSenderAddress}
+              </span>
+            </div>
           </div>
         </div>
 
