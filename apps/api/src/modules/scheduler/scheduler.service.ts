@@ -25,12 +25,14 @@ export class SchedulerService {
   // ============================================================================
 
   async listSchedulers(orgId: string, page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 20;
+    const skip = (pageNum - 1) * limitNum;
     const [schedulers, total] = await Promise.all([
       this.prisma.emailScheduler.findMany({
         where: { orgId },
         skip,
-        take: limit,
+        take: limitNum,
         orderBy: { createdAt: 'desc' },
         include: {
           template: {
@@ -50,10 +52,10 @@ export class SchedulerService {
     return {
       data: schedulers,
       meta: {
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(total / limitNum),
       },
     };
   }
