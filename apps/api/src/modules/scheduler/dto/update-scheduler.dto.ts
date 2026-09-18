@@ -22,6 +22,16 @@ export class UpdateSchedulerDto {
   @IsOptional()
   contentTypeId?: string | null;
 
+  @ApiPropertyOptional({ enum: ['TEMPLATE', 'ENTRY'] })
+  @IsString()
+  @IsOptional()
+  sourceType?: string;
+
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  entryId?: string | null;
+
   @ApiPropertyOptional()
   @IsUUID()
   @IsOptional()

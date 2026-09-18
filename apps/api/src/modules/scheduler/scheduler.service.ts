@@ -44,6 +44,9 @@ export class SchedulerService {
           queue: {
             select: { id: true, name: true, concurrency: true, status: true },
           },
+          entry: {
+            select: { id: true, status: true, data: true, publishedData: true },
+          },
         },
       }),
       this.prisma.emailScheduler.count({ where: { orgId } }),
@@ -66,6 +69,7 @@ export class SchedulerService {
       include: {
         template: true,
         contentType: true,
+        entry: true,
         queue: true,
       },
     });
@@ -78,7 +82,7 @@ export class SchedulerService {
   }
 
   async createScheduler(orgId: string, dto: CreateSchedulerDto) {
-    // Validate template exists and belongs to org
+    // 1. Validate template exists and belongs to org
     const template = await this.prisma.template.findFirst({
       where: { id: dto.templateId, orgId },
     });
@@ -86,7 +90,7 @@ export class SchedulerService {
       throw new NotFoundException(`Template ${dto.templateId} not found in this organization`);
     }
 
-    // Validate queue exists and belongs to org
+    // 2. Validate queue exists and belongs to org
     const queue = await this.prisma.emailQueue.findFirst({
       where: { id: dto.queueId, orgId },
     });
@@ -94,13 +98,29 @@ export class SchedulerService {
       throw new NotFoundException(`Queue ${dto.queueId} not found in this organization`);
     }
 
-    // Optional content model check
-    if (dto.contentTypeId) {
-      const model = await this.prisma.contentType.findFirst({
-        where: { id: dto.contentTypeId, orgId },
+    // 3. Validate content model schema (required)
+    const model = await this.prisma.contentType.findFirst({
+      where: { id: dto.contentTypeId, orgId },
+    });
+    if (!model) {
+      throw new NotFoundException(`Schema/Model ${dto.contentTypeId} not found in this organization`);
+    }
+
+    // 4. Validate entry if sourceType is ENTRY
+    const sourceType = dto.sourceType === 'ENTRY' ? 'ENTRY' : 'TEMPLATE';
+    let entryId = dto.entryId || null;
+
+    if (sourceType === 'ENTRY') {
+      if (!entryId) {
+        throw new BadRequestException('An entry must be selected when sourceType is ENTRY');
+      }
+      const entry = await this.prisma.contentEntry.findFirst({
+        where: { id: entryId, orgId, contentTypeId: dto.contentTypeId },
       });
-      if (!model) {
-        throw new NotFoundException(`Model ${dto.contentTypeId} not found in this organization`);
+      if (!entry) {
+        throw new NotFoundException(
+          `Entry ${entryId} not found for model ${dto.contentTypeId} in this organization`,
+        );
       }
     }
 
@@ -110,7 +130,9 @@ export class SchedulerService {
         name: dto.name,
         description: dto.description,
         templateId: dto.templateId,
-        contentTypeId: dto.contentTypeId || null,
+        contentTypeId: dto.contentTypeId,
+        sourceType,
+        entryId,
         queueId: dto.queueId,
         defaultTo: dto.defaultTo,
         defaultCc: dto.defaultCc,
@@ -119,6 +141,7 @@ export class SchedulerService {
       include: {
         template: { select: { id: true, name: true, type: true } },
         contentType: { select: { id: true, name: true, slug: true } },
+        entry: { select: { id: true, status: true, data: true, publishedData: true } },
         queue: { select: { id: true, name: true } },
       },
     });
@@ -141,6 +164,20 @@ export class SchedulerService {
       if (!queue) throw new NotFoundException(`Queue ${dto.queueId} not found`);
     }
 
+    if (dto.contentTypeId) {
+      const model = await this.prisma.contentType.findFirst({
+        where: { id: dto.contentTypeId, orgId },
+      });
+      if (!model) throw new NotFoundException(`Model ${dto.contentTypeId} not found`);
+    }
+
+    if (dto.sourceType === 'ENTRY' && dto.entryId) {
+      const entry = await this.prisma.contentEntry.findFirst({
+        where: { id: dto.entryId, orgId },
+      });
+      if (!entry) throw new NotFoundException(`Entry ${dto.entryId} not found`);
+    }
+
     return this.prisma.emailScheduler.update({
       where: { id },
       data: {
@@ -148,6 +185,8 @@ export class SchedulerService {
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.templateId !== undefined && { templateId: dto.templateId }),
         ...(dto.contentTypeId !== undefined && { contentTypeId: dto.contentTypeId }),
+        ...(dto.sourceType !== undefined && { sourceType: dto.sourceType }),
+        ...(dto.entryId !== undefined && { entryId: dto.entryId }),
         ...(dto.queueId !== undefined && { queueId: dto.queueId }),
         ...(dto.defaultTo !== undefined && { defaultTo: dto.defaultTo }),
         ...(dto.defaultCc !== undefined && { defaultCc: dto.defaultCc }),
@@ -170,6 +209,9 @@ export class SchedulerService {
   async dispatchEmail(orgId: string, schedulerId: string, dto: DispatchEmailDto) {
     const scheduler = await this.prisma.emailScheduler.findFirst({
       where: { id: schedulerId, orgId },
+      include: {
+        entry: true,
+      },
     });
 
     if (!scheduler) {
@@ -180,13 +222,51 @@ export class SchedulerService {
       throw new BadRequestException(`Email scheduler "${scheduler.name}" is currently deactivated`);
     }
 
-    const recipientTo = dto.to || scheduler.defaultTo;
-    if (!recipientTo) {
-      throw new BadRequestException('Recipient "to" email address is required');
+    // Resolve system administrator recipient from environment
+    const envUser =
+      process.env.DEFAULT_EMAIL_RECIPIENT ||
+      process.env.SMTP_USER ||
+      (process.env.ALLOWED_EMAILS ? process.env.ALLOWED_EMAILS.split(',')[0].trim() : null) ||
+      'admin@cms.local';
+
+    let recipientTo: string;
+    let recipientBcc: string | null = dto.bcc || null;
+
+    if (dto.to && dto.to.trim()) {
+      recipientTo = dto.to.trim();
+      // If a recipient is specified, system .env user always gets an audit copy
+      if (envUser && recipientTo.toLowerCase() !== envUser.toLowerCase()) {
+        recipientBcc = recipientBcc ? `${recipientBcc}, ${envUser}` : envUser;
+      }
+    } else {
+      // If there is no "to" available, default recipient is strictly the .env user
+      recipientTo = scheduler.defaultTo || envUser;
     }
 
     const recipientCc = dto.cc || scheduler.defaultCc || null;
     const targetQueueId = dto.queueId || scheduler.queueId;
+
+    // Resolve data payload:
+    // If scheduler is bound to a predefined entry, use entry's stored data as base
+    let payloadData: Record<string, any> = {};
+    if (scheduler.sourceType === 'ENTRY' && scheduler.entryId) {
+      const entry = scheduler.entry || (await this.prisma.contentEntry.findUnique({ where: { id: scheduler.entryId } }));
+      if (entry) {
+        const entryData =
+          (entry.publishedData as Record<string, any>) ||
+          (entry.data as Record<string, any>) ||
+          {};
+        payloadData = { ...entryData };
+      }
+    }
+
+    // Merge with any dynamic data passed in dispatch
+    if (dto.data && typeof dto.data === 'object') {
+      payloadData = {
+        ...payloadData,
+        ...dto.data,
+      };
+    }
 
     // Calculate delay
     const now = new Date();
@@ -201,8 +281,8 @@ export class SchedulerService {
         queueId: targetQueueId,
         to: recipientTo,
         cc: recipientCc,
-        bcc: dto.bcc || null,
-        data: dto.data || {},
+        bcc: recipientBcc,
+        data: payloadData,
         status: ScheduledEmailStatus.SCHEDULED,
         scheduledFor: scheduledTime,
       },

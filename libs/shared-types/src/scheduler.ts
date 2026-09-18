@@ -34,12 +34,16 @@ export interface CreateEmailQueueDto {
   concurrency?: number;
 }
 
+export type SchedulerSourceType = 'TEMPLATE' | 'ENTRY';
+
 export interface EmailSchedulerDto {
   id: string;
   orgId: string;
   queueId: string;
   templateId: string;
   contentTypeId?: string | null;
+  sourceType: SchedulerSourceType;
+  entryId?: string | null;
   name: string;
   description?: string | null;
   defaultTo?: string | null;
@@ -57,6 +61,12 @@ export interface EmailSchedulerDto {
     name: string;
     slug: string;
   } | null;
+  entry?: {
+    id: string;
+    status: string;
+    data: any;
+    publishedData?: any;
+  } | null;
   queue?: {
     id: string;
     name: string;
@@ -69,7 +79,9 @@ export interface CreateEmailSchedulerDto {
   name: string;
   description?: string;
   templateId: string;
-  contentTypeId?: string;
+  contentTypeId: string;
+  sourceType?: SchedulerSourceType;
+  entryId?: string;
   queueId: string;
   defaultTo?: string;
   defaultCc?: string;
@@ -81,6 +93,8 @@ export interface UpdateEmailSchedulerDto {
   description?: string;
   templateId?: string;
   contentTypeId?: string | null;
+  sourceType?: SchedulerSourceType;
+  entryId?: string | null;
   queueId?: string;
   defaultTo?: string;
   defaultCc?: string;
@@ -88,7 +102,7 @@ export interface UpdateEmailSchedulerDto {
 }
 
 export interface DispatchEmailDto {
-  to: string;
+  to?: string; // Optional: defaults to .env user if omitted
   cc?: string;
   bcc?: string;
   scheduledFor?: string | Date; // ISO date string or Date; if omitted or past, sends immediately

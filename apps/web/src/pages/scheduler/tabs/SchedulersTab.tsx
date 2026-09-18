@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Send, Trash2, CalendarClock, FileCode, Layers, Cpu } from 'lucide-react';
+import { Plus, Send, Trash2, CalendarClock, FileCode, Layers, Cpu, Mail } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { EmptyState } from '../../../components/ui/empty-state';
@@ -88,10 +88,11 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 text-slate-500">
                 <th className="py-3 px-4 font-semibold">Scheduler Name</th>
+                <th className="py-3 px-4 font-semibold">Source Mode</th>
                 <th className="py-3 px-4 font-semibold">Template</th>
                 <th className="py-3 px-4 font-semibold">Bound Model</th>
                 <th className="py-3 px-4 font-semibold">Queue</th>
-                <th className="py-3 px-4 font-semibold">Default Recipient</th>
+                <th className="py-3 px-4 font-semibold">Recipient Policy</th>
                 <th className="py-3 px-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
@@ -109,6 +110,19 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                     )}
                   </td>
                   <td className="py-3 px-4">
+                    {s.sourceType === 'ENTRY' ? (
+                      <Badge variant="success" className="inline-flex items-center gap-1 font-medium text-[10px]">
+                        <Layers className="h-3 w-3" />
+                        Predefined Entry
+                      </Badge>
+                    ) : (
+                      <Badge variant="blue" className="inline-flex items-center gap-1 font-medium text-[10px]">
+                        <FileCode className="h-3 w-3" />
+                        Dynamic Template
+                      </Badge>
+                    )}
+                  </td>
+                  <td className="py-3 px-4">
                     <Badge variant="default" className="inline-flex items-center gap-1 font-mono">
                       <FileCode className="h-3 w-3" />
                       {s.template?.name || s.templateId}
@@ -116,7 +130,7 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                   </td>
                   <td className="py-3 px-4">
                     {s.contentType ? (
-                      <Badge variant="blue" className="inline-flex items-center gap-1">
+                      <Badge variant="outline" className="inline-flex items-center gap-1 font-medium">
                         <Layers className="h-3 w-3" />
                         {s.contentType.name}
                       </Badge>
@@ -130,8 +144,12 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                       {s.queue?.name || s.queueId}
                     </span>
                   </td>
-                  <td className="py-3 px-4 font-mono text-slate-500">
-                    {s.defaultTo || '—'}
+                  <td className="py-3 px-4 font-mono text-slate-500 text-[11px]">
+                    {s.defaultTo || (
+                      <span className="inline-flex items-center gap-1 text-slate-400">
+                        <Mail className="w-3 h-3 text-indigo-400" /> .env admin
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">

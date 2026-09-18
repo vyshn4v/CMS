@@ -7,10 +7,10 @@ export class DispatchEmailDto {
   @IsOptional()
   schedulerId?: string;
 
-  @ApiProperty({ example: 'customer@example.com', description: 'Recipient email address' })
+  @ApiPropertyOptional({ example: 'customer@example.com', description: 'Recipient email address (defaults to .env user if omitted)' })
   @IsString()
-  @IsNotEmpty()
-  to: string;
+  @IsOptional()
+  to?: string;
 
   @ApiPropertyOptional({ example: 'manager@example.com', description: 'Carbon copy recipient' })
   @IsString()

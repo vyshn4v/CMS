@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Send, Clock, Calendar } from 'lucide-react';
+import { Send, Clock, Calendar, Layers, FileCode, CheckCircle2 } from 'lucide-react';
 import { Modal } from '../../../components/ui/modal';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { Badge } from '../../../components/ui/badge';
 import { api } from '../../../lib/api';
 
 interface DispatchModalProps {
@@ -27,10 +28,18 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
   const [payloadJson, setPayloadJson] = useState('{\n  "name": "Alex",\n  "amount": 99.00\n}');
   const [error, setError] = useState<string | null>(null);
 
+  const isEntryMode = scheduler?.sourceType === 'ENTRY';
+
   useEffect(() => {
     if (scheduler) {
       setTo(scheduler.defaultTo || '');
       setCc(scheduler.defaultCc || '');
+      if (scheduler.sourceType === 'ENTRY' && scheduler.entry) {
+        const entryData = scheduler.entry.publishedData || scheduler.entry.data || {};
+        setPayloadJson(JSON.stringify(entryData, null, 2));
+      } else {
+        setPayloadJson('{\n  "name": "Alex",\n  "amount": 99.00\n}');
+      }
     }
   }, [scheduler]);
 
@@ -51,8 +60,8 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
       }
 
       const res = await api.post(`/orgs/${orgId}/schedulers/${scheduler.id}/dispatch`, {
-        to,
-        cc: cc || undefined,
+        to: to.trim() || undefined,
+        cc: cc.trim() || undefined,
         scheduledFor: dateIso,
         data: parsedData,
       });
@@ -79,7 +88,6 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!to.trim()) return;
     setError(null);
     dispatchMutation.mutate();
   };
@@ -99,23 +107,47 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
           </div>
         )}
 
+        {/* Pipeline Info Banner */}
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
+          <div className="flex items-center gap-2">
+            {isEntryMode ? (
+              <Badge variant="blue" className="inline-flex items-center gap-1 font-semibold">
+                <Layers className="w-3 h-3" />
+                Predefined Entry Mail
+              </Badge>
+            ) : (
+              <Badge variant="default" className="inline-flex items-center gap-1 font-semibold">
+                <FileCode className="w-3 h-3" />
+                Dynamic Template Mail
+              </Badge>
+            )}
+            <span className="text-slate-500 truncate max-w-xs">
+              {scheduler?.contentType?.name ? `Model: ${scheduler.contentType.name}` : ''}
+              {scheduler?.template?.name ? ` · Template: ${scheduler.template.name}` : ''}
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono">Queue: {scheduler?.queue?.name}</span>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Recipient Email (To) <span className="text-rose-500">*</span>
+              Recipient Email (To) <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
             <Input
               type="email"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              placeholder="customer@example.com"
-              required
+              placeholder="Leave empty to send to default .env user"
             />
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              If left blank, sends strictly to the system administrator configured in <code className="font-mono text-[10px]">.env</code>.
+            </span>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Carbon Copy (Cc)
+              Carbon Copy (Cc) <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
             <Input
               type="email"
@@ -196,9 +228,17 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
 
         {/* Runtime Data Payload */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            Dynamic Data Payload (JSON)
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {isEntryMode ? 'Predefined Entry Data Payload (JSON)' : 'Dynamic Data Payload (JSON)'}
+            </label>
+            {isEntryMode && (
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Loaded from saved entry
+              </span>
+            )}
+          </div>
           <textarea
             value={payloadJson}
             onChange={(e) => setPayloadJson(e.target.value)}
@@ -206,13 +246,27 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
             className="w-full font-mono text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="{ ... }"
           />
+          {isEntryMode ? (
+            <p className="text-[11px] text-slate-500 mt-1">
+              This data is automatically loaded from the linked predefined entry. You can keep it as-is or adjust values before sending.
+            </p>
+          ) : (
+            <p className="text-[11px] text-slate-500 mt-1">
+              Provide dynamic JSON keys corresponding to the model schema and template variables.
+            </p>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
           <Button variant="ghost" type="button" onClick={handleClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!to.trim() || dispatchMutation.isPending}>
+          <Button
+            type="submit"
+            variant="primary"
+            isLoading={dispatchMutation.isPending}
+            disabled={dispatchMutation.isPending}
+          >
             {dispatchMutation.isPending ? 'Enqueuing...' : scheduleType === 'immediate' ? 'Send Now' : 'Schedule Email'}
           </Button>
         </div>

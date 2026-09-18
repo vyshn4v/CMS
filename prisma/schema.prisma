@@ -183,6 +183,7 @@ model ContentEntry {
   contentType ContentType  @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
   org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  emailSchedulers EmailScheduler[]
 
   @@index([orgId, contentTypeId])
   @@index([orgId, status])
@@ -281,6 +282,8 @@ model EmailScheduler {
   queueId       String    @map("queue_id")
   templateId    String    @map("template_id")
   contentTypeId String?   @map("content_type_id") // Optional bound Content Model
+  sourceType    String    @default("TEMPLATE") @map("source_type") // 'TEMPLATE' | 'ENTRY'
+  entryId       String?   @map("entry_id")
   name          String
   description   String?
   defaultTo     String?   @map("default_to")     // Optional fallback recipient
@@ -293,6 +296,7 @@ model EmailScheduler {
   queue           EmailQueue       @relation(fields: [queueId], references: [id], onDelete: Restrict)
   template        Template         @relation(fields: [templateId], references: [id], onDelete: Restrict)
   contentType     ContentType?     @relation(fields: [contentTypeId], references: [id], onDelete: SetNull)
+  entry           ContentEntry?    @relation(fields: [entryId], references: [id], onDelete: SetNull)
   scheduledEmails ScheduledEmail[]
 
   @@index([orgId, isActive])

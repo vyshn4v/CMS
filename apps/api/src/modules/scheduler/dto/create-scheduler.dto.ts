@@ -17,10 +17,20 @@ export class CreateSchedulerDto {
   @IsNotEmpty()
   templateId: string;
 
-  @ApiPropertyOptional({ example: 'uuid-content-type-id', description: 'Optional UUID of the ContentType (Model) to bind schema fields' })
+  @ApiProperty({ example: 'uuid-content-type-id', description: 'UUID of the ContentType (Model) schema' })
+  @IsUUID()
+  @IsNotEmpty()
+  contentTypeId: string;
+
+  @ApiPropertyOptional({ example: 'TEMPLATE', enum: ['TEMPLATE', 'ENTRY'], description: 'Source type: TEMPLATE (dynamic) or ENTRY (predefined)' })
+  @IsString()
+  @IsOptional()
+  sourceType?: string;
+
+  @ApiPropertyOptional({ example: 'uuid-entry-id', description: 'UUID of the predefined ContentEntry if sourceType is ENTRY' })
   @IsUUID()
   @IsOptional()
-  contentTypeId?: string;
+  entryId?: string;
 
   @ApiProperty({ example: 'uuid-queue-id', description: 'Target dynamic BullMQ queue UUID' })
   @IsUUID()
