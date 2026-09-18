@@ -1,6 +1,6 @@
 # CMS Headless — Project Implementation Tracker
 
-**Current Status**: **Phase 10 Completed** | **Phase 11 Pending (Next Up: Scheduler Hub UI)**  
+**Current Status**: **Phase 10 & 11 Completed** | **Phase 9 Pending (Next Up: Testing & Polish)**  
 **Active Branch**: `dev`  
 **Services Running**: Backend API (`:5000`), Vite Web App (`:5173`), Docker Postgres (`:5434`), Docker Redis (`:6379`)
 
@@ -18,9 +18,9 @@
 | **6** | **Render API & API Keys** (`POST /render`, Key Generation/Hashing, Guard) | ✅ Completed | Public Integrations |
 | **7** | **Advanced Schema** (Relations, Composable Components, Dynamic Zones) | ✅ Completed | Advanced Modeling |
 | **8** | **Caching & Audit** (Redis Template Cache, `AuditInterceptor`, Audit Viewer) | ✅ Completed | Performance & Ops |
-| **9** | **Polish & Deploy** (E2E Tests, Docker Monolith, Oracle 1GB Free Tier) | ⏳ Pending | Production Launch |
-| **10** | **Email Scheduler Engine** (Prisma Schema, BullMQ, Dynamic Queues, SMTP) | ✅ **Completed** | Backend Queue Engine |
-| **11** | **Scheduler Hub UI** (Dedicated `/scheduler` Route, 3 Tabs, Reinit Banner) | ⏳ **PENDING (UP NEXT)** | Frontend Hub & Operations |
+| **10** | **Email Scheduler Engine** (Prisma Schema, BullMQ, Dynamic Queues, SMTP) | ✅ Completed | Backend Queue Engine |
+| **11** | **Scheduler Hub UI** (Dedicated `/scheduler` Route, 3 Tabs, Reinit Banner) | ✅ **Completed** | Frontend Hub & Operations |
+| **9** | **Polish & Deploy** (E2E Tests, Docker Monolith, Oracle 1GB Free Tier) | ⏳ **PENDING (UP NEXT)** | Production Launch |
 
 ---
 
@@ -147,30 +147,30 @@
 
 ## ⏳ Pending Phases (11 & 9)
 
-### 🖥️ Phase 11: Dedicated Scheduler Hub UI & Integrations (NEXT UP)
-*Goal: Dedicated visual management hub for configuring schedulers, scheduling delayed emails, and managing dynamic BullMQ queues.*
-
-- [ ] **Routing & Layout**:
-  - [ ] Top-level route `/scheduler` in `apps/web/src/App.tsx`.
-  - [ ] Global sidebar navigation link with `CalendarClock` icon in `AppLayout.tsx`.
-- [ ] **3-Tab Scheduler Hub (`/scheduler`)**:
-  - [ ] **Schedulers Tab**:
-    - [ ] Configured schedulers table (Name, Bound Template, Model, Queue, Status, Quick Actions).
-    - [ ] `CreateSchedulerModal` with template selection, model binding, and default queue selector.
-    - [ ] `DispatchModal` for triggering emails (`to`, `cc`, `data` JSON/form, date/time picker for `scheduledFor`).
-  - [ ] **Scheduled Emails Tab**:
-    - [ ] Live dispatch monitor table with status pills (`SCHEDULED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`).
-    - [ ] Search by recipient, filter by status and date range.
-    - [ ] Job details drawer with payload viewer, rendered HTML preview, and error message tooltip.
-    - [ ] Cancel pending job action & Retry failed job action.
-  - [ ] **Dynamic Queues Tab**:
-    - [ ] Dynamic queues table with concurrency and worker status indicators.
-    - [ ] `CreateQueueModal` creating queues in `PENDING_INITIALIZATION` state.
-    - [ ] Dynamic **"Reinitialize Queues"** alert banner displayed when uninitialized queues are detected.
+### Phase 11: Dedicated Scheduler Hub UI & Integrations
+- [x] **Routing & Layout**:
+  - [x] Top-level route `/scheduler` in `apps/web/src/App.tsx`.
+  - [x] Global sidebar navigation link with `CalendarClock` icon in `AppLayout.tsx`.
+- [x] **3-Tab Scheduler Hub (`/scheduler`)**:
+  - [x] **Schedulers Tab**:
+    - [x] Configured schedulers table (Name, Bound Template, Model, Queue, Status, Quick Actions).
+    - [x] `CreateSchedulerModal` with template selection, model binding, and default queue selector.
+    - [x] `DispatchModal` for triggering emails (`to`, `cc`, `data` JSON/form, date/time picker for `scheduledFor`).
+  - [x] **Scheduled Emails Tab**:
+    - [x] Live dispatch monitor table with status pills (`SCHEDULED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`).
+    - [x] Search by recipient, filter by status and date range.
+    - [x] Job details drawer with payload viewer, rendered HTML preview, and error message tooltip.
+    - [x] Cancel pending job action & Retry failed job action.
+  - [x] **Dynamic Queues Tab**:
+    - [x] Dynamic queues table with concurrency and worker status indicators.
+    - [x] `CreateQueueModal` creating queues in `PENDING_INITIALIZATION` state.
+    - [x] Dynamic **"Reinitialize Queues"** alert banner displayed when uninitialized queues are detected.
 
 ---
 
-### 🚢 Phase 9: Testing, Docker & Oracle Deployment
+## ⏳ Pending Phases (9)
+
+### 🚢 Phase 9: Testing, Docker & Oracle Deployment (NEXT UP)
 *Goal: Full end-to-end automated testing, containerization, and Oracle Free Tier production deployment.*
 
 - [ ] **E2E Testing**:
