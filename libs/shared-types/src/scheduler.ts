@@ -40,7 +40,7 @@ export interface EmailSchedulerDto {
   id: string;
   orgId: string;
   queueId: string;
-  templateId: string;
+  templateId?: string | null;
   contentTypeId?: string | null;
   sourceType: SchedulerSourceType;
   entryId?: string | null;
@@ -55,7 +55,7 @@ export interface EmailSchedulerDto {
     id: string;
     name: string;
     type: string;
-  };
+  } | null;
   contentType?: {
     id: string;
     name: string;
@@ -78,7 +78,7 @@ export interface EmailSchedulerDto {
 export interface CreateEmailSchedulerDto {
   name: string;
   description?: string;
-  templateId: string;
+  templateId?: string;
   contentTypeId: string;
   sourceType?: SchedulerSourceType;
   entryId?: string;

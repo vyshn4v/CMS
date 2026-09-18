@@ -12,10 +12,10 @@ export class CreateSchedulerDto {
   @IsOptional()
   description?: string;
 
-  @ApiProperty({ example: 'uuid-template-id', description: 'UUID of the Handlebars Template to render' })
+  @ApiPropertyOptional({ example: 'uuid-template-id', description: 'UUID of the Handlebars Template to render (required for TEMPLATE mode)' })
   @IsUUID()
-  @IsNotEmpty()
-  templateId: string;
+  @IsOptional()
+  templateId?: string;
 
   @ApiProperty({ example: 'uuid-content-type-id', description: 'UUID of the ContentType (Model) schema' })
   @IsUUID()

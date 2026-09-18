@@ -280,7 +280,7 @@ model EmailScheduler {
   id            String    @id @default(uuid())
   orgId         String    @map("org_id")
   queueId       String    @map("queue_id")
-  templateId    String    @map("template_id")
+  templateId    String?   @map("template_id")
   contentTypeId String?   @map("content_type_id") // Optional bound Content Model
   sourceType    String    @default("TEMPLATE") @map("source_type") // 'TEMPLATE' | 'ENTRY'
   entryId       String?   @map("entry_id")
@@ -294,7 +294,7 @@ model EmailScheduler {
 
   org             Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   queue           EmailQueue       @relation(fields: [queueId], references: [id], onDelete: Restrict)
-  template        Template         @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  template        Template?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
   contentType     ContentType?     @relation(fields: [contentTypeId], references: [id], onDelete: SetNull)
   entry           ContentEntry?    @relation(fields: [entryId], references: [id], onDelete: SetNull)
   scheduledEmails ScheduledEmail[]

@@ -82,15 +82,7 @@ export class SchedulerService {
   }
 
   async createScheduler(orgId: string, dto: CreateSchedulerDto) {
-    // 1. Validate template exists and belongs to org
-    const template = await this.prisma.template.findFirst({
-      where: { id: dto.templateId, orgId },
-    });
-    if (!template) {
-      throw new NotFoundException(`Template ${dto.templateId} not found in this organization`);
-    }
-
-    // 2. Validate queue exists and belongs to org
+    // 1. Validate queue exists and belongs to org
     const queue = await this.prisma.emailQueue.findFirst({
       where: { id: dto.queueId, orgId },
     });
@@ -98,7 +90,7 @@ export class SchedulerService {
       throw new NotFoundException(`Queue ${dto.queueId} not found in this organization`);
     }
 
-    // 3. Validate content model schema (required)
+    // 2. Validate content model schema (required)
     const model = await this.prisma.contentType.findFirst({
       where: { id: dto.contentTypeId, orgId },
     });
@@ -106,21 +98,38 @@ export class SchedulerService {
       throw new NotFoundException(`Schema/Model ${dto.contentTypeId} not found in this organization`);
     }
 
-    // 4. Validate entry if sourceType is ENTRY
+    // 3. Selection-based validation: Template vs Entry
     const sourceType = dto.sourceType === 'ENTRY' ? 'ENTRY' : 'TEMPLATE';
-    let entryId = dto.entryId || null;
+    let templateId: string | null = null;
+    let entryId: string | null = null;
 
-    if (sourceType === 'ENTRY') {
-      if (!entryId) {
-        throw new BadRequestException('An entry must be selected when sourceType is ENTRY');
+    if (sourceType === 'TEMPLATE') {
+      if (!dto.templateId) {
+        throw new BadRequestException('Template is required when source mode is Dynamic Template');
+      }
+      const template = await this.prisma.template.findFirst({
+        where: { id: dto.templateId, orgId },
+      });
+      if (!template) {
+        throw new NotFoundException(`Template ${dto.templateId} not found in this organization`);
+      }
+      templateId = template.id;
+    } else {
+      // ENTRY mode: requires entry, template is not needed
+      if (!dto.entryId) {
+        throw new BadRequestException('Content Entry is required when source mode is Predefined Entry');
       }
       const entry = await this.prisma.contentEntry.findFirst({
-        where: { id: entryId, orgId, contentTypeId: dto.contentTypeId },
+        where: { id: dto.entryId, orgId, contentTypeId: dto.contentTypeId },
       });
       if (!entry) {
         throw new NotFoundException(
-          `Entry ${entryId} not found for model ${dto.contentTypeId} in this organization`,
+          `Entry ${dto.entryId} not found for model ${dto.contentTypeId} in this organization`,
         );
+      }
+      entryId = entry.id;
+      if (dto.templateId) {
+        templateId = dto.templateId;
       }
     }
 
@@ -129,7 +138,7 @@ export class SchedulerService {
         orgId,
         name: dto.name,
         description: dto.description,
-        templateId: dto.templateId,
+        templateId,
         contentTypeId: dto.contentTypeId,
         sourceType,
         entryId,
