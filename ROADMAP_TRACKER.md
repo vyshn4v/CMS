@@ -1,6 +1,6 @@
 # CMS Headless — Project Implementation Tracker
 
-**Current Status**: **Phase 7 Completed** | **Phase 8 Pending (Next Up)**  
+**Current Status**: **Phase 8 Completed** | **Phase 10 Pending (Next Up: Email Scheduler Engine)**  
 **Active Branch**: `dev`  
 **Services Running**: Backend API (`:5000`), Vite Web App (`:5173`), Docker Postgres (`:5434`), Docker Redis (`:6379`)
 
@@ -16,9 +16,11 @@
 | **4** | **Content Entries** (Dynamic Form Renderer, CRUD, Draft/Publish Workflow) | ✅ Completed | Content Authoring |
 | **5** | **Template Engine** (Handlebars, Dual-Mode TipTap/Monaco, Live Preview) | ✅ Completed | Template Authoring |
 | **6** | **Render API & API Keys** (`POST /render`, Key Generation/Hashing, Guard) | ✅ Completed | Public Integrations |
-| **7** | **Advanced Schema** (Relations, Composable Components, Dynamic Zones) | ✅ **Completed** | Advanced Modeling |
-| **8** | **Caching & Audit** (Redis Template Cache, `AuditInterceptor`, Audit Viewer) | ⏳ **PENDING (UP NEXT)** | Performance & Ops |
+| **7** | **Advanced Schema** (Relations, Composable Components, Dynamic Zones) | ✅ Completed | Advanced Modeling |
+| **8** | **Caching & Audit** (Redis Template Cache, `AuditInterceptor`, Audit Viewer) | ✅ Completed | Performance & Ops |
 | **9** | **Polish & Deploy** (E2E Tests, Docker Monolith, Oracle 1GB Free Tier) | ⏳ Pending | Production Launch |
+| **10** | **Email Scheduler Engine** (Prisma Schema, BullMQ, Dynamic Queues, SMTP) | ⏳ **PENDING (UP NEXT)** | Backend Queue Engine |
+| **11** | **Scheduler Hub UI** (Dedicated `/scheduler` Route, 3 Tabs, Reinit Banner) | ⏳ Pending | Frontend Hub & Operations |
 
 ---
 
@@ -113,22 +115,62 @@
     - **CUSTOM**: Field-by-field cards with syntax highlighting and raw JSON payload tab.
   - [x] Added `Model Output Format` selector in Schema Builder (`SchemaBuilderPage.tsx`).
 
+### Phase 8: Redis Caching, Audit Logging & Performance
+- [x] **Redis Caching Layer**:
+  - [x] Cache compiled Handlebars templates (`tmpl:compiled:{templateId}`) with TTL 24h.
+  - [x] Invalidate template cache on publish/unpublish.
+  - [x] Cache published entry JSONB (`entry:pub:{entryId}`) with TTL 1h.
+  - [x] Invalidate entry cache on publish/unpublish.
+- [x] **Audit Logging**:
+  - [x] `AuditInterceptor` recording actor, action, resource, timestamp, and metadata.
+  - [x] `GET /orgs/:orgId/audit-logs` endpoint with pagination and filtering.
+  - [x] Frontend audit timeline log viewer (`/settings/audit-logs`).
+
 ---
 
-## ⏳ Pending Phases (8 – 9)
+## ⏳ Pending Phases (9 – 11)
 
-### ⚡ Phase 8: Redis Caching, Audit Logging & Performance (NEXT UP)
-*Goal: Sub-millisecond template rendering, mutation auditing, and Oracle 1GB memory tuning.*
+### ⚡ Phase 10: Email Scheduler & Dynamic Queue Engine (NEXT UP)
+*Goal: Asynchronous delayed email scheduling with runtime BullMQ queue pools, Handlebars rendering, and strict SMTP delivery.*
 
-- [ ] **Redis Caching Layer**:
-  - [ ] Cache compiled Handlebars templates (`tmpl:compiled:{templateId}`) with TTL 24h.
-  - [ ] Invalidate template cache on publish/unpublish.
-  - [ ] Cache published entry JSONB (`entry:pub:{entryId}`) with TTL 1h.
-  - [ ] Invalidate entry cache on publish/unpublish.
-- [ ] **Audit Logging**:
-  - [ ] `AuditInterceptor` recording actor, action, resource, timestamp, and metadata.
-  - [ ] `GET /orgs/:orgId/audit-logs` endpoint with pagination.
-  - [ ] Frontend audit timeline log viewer (`/org/:orgId/settings/audit-log`).
+- [ ] **Database & Dependencies**:
+  - [ ] Add Prisma models: `EmailQueue`, `EmailScheduler`, `ScheduledEmail`.
+  - [ ] Add Enums: `QueueStatus` (`ACTIVE`, `PENDING_INITIALIZATION`, `PAUSED`, `ERROR`), `ScheduledEmailStatus` (`SCHEDULED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`).
+  - [ ] Install dependencies in `apps/api`: `bullmq`, `nodemailer`, `@types/nodemailer`.
+  - [ ] Define shared DTOs & interfaces in `libs/shared-types`.
+- [ ] **Dynamic Queue & Worker Engine**:
+  - [ ] Implement `QueueManagerService` for runtime BullMQ `Queue` and `Worker` pools with configurable concurrency.
+  - [ ] Implement on-demand queue reinitialization method (`POST /api/v1/orgs/:orgId/queues/reinitialize`) to spin up new workers dynamically without server restarts.
+  - [ ] Implement `EmailSenderService` (Nodemailer) with strict `.env` SMTP verification (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) throwing error if missing.
+  - [ ] Implement `EmailWorkerProcessor` handling delayed jobs, template/model data rendering, and status updates with 3 retries and exponential backoff.
+- [ ] **REST API Endpoints**:
+  - [ ] `QueueModule` & `QueueController` (`GET /queues`, `POST /queues`, `POST /queues/reinitialize`).
+  - [ ] `SchedulerModule` & `SchedulerController` (`GET /schedulers`, `POST /schedulers`, `GET /schedulers/:id`, `PATCH /schedulers/:id`, `DELETE /schedulers/:id`).
+  - [ ] Trigger/Dispatch endpoint: `POST /orgs/:orgId/schedulers/:id/dispatch` (supporting user JWT & org `ApiKeyGuard`).
+  - [ ] `ScheduledEmailModule` & `ScheduledEmailController` (Job monitor listing, `POST /scheduled-emails/:id/cancel`, `POST /scheduled-emails/:id/retry`).
+
+---
+
+### 🖥️ Phase 11: Dedicated Scheduler Hub UI & Integrations
+*Goal: Dedicated visual management hub for configuring schedulers, scheduling delayed emails, and managing dynamic BullMQ queues.*
+
+- [ ] **Routing & Layout**:
+  - [ ] Top-level route `/scheduler` in `apps/web/src/App.tsx`.
+  - [ ] Global sidebar navigation link with `CalendarClock` icon in `AppLayout.tsx`.
+- [ ] **3-Tab Scheduler Hub (`/scheduler`)**:
+  - [ ] **Schedulers Tab**:
+    - [ ] Configured schedulers table (Name, Bound Template, Model, Queue, Status, Quick Actions).
+    - [ ] `CreateSchedulerModal` with template selection, model binding, and default queue selector.
+    - [ ] `DispatchModal` for triggering emails (`to`, `cc`, `data` JSON/form, date/time picker for `scheduledFor`).
+  - [ ] **Scheduled Emails Tab**:
+    - [ ] Live dispatch monitor table with status pills (`SCHEDULED`, `PROCESSING`, `COMPLETED`, `FAILED`, `CANCELLED`).
+    - [ ] Search by recipient, filter by status and date range.
+    - [ ] Job details drawer with payload viewer, rendered HTML preview, and error message tooltip.
+    - [ ] Cancel pending job action & Retry failed job action.
+  - [ ] **Dynamic Queues Tab**:
+    - [ ] Dynamic queues table with concurrency and worker status indicators.
+    - [ ] `CreateQueueModal` creating queues in `PENDING_INITIALIZATION` state.
+    - [ ] Dynamic **"Reinitialize Queues"** alert banner displayed when uninitialized queues are detected.
 
 ---
 
@@ -136,8 +178,8 @@
 *Goal: Full end-to-end automated testing, containerization, and Oracle Free Tier production deployment.*
 
 - [ ] **E2E Testing**:
-  - [ ] Supertest API test suite (auth, orgs, schemas, content, render).
-  - [ ] Playwright web test suite (login flow, schema creation, entry publishing, template preview).
+  - [ ] Supertest API test suite (auth, orgs, schemas, content, render, schedulers).
+  - [ ] Playwright web test suite (login flow, schema creation, entry publishing, template preview, scheduler).
 - [ ] **Production Optimization**:
   - [ ] NestJS serving static Vite SPA build (`@nestjs/serve-static`) for single-port monolith.
   - [ ] Memory limits tuning (`--max-old-space-size=180`) within 1GB RAM budget.
