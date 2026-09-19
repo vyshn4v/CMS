@@ -10,6 +10,8 @@ WORKDIR /app
 # Install native dependencies needed for prisma/openssl compilation
 RUN apk add --no-cache libc6-compat openssl
 
+ENV NX_DAEMON=false
+
 # Copy root workspace and package manifests
 COPY package.json package-lock.json nx.json tsconfig.base.json ./
 COPY apps/api/package.json ./apps/api/

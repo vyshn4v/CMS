@@ -289,6 +289,8 @@ model EmailScheduler {
   defaultFrom   String?   @map("default_from")   // Optional custom sender address (defaults to SMTP_FROM in .env)
   defaultTo     String?   @map("default_to")     // Optional fallback recipient
   defaultCc     String?   @map("default_cc")
+  subjectMapping String?  @map("subject_mapping") // Schema key or expression mapped to email Subject
+  bodyMapping    String?  @map("body_mapping")    // Schema key or expression mapped to email Body
   isActive      Boolean   @default(true) @map("is_active")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")

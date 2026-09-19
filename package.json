@@ -11,6 +11,7 @@
     "dev:api": "nx dev api",
     "dev:web": "nx dev web",
     "build": "nx run-many --target=build --parallel=true",
+    "build:shared-types": "nx build @cms/shared-types",
     "build:api": "nx build api",
     "build:web": "nx build web",
     "lint": "nx run-many --target=lint",
