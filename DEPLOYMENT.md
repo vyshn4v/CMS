@@ -119,9 +119,16 @@ Configure the following secrets:
 | `SSH_PRIVATE_KEY` | **Yes** | Content of the private SSH key (`cms_deploy_key`) | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 | `SERVER_HOST` | **Yes** | Server IP address or fully-qualified domain name | `123.45.67.89` or `cms.example.com` |
 | `SERVER_USER` | **Yes** | SSH username on the server | `ubuntu` |
+| `ENV_FILE` | **Recommended** | Complete contents of your production `.env` file (auto-generated & injected during deployment) | *(Paste entire `.env` file contents)* |
 | `SERVER_PATH` | No | Absolute folder path on the server (default: `/home/ubuntu/cms-backend`) | `/home/ubuntu/cms-backend` |
 | `SERVER_PORT` | No | Custom SSH port if not default (default: `22`) | `22` |
 | `BACKEND_APP_NAME` | No | PM2 application process name (default: `cms-api`) | `cms-api` |
+
+> [!TIP]
+> **Zero-Touch `.env` Management**:
+> You don't need to manually create `.env` on your server! Simply add the **`ENV_FILE`** secret with your complete `.env` configuration. The GitHub Action automatically generates the `.env` file, bundles it securely, sets `chmod 600`, and deploys it to your server on every run.
+> 
+> Alternatively, if `ENV_FILE` is not set, the workflow will assemble `.env` from individual secrets (`DATABASE_URL`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, etc.).
 
 ---
 

@@ -44,10 +44,44 @@ jobs:
       - name: Build Monorepo (Shared Types, Web Studio, API)
         run: npm run build
 
+      - name: Generate Production .env File
+        run: |
+          if [ -n "${{ secrets.ENV_FILE }}" ]; then
+            echo "Generating .env from GitHub ENV_FILE secret..."
+            cat << 'EOF' > .env
+          ${{ secrets.ENV_FILE }}
+          EOF
+          else
+            echo "Generating .env from individual secrets..."
+            cat << EOF > .env
+          NODE_ENV=production
+          PORT=${{ secrets.PORT || 5000 }}
+          CLIENT_URL=${{ secrets.CLIENT_URL || 'http://localhost:5000' }}
+          STATIC_PATH=apps/web/dist
+          DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          REDIS_URL="${{ secrets.REDIS_URL || 'redis://localhost:6379' }}"
+          JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          JWT_EXPIRY="${{ secrets.JWT_EXPIRY || '24h' }}"
+          GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}"
+          GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          GOOGLE_CALLBACK_URL="${{ secrets.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/v1/auth/google/callback' }}"
+          ALLOWED_EMAILS="${{ secrets.ALLOWED_EMAILS }}"
+          SMTP_HOST="${{ secrets.SMTP_HOST }}"
+          SMTP_PORT="${{ secrets.SMTP_PORT || 587 }}"
+          SMTP_USER="${{ secrets.SMTP_USER }}"
+          SMTP_PASS="${{ secrets.SMTP_PASS }}"
+          SMTP_SECURE="${{ secrets.SMTP_SECURE || 'false' }}"
+          SMTP_FROM="${{ secrets.SMTP_FROM || 'CMS Notifications <noreply@cms.local>' }}"
+          DEFAULT_EMAIL_RECIPIENT="${{ secrets.DEFAULT_EMAIL_RECIPIENT }}"
+          EOF
+          fi
+          chmod 600 .env
+
       - name: Prepare Deployment Bundle
         run: |
           mkdir -p bundle
           tar -czf bundle/deploy.tar.gz \
+            .env \
             package.json \
             package-lock.json \
             ecosystem.config.js \
@@ -58,6 +92,7 @@ jobs:
             apps/api/dist \
             apps/web/package.json \
             apps/web/dist
+          rm -f .env
 
       - name: Setup SSH Key
         run: |
@@ -88,6 +123,7 @@ jobs:
             # Extract deployment bundle
             tar -xzf deploy.tar.gz
             rm -f deploy.tar.gz
+            [ -f .env ] && chmod 600 .env
 
             # Install production dependencies
             npm ci --omit=dev --no-audit --no-fund
