@@ -97,7 +97,19 @@ jobs:
             apps/web/dist
           rm -f .env
 
+      - name: Check Deployment Credentials
+        id: check-credentials
+        run: |
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY }}" ] || [ -z "${{ secrets.SERVER_HOST }}" ]; then
+            echo "::warning::SERVER_HOST or SSH_PRIVATE_KEY is not configured in repository secrets. Skipping server deployment."
+            echo "deployable=false" >> $GITHUB_OUTPUT
+          else
+            echo "Deployment credentials detected. Proceeding with deployment."
+            echo "deployable=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Setup SSH Key
+        if: steps.check-credentials.outputs.deployable == 'true'
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
@@ -105,12 +117,14 @@ jobs:
           ssh-keyscan -p ${{ secrets.SERVER_PORT || 22 }} -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
       - name: Upload Bundle to Server
+        if: steps.check-credentials.outputs.deployable == 'true'
         run: |
           SERVER_PATH="${{ secrets.SERVER_PATH || '/home/ubuntu/cms-backend' }}"
           ssh -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p $SERVER_PATH"
           scp -i ~/.ssh/id_rsa -P ${{ secrets.SERVER_PORT || 22 }} bundle/deploy.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:$SERVER_PATH/
 
       - name: Extract, Migrate & Restart PM2
+        if: steps.check-credentials.outputs.deployable == 'true'
         run: |
           SERVER_PATH="${{ secrets.SERVER_PATH || '/home/ubuntu/cms-backend' }}"
           APP_NAME="${{ secrets.BACKEND_APP_NAME || 'cms-api' }}"
