@@ -1,0 +1,106 @@
+name: Deploy CMS Monolith to Server
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    # Trigger on merged PRs into main, direct pushes to main, or manual dispatch
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run Tests
+        run: npm run test
+
+      - name: Build Monorepo (Shared Types, Web Studio, API)
+        run: npm run build
+
+      - name: Prepare Deployment Bundle
+        run: |
+          mkdir -p bundle
+          tar -czf bundle/deploy.tar.gz \
+            package.json \
+            package-lock.json \
+            ecosystem.config.js \
+            prisma \
+            libs/shared-types/package.json \
+            libs/shared-types/dist \
+            apps/api/package.json \
+            apps/api/dist \
+            apps/web/package.json \
+            apps/web/dist
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SERVER_PORT || 22 }} -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Upload Bundle to Server
+        run: |
+          SERVER_PATH="${{ secrets.SERVER_PATH || '/home/ubuntu/cms-backend' }}"
+          ssh -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p $SERVER_PATH"
+          scp -i ~/.ssh/id_rsa -P ${{ secrets.SERVER_PORT || 22 }} bundle/deploy.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:$SERVER_PATH/
+
+      - name: Extract, Migrate & Restart PM2
+        run: |
+          SERVER_PATH="${{ secrets.SERVER_PATH || '/home/ubuntu/cms-backend' }}"
+          APP_NAME="${{ secrets.BACKEND_APP_NAME || 'cms-api' }}"
+          
+          ssh -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
+            # Setup environment paths (support NVM and standard system binaries)
+            export NVM_DIR=\"\$HOME/.nvm\"
+            [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\"
+            export PATH=\"\$PATH:\$HOME/.nvm/versions/node/\$(ls \$HOME/.nvm/versions/node 2>/dev/null | tail -n 1)/bin:/usr/local/bin:/usr/bin\"
+
+            cd $SERVER_PATH
+
+            # Extract deployment bundle
+            tar -xzf deploy.tar.gz
+            rm -f deploy.tar.gz
+
+            # Install production dependencies
+            npm ci --omit=dev --no-audit --no-fund
+
+            # Generate Prisma Client & apply database migrations
+            npx prisma generate
+            npx prisma migrate deploy
+
+            # Reload or start PM2 process
+            if pm2 describe $APP_NAME > /dev/null 2>&1; then
+              pm2 restart $APP_NAME --update-env
+            else
+              pm2 start ecosystem.config.js --name $APP_NAME
+            fi
+            pm2 save
+          "
