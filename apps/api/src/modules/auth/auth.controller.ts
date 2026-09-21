@@ -6,6 +6,7 @@ import {
   Res,
   UseGuards,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -21,6 +22,8 @@ import { RedisService } from '../redis/redis.service';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly configService: ConfigService,
@@ -44,6 +47,7 @@ export class AuthController {
     try {
       const googleUser = (req as any).user;
       if (!googleUser) {
+        this.logger.warn('Google OAuth callback received with no user profile');
         return res.redirect(`${clientUrl}/login?error=unauthorized`);
       }
 
@@ -59,6 +63,7 @@ export class AuthController {
 
       return res.redirect(`${clientUrl}/dashboard`);
     } catch (err: any) {
+      this.logger.error(`Google OAuth callback failed: ${err.message}`, err.stack);
       return res.redirect(`${clientUrl}/login?error=forbidden`);
     }
   }

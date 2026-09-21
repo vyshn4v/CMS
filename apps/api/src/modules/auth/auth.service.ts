@@ -28,17 +28,18 @@ export class AuthService {
    * Validate Google profile against ALLOWED_EMAILS and upsert user record.
    */
   async validateGoogleUser(profile: GoogleAuthProfile): Promise<{ token: string; user: UserDto }> {
-    const rawAllowed = this.configService.get<string>('ALLOWED_EMAILS', '');
+    const rawAllowed = (this.configService.get<string>('ALLOWED_EMAILS') || '').trim();
     const allowedEmails = rawAllowed
+      .replace(/^["']|["']$/g, '')
       .split(',')
-      .map((e) => e.trim().toLowerCase())
+      .map((e) => e.trim().toLowerCase().replace(/^["']|["']$/g, ''))
       .filter(Boolean);
 
-    const userEmail = profile.email.toLowerCase();
+    const userEmail = (profile.email || '').trim().toLowerCase();
 
     // Enforce allowlist gate if ALLOWED_EMAILS is defined
     if (allowedEmails.length > 0 && !allowedEmails.includes(userEmail)) {
-      this.logger.warn(`Rejected login attempt from unlisted email: ${userEmail}`);
+      this.logger.warn(`Rejected login attempt from unlisted email: "${userEmail}". Allowed: [${allowedEmails.join(', ')}]`);
       throw new UnauthorizedException('Email is not authorized to access this system');
     }
 
