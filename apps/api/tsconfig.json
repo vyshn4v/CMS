@@ -21,7 +21,7 @@
     "noFallthroughCasesInSwitch": false,
     "rootDir": "src",
     "paths": {
-      "@cms/shared-types": ["../../libs/shared-types/dist/index.d.ts"]
+      "@cms/shared-types": ["../../libs/shared-types/src/index.ts"]
     }
   },
   "include": ["src/**/*"],
