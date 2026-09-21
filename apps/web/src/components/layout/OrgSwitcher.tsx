@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Building2, ChevronDown, Plus, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, ChevronDown, Plus, Check, Settings } from 'lucide-react';
 import { useAuthStore } from '../../store/auth.store';
 import { CreateOrgModal } from '../org/CreateOrgModal';
 
 export const OrgSwitcher: React.FC = () => {
+  const navigate = useNavigate();
   const { activeOrg, organizations, setActiveOrg } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,7 +55,18 @@ export const OrgSwitcher: React.FC = () => {
               })}
             </div>
 
-            <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
+            <div className="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1 space-y-0.5">
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate('/settings/general');
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                <Settings className="h-3.5 w-3.5 text-slate-400" />
+                <span>Workspace Settings</span>
+              </button>
+
               <button
                 onClick={() => {
                   setIsOpen(false);

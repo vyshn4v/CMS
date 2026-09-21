@@ -16,6 +16,7 @@ import { ComponentBuilderPage } from './pages/components/ComponentBuilderPage';
 import { TemplatesListPage } from './pages/templates/TemplatesListPage';
 import { TemplateEditorPage } from './pages/templates/TemplateEditorPage';
 import { SettingsLayout } from './pages/settings/SettingsLayout';
+import { GeneralSettingsPage } from './pages/settings/GeneralSettingsPage';
 import { MembersPage } from './pages/settings/MembersPage';
 import { RolesPage } from './pages/settings/RolesPage';
 import { ApiKeysPage } from './pages/settings/ApiKeysPage';
@@ -132,7 +133,8 @@ export const App: React.FC = () => {
 
             {/* Settings & RBAC */}
             <Route path="settings" element={<SettingsLayout />}>
-              <Route index element={<Navigate to="members" replace />} />
+              <Route index element={<Navigate to="general" replace />} />
+              <Route path="general" element={<GeneralSettingsPage />} />
               <Route path="members" element={<MembersPage />} />
               <Route path="roles" element={<RolesPage />} />
               <Route path="api-keys" element={<ApiKeysPage />} />

@@ -140,10 +140,23 @@ export class OrgService {
       throw new NotFoundException('Organization not found');
     }
 
+    let newSlug = org.slug;
+    if (input.slug !== undefined && input.slug.trim().length > 0) {
+      const sanitizedSlug = input.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      if (sanitizedSlug !== org.slug) {
+        const existing = await this.prisma.organization.findUnique({ where: { slug: sanitizedSlug } });
+        if (existing && existing.id !== orgId) {
+          throw new BadRequestException('Workspace slug is already in use by another workspace');
+        }
+        newSlug = sanitizedSlug;
+      }
+    }
+
     const updated = await this.prisma.organization.update({
       where: { id: orgId },
       data: {
-        name: input.name !== undefined ? input.name.trim() : org.name,
+        name: input.name !== undefined && input.name.trim().length > 0 ? input.name.trim() : org.name,
+        slug: newSlug,
         logoUrl: input.logoUrl !== undefined ? input.logoUrl : org.logoUrl,
       },
     });

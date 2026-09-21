@@ -17,6 +17,7 @@ interface AuthState {
   setUser: (user: UserDto | null) => void;
   setActiveOrg: (org: OrganizationBasic | null) => void;
   setOrganizations: (orgs: OrganizationBasic[]) => void;
+  updateOrg: (org: Partial<OrganizationBasic> & { id: string }) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
 }
@@ -36,6 +37,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ activeOrg });
   },
   setOrganizations: (organizations) => set({ organizations }),
+  updateOrg: (updatedOrg) =>
+    set((state) => {
+      const organizations = state.organizations.map((org) =>
+        org.id === updatedOrg.id ? { ...org, ...updatedOrg } : org,
+      );
+      const activeOrg =
+        state.activeOrg?.id === updatedOrg.id
+          ? { ...state.activeOrg, ...updatedOrg }
+          : state.activeOrg;
+      return { organizations, activeOrg };
+    }),
   setLoading: (isLoading) => set({ isLoading }),
   logout: () => {
     localStorage.removeItem('cms_active_org_id');
