@@ -1,0 +1,43 @@
+import { create } from 'zustand';
+import { UserDto } from '@cms/shared-types';
+
+interface OrganizationBasic {
+  id: string;
+  name: string;
+  slug: string;
+  role: string;
+}
+
+interface AuthState {
+  user: UserDto | null;
+  activeOrg: OrganizationBasic | null;
+  organizations: OrganizationBasic[];
+  isLoading: boolean;
+  setUser: (user: UserDto | null) => void;
+  setActiveOrg: (org: OrganizationBasic | null) => void;
+  setOrganizations: (orgs: OrganizationBasic[]) => void;
+  setLoading: (loading: boolean) => void;
+  logout: () => void;
+}
+
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  activeOrg: null,
+  organizations: [],
+  isLoading: true,
+  setUser: (user) => set({ user }),
+  setActiveOrg: (activeOrg) => {
+    if (activeOrg) {
+      localStorage.setItem('cms_active_org_id', activeOrg.id);
+    } else {
+      localStorage.removeItem('cms_active_org_id');
+    }
+    set({ activeOrg });
+  },
+  setOrganizations: (organizations) => set({ organizations }),
+  setLoading: (isLoading) => set({ isLoading }),
+  logout: () => {
+    localStorage.removeItem('cms_active_org_id');
+    set({ user: null, activeOrg: null, organizations: [] });
+  },
+}));
