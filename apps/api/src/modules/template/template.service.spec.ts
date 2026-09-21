@@ -72,14 +72,15 @@ describe('TemplateService - Component Subfield & Array Rendering', () => {
         },
       });
 
-      expect(result.data.title).toBe('Article Title');
-      expect(Array.isArray(result.data.authors)).toBe(true);
-      expect(result.data.authors).toHaveLength(2);
-      expect(result.data.authors[0]).toEqual({
+      const data = result.data as any;
+      expect(data.title).toBe('Article Title');
+      expect(Array.isArray(data.authors)).toBe(true);
+      expect(data.authors).toHaveLength(2);
+      expect(data.authors[0]).toEqual({
         fullName: 'John Doe',
         role: 'Lead Author',
       });
-      expect(result.data.authors[1]).toEqual({
+      expect(data.authors[1]).toEqual({
         fullName: 'Jane Smith',
         role: 'Co-Author',
       });
@@ -101,7 +102,8 @@ describe('TemplateService - Component Subfield & Array Rendering', () => {
         },
       });
 
-      expect(result.data.seo).toEqual({
+      const data = result.data as any;
+      expect(data.seo).toEqual({
         meta_title: 'Headless CMS Platform | My Site',
         meta_desc: 'Summary: Next-generation Strapi alternative.',
       });
@@ -121,8 +123,9 @@ describe('TemplateService - Component Subfield & Array Rendering', () => {
         },
       });
 
-      expect(Array.isArray(result.data.seo)).toBe(true);
-      expect(result.data.seo).toEqual([
+      const data = result.data as any;
+      expect(Array.isArray(data.seo)).toBe(true);
+      expect(data.seo).toEqual([
         { title: 'Item 1', description: 'Desc 1' },
         { title: 'Item 2', description: 'Desc 2' },
       ]);
@@ -170,19 +173,20 @@ describe('TemplateService - Component Subfield & Array Rendering', () => {
         },
       });
 
-      expect(result.data.title).toBe('Home Page');
-      expect(Array.isArray(result.data.page_content)).toBe(true);
-      expect(result.data.page_content).toHaveLength(3);
-      expect(result.data.page_content[0]).toEqual({
+      const data = result.data as any;
+      expect(data.title).toBe('Home Page');
+      expect(Array.isArray(data.page_content)).toBe(true);
+      expect(data.page_content).toHaveLength(3);
+      expect(data.page_content[0]).toEqual({
         __component: 'hero',
         headline: 'HERO: Welcome to CMS',
         tagline: 'Next-gen headless content engine',
       });
-      expect(result.data.page_content[1]).toEqual({
+      expect(data.page_content[1]).toEqual({
         __component: 'rich_text',
         html: '<div class="prose"><p>Polymorphic content blocks are powerful.</p></div>',
       });
-      expect(result.data.page_content[2]).toEqual({
+      expect(data.page_content[2]).toEqual({
         __component: 'cta',
         buttonText: 'Action: Sign Up Now',
         link: 'https://example.com/signup',
@@ -207,7 +211,8 @@ describe('TemplateService - Component Subfield & Array Rendering', () => {
         },
       });
 
-      expect(result.data.featured_section).toEqual({
+      const data = result.data as any;
+      expect(data.featured_section).toEqual({
         __component: 'banner',
         title: 'BANNER: Flash Sale 50% Off',
       });
@@ -233,7 +238,8 @@ describe('TemplateService - Component Subfield & Array Rendering', () => {
         },
       });
 
-      expect(result.data.page_content).toEqual([
+      const data = result.data as any;
+      expect(data.page_content).toEqual([
         {
           __component: 'unconfigured_block',
           raw_value: 'test',
