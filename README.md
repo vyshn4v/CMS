@@ -51,7 +51,9 @@ flowchart TD
 
 - **Multi-Tenant Workspaces & RBAC**:
   - Google OAuth 2.0 authentication with HttpOnly JWT session cookies and email gating (`ALLOWED_EMAILS`).
-  - Workspace management with member invitations and custom roles.
+  - **Workspace Management & Custom Branding**: Dedicated **General Settings** (`/settings/general`) to view and customize the workspace display name, adjust URL slugs, and inspect tenant IDs with real-time UI synchronization.
+  - **Quick Workspace Switcher**: Switch between organizations instantly with direct shortcuts to workspace creation and settings.
+  - Team member invitations and fine-grained custom RBAC roles.
   - Granular permission matrix enforcing permissions on all endpoints.
 
 - **Enterprise Caching & Performance**:
@@ -60,10 +62,16 @@ flowchart TD
   - Published content entry cache (`entry:pub:{id}`) with 1h TTL.
   - User permissions cache (`user:perms:{userId}:{orgId}`) for sub-millisecond route authorization.
   - In-memory LRU cache (500 items) for compiled Handlebars delegates.
+  - **Database-Shielding Query Caching**:
+    - **Audit Logs Query Cache** (`audit:logs:{orgId}:*`): Caches paginated audit log queries for 30s (`20-30s` TTL). Because audit trails have low priority and append-heavy access, this drastically shields PostgreSQL from repetitive count/join scans during admin exploration.
+    - **Schema Definitions Cache** (`schemas:org:{orgId}`): 60s TTL, invalidated on schema creation, updates, or deletions.
+    - **Organization Roles & Permissions Cache** (`roles:org:{orgId}`, `perms:all`): 60s / 1h TTL, invalidated on role mutations.
+    - **Workspace Details & Members Cache** (`org:details:{orgId}`, `org:members:{orgId}`): 30–60s TTL, invalidated on member invites, role updates, or removals.
 
 - **Immutable Audit Logging**:
   - Non-blocking global `AuditInterceptor` recording mutating operations (`POST`, `PATCH`, `PUT`, `DELETE`).
   - Filterable audit trail viewer (`/settings/audit-logs`) with actor chips, action badges, and metadata JSON inspector.
+  - High-performance caching in Redis to prevent database saturation on repeated page visits or pagination.
 
 ---
 

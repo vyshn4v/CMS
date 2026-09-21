@@ -234,4 +234,84 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
   }
+
+  // ============================================================================
+  // 5. Audit Log Query Cache (TTL: 20-30s to shield DB from heavy scans)
+  // ============================================================================
+  async getAuditLogs<T>(cacheKey: string): Promise<T | null> {
+    return this.get<T>(cacheKey);
+  }
+
+  async setAuditLogs(cacheKey: string, data: any, ttlSeconds: number = 30): Promise<void> {
+    await this.set(cacheKey, data, ttlSeconds);
+  }
+
+  async invalidateAuditLogs(orgId: string): Promise<void> {
+    await this.delByPattern(`audit:logs:${orgId}:*`);
+  }
+
+  // ============================================================================
+  // 6. Organization & Member Cache (TTL: 30-60 seconds)
+  // ============================================================================
+  async getOrgDetails<T>(orgId: string): Promise<T | null> {
+    return this.get<T>(`org:details:${orgId}`);
+  }
+
+  async setOrgDetails(orgId: string, data: any, ttlSeconds: number = 60): Promise<void> {
+    await this.set(`org:details:${orgId}`, data, ttlSeconds);
+  }
+
+  async invalidateOrgDetails(orgId: string): Promise<void> {
+    await this.del(`org:details:${orgId}`);
+  }
+
+  async getOrgMembers<T>(orgId: string): Promise<T | null> {
+    return this.get<T>(`org:members:${orgId}`);
+  }
+
+  async setOrgMembers(orgId: string, data: any, ttlSeconds: number = 30): Promise<void> {
+    await this.set(`org:members:${orgId}`, data, ttlSeconds);
+  }
+
+  async invalidateOrgMembers(orgId: string): Promise<void> {
+    await this.del(`org:members:${orgId}`);
+  }
+
+  // ============================================================================
+  // 7. Roles & Permissions Cache (Static permissions: 1 hour, Roles: 60s)
+  // ============================================================================
+  async getAllPermissions<T>(): Promise<T | null> {
+    return this.get<T>('perms:all');
+  }
+
+  async setAllPermissions(data: any, ttlSeconds: number = 3600): Promise<void> {
+    await this.set('perms:all', data, ttlSeconds);
+  }
+
+  async getOrgRoles<T>(orgId: string): Promise<T | null> {
+    return this.get<T>(`roles:org:${orgId}`);
+  }
+
+  async setOrgRoles(orgId: string, data: any, ttlSeconds: number = 60): Promise<void> {
+    await this.set(`roles:org:${orgId}`, data, ttlSeconds);
+  }
+
+  async invalidateOrgRoles(orgId: string): Promise<void> {
+    await this.del(`roles:org:${orgId}`);
+  }
+
+  // ============================================================================
+  // 8. Schema Definitions Cache (TTL: 60 seconds)
+  // ============================================================================
+  async getOrgSchemas<T>(orgId: string): Promise<T | null> {
+    return this.get<T>(`schemas:org:${orgId}`);
+  }
+
+  async setOrgSchemas(orgId: string, data: any, ttlSeconds: number = 60): Promise<void> {
+    await this.set(`schemas:org:${orgId}`, data, ttlSeconds);
+  }
+
+  async invalidateOrgSchemas(orgId: string): Promise<void> {
+    await this.del(`schemas:org:${orgId}`);
+  }
 }

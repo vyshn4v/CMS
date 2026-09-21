@@ -28,6 +28,11 @@ export class RoleService {
    * Retrieve all system permissions grouped by domain.
    */
   async listAllPermissions(): Promise<PermissionGroupDto[]> {
+    if (this.redisService?.isReady()) {
+      const cached = await this.redisService.getAllPermissions<PermissionGroupDto[]>();
+      if (cached) return cached;
+    }
+
     const permissions = await this.prisma.permission.findMany({
       orderBy: [{ group: 'asc' }, { action: 'asc' }],
     });
@@ -45,16 +50,27 @@ export class RoleService {
       });
     }
 
-    return Array.from(groupsMap.entries()).map(([group, perms]) => ({
+    const result = Array.from(groupsMap.entries()).map(([group, perms]) => ({
       group,
       permissions: perms,
     }));
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.setAllPermissions(result, 3600);
+    }
+
+    return result;
   }
 
   /**
    * List both system roles and custom roles created within an organization.
    */
   async listRoles(orgId: string): Promise<RoleDto[]> {
+    if (this.redisService?.isReady()) {
+      const cached = await this.redisService.getOrgRoles<RoleDto[]>(orgId);
+      if (cached) return cached;
+    }
+
     const roles = await this.prisma.role.findMany({
       where: {
         OR: [{ orgId: null }, { orgId }],
@@ -67,7 +83,7 @@ export class RoleService {
       orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
     });
 
-    return roles.map((r) => ({
+    const result = roles.map((r) => ({
       id: r.id,
       name: r.name,
       description: r.description,
@@ -76,6 +92,12 @@ export class RoleService {
       permissions: r.rolePermissions.map((rp) => rp.permission.action),
       createdAt: r.createdAt.toISOString(),
     }));
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.setOrgRoles(orgId, result, 60);
+    }
+
+    return result;
   }
 
   /**
@@ -117,6 +139,10 @@ export class RoleService {
         },
       },
     });
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateOrgRoles(orgId);
+    }
 
     return {
       id: role.id,
@@ -176,7 +202,10 @@ export class RoleService {
       },
     });
 
-    await this.redisService.invalidateAllOrgPermissions(orgId);
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateAllOrgPermissions(orgId);
+      await this.redisService.invalidateOrgRoles(orgId);
+    }
 
     return {
       id: updated.id,
@@ -218,6 +247,10 @@ export class RoleService {
     await this.prisma.role.delete({
       where: { id: roleId },
     });
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateOrgRoles(orgId);
+    }
 
     return { success: true };
   }

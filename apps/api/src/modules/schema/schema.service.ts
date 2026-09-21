@@ -2,8 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import {
   CreateContentTypeInput,
   UpdateContentTypeInput,
@@ -20,18 +22,26 @@ import * as safeRegex from 'safe-regex2';
  */
 @Injectable()
 export class SchemaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly redisService?: RedisService,
+  ) {}
 
   /**
    * List all content types defined within an organization.
    */
   async listSchemas(orgId: string): Promise<ContentTypeDto[]> {
+    if (this.redisService?.isReady()) {
+      const cached = await this.redisService.getOrgSchemas<ContentTypeDto[]>(orgId);
+      if (cached) return cached;
+    }
+
     const types = await this.prisma.contentType.findMany({
       where: { orgId },
       orderBy: { name: 'asc' },
     });
 
-    return types.map((t) => ({
+    const result = types.map((t) => ({
       id: t.id,
       orgId: t.orgId,
       name: t.name,
@@ -42,6 +52,12 @@ export class SchemaService {
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
     }));
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.setOrgSchemas(orgId, result, 60);
+    }
+
+    return result;
   }
 
   /**
@@ -129,6 +145,10 @@ export class SchemaService {
       },
     });
 
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateOrgSchemas(orgId);
+    }
+
     return {
       id: created.id,
       orgId: created.orgId,
@@ -172,6 +192,10 @@ export class SchemaService {
       },
     });
 
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateOrgSchemas(orgId);
+    }
+
     return {
       id: updated.id,
       orgId: updated.orgId,
@@ -200,6 +224,10 @@ export class SchemaService {
     await this.prisma.contentType.delete({
       where: { id },
     });
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateOrgSchemas(orgId);
+    }
 
     return { success: true };
   }
