@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import * as fs from 'fs';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './modules/redis/redis.module';
@@ -22,14 +22,17 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AppController } from './app.controller';
 
 const resolveStaticPath = (): string | null => {
-  if (process.env.STATIC_PATH && fs.existsSync(process.env.STATIC_PATH)) {
-    return process.env.STATIC_PATH;
+  if (process.env.STATIC_PATH) {
+    const absPath = resolve(process.cwd(), process.env.STATIC_PATH);
+    if (fs.existsSync(absPath)) {
+      return absPath;
+    }
   }
-  const fromCwd = join(process.cwd(), 'apps', 'web', 'dist');
+  const fromCwd = resolve(process.cwd(), 'apps', 'web', 'dist');
   if (fs.existsSync(fromCwd)) {
     return fromCwd;
   }
-  const fromDir = join(__dirname, '..', '..', 'web', 'dist');
+  const fromDir = resolve(__dirname, '..', '..', 'web', 'dist');
   if (fs.existsSync(fromDir)) {
     return fromDir;
   }
