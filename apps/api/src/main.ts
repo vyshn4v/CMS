@@ -1,8 +1,9 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import cookieParser from 'cookie-parser';
+import * as cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -15,8 +16,17 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT', 3000);
+  const port = configService.get<number>('PORT', 5000);
   const clientUrl = configService.get<string>('CLIENT_URL', 'http://localhost:5173');
+
+  // SEC-02: Cryptographic baseline validation
+  const jwtSecret = configService.get<string>('JWT_SECRET');
+  if (!jwtSecret || jwtSecret.length < 32 || jwtSecret.includes('super-secret') || jwtSecret.includes('placeholder')) {
+    logger.error(
+      'FATAL CONFIGURATION ERROR (SEC-02): JWT_SECRET must be configured with at least 32 cryptographically random characters and must not contain insecure placeholder values.',
+    );
+    process.exit(1);
+  }
 
   // Security and parser middlewares
   app.use(
@@ -24,7 +34,8 @@ async function bootstrap() {
       crossOriginResourcePolicy: false,
     }),
   );
-  app.use(cookieParser());
+  const cookieMiddleware = (cookieParser as any).default || cookieParser;
+  app.use(cookieMiddleware());
 
   // CORS configuration
   app.enableCors({
@@ -34,10 +45,50 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Org-Id'],
   });
 
-  // Global routing prefix & envelopes
+  // Global routing prefix, pipes & envelopes
   app.setGlobalPrefix('api/v1');
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalInterceptors(new TransformInterceptor());
+
+  // SEC-15: Swagger / OpenAPI Production Access Gate
+  const isProduction = configService.get<string>('NODE_ENV') === 'production';
+  const enableSwaggerInProd = configService.get<string>('ENABLE_SWAGGER_IN_PROD') === 'true';
+
+  if (!isProduction || enableSwaggerInProd) {
+    const options = new DocumentBuilder()
+      .setTitle('CMS Headless API')
+      .setDescription('REST API documentation for the CMS Headless content management system')
+      .setVersion('1.0')
+      .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'JWT Bearer token for user management endpoints' }, 'bearer')
+      .addApiKey({ type: 'apiKey', in: 'header', name: 'Authorization', description: 'Organization API Key (e.g. sk_live_...)' }, 'api-key')
+      .addApiKey({ type: 'apiKey', in: 'header', name: 'x-api-key', description: 'Organization API Key (e.g. sk_live_...)' }, 'x-api-key')
+      .addTag('Auth')
+      .addTag('Organizations')
+      .addTag('Schemas')
+      .addTag('Components')
+      .addTag('Content')
+      .addTag('Templates')
+      .addTag('Render')
+      .addTag('API Keys')
+      .addTag('Roles')
+      .addTag('Audit')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, options);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+    logger.log(`Swagger documentation initialized at: http://localhost:${port}/api/docs`);
+  } else {
+    logger.log('Swagger documentation disabled in production (set ENABLE_SWAGGER_IN_PROD=true to override)');
+  }
 
   await app.listen(port);
   logger.log(`CMS Backend API is running at: http://localhost:${port}/api/v1`);

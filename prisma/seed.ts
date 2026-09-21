@@ -55,6 +55,15 @@ async function main() {
 
     // Audit
     { action: Permissions.AUDIT_READ, description: 'Read audit logs', group: 'Audit' },
+
+    // Scheduler & Queue
+    { action: Permissions.SCHEDULER_CREATE, description: 'Create email schedulers', group: 'Scheduler' },
+    { action: Permissions.SCHEDULER_READ, description: 'View email schedulers and history', group: 'Scheduler' },
+    { action: Permissions.SCHEDULER_UPDATE, description: 'Update email schedulers and cancel dispatches', group: 'Scheduler' },
+    { action: Permissions.SCHEDULER_DELETE, description: 'Delete email schedulers', group: 'Scheduler' },
+    { action: Permissions.SCHEDULER_DISPATCH, description: 'Trigger and retry email dispatches', group: 'Scheduler' },
+    { action: Permissions.QUEUE_MANAGE, description: 'Create and reinitialize dynamic queues', group: 'Queue' },
+    { action: Permissions.QUEUE_READ, description: 'View dynamic email queues', group: 'Queue' },
   ];
 
   for (const p of permissionList) {
@@ -68,21 +77,23 @@ async function main() {
   console.log('Seeding system roles...');
 
   for (const roleName of [SystemRoles.SUPER_ADMIN, SystemRoles.EDITOR, SystemRoles.VIEWER]) {
-    const role = await prisma.role.upsert({
+    let role = await prisma.role.findFirst({
       where: {
-        orgId_name: {
-          orgId: null as any,
-          name: roleName,
-        },
-      },
-      update: {},
-      create: {
         name: roleName,
-        isSystem: true,
         orgId: null,
-        description: `System defined ${roleName} role`,
       },
     });
+
+    if (!role) {
+      role = await prisma.role.create({
+        data: {
+          name: roleName,
+          isSystem: true,
+          orgId: null,
+          description: `System defined ${roleName} role`,
+        },
+      });
+    }
 
     const rolePerms = DEFAULT_ROLE_PERMISSIONS[roleName];
     for (const permAction of rolePerms) {
@@ -102,6 +113,23 @@ async function main() {
           },
         });
       }
+    }
+  }
+
+  console.log('Seeding default email queues for organizations...');
+  const orgs = await prisma.organization.findMany();
+  for (const org of orgs) {
+    const queueCount = await prisma.emailQueue.count({ where: { orgId: org.id } });
+    if (queueCount === 0) {
+      await prisma.emailQueue.create({
+        data: {
+          orgId: org.id,
+          name: 'default',
+          description: 'Default transactional email queue',
+          concurrency: 5,
+          status: 'ACTIVE',
+        },
+      });
     }
   }
 

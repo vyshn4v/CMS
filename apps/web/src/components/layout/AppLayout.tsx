@@ -3,21 +3,28 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Layers,
+  Boxes,
   FileText,
   FileCode,
+  CalendarClock,
   Key,
+  History,
   Settings,
   LogOut,
   Building2,
-  ChevronDown,
+  BookOpen,
+  ExternalLink,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../lib/api';
+import { OrgSwitcher } from './OrgSwitcher';
+import { ContentTypeDto } from '@cms/shared-types';
 
 export const AppLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, activeOrg, organizations, setActiveOrg, logout } = useAuthStore();
+  const { user, activeOrg, logout } = useAuthStore();
 
   const handleLogout = async () => {
     try {
@@ -29,14 +36,17 @@ export const AppLayout: React.FC = () => {
     navigate('/login');
   };
 
-  const navItems = [
-    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Content', path: '/content', icon: FileText },
-    { label: 'Schema Builder', path: '/schemas', icon: Layers },
-    { label: 'Templates', path: '/templates', icon: FileCode },
-    { label: 'API Keys', path: '/settings/api-keys', icon: Key },
-    { label: 'Settings', path: '/settings/members', icon: Settings },
-  ];
+  const orgId = activeOrg?.id;
+
+  const { data: schemas = [] } = useQuery<ContentTypeDto[]>({
+    queryKey: ['schemas', orgId],
+    queryFn: async () => {
+      if (!orgId) return [];
+      const res = await api.get(`/orgs/${orgId}/schemas`);
+      return res.data.data;
+    },
+    enabled: !!orgId,
+  });
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
@@ -54,48 +64,171 @@ export const AppLayout: React.FC = () => {
 
         {/* Org Selector */}
         <div className="p-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="relative">
-            <select
-              value={activeOrg?.id || ''}
-              onChange={(e) => {
-                const selected = organizations.find((o) => o.id === e.target.value);
-                if (selected) setActiveOrg(selected);
-              }}
-              className="w-full appearance-none rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-8"
-            >
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name} ({org.role})
-                </option>
-              ))}
-              {organizations.length === 0 && (
-                <option value="">No Organizations Found</option>
-              )}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
-          </div>
+          <OrgSwitcher />
         </div>
 
         {/* Navigation Links */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
+          <Link
+            to="/dashboard"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname === '/dashboard'
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Dashboard
+          </Link>
+
+          <Link
+            to="/content"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname === '/content'
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            Content Manager
+          </Link>
+
+          {/* Collection Types Dynamic Subtree */}
+          {schemas.length > 0 && (
+            <div className="pt-2 pb-1">
+              <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Collection Models
+              </span>
+              <div className="mt-1 space-y-0.5">
+                {schemas.map((s) => {
+                  const isModelActive = location.pathname.startsWith(`/content/${s.slug}`);
+                  return (
+                    <Link
+                      key={s.id}
+                      to={`/content/${s.slug}`}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                        isModelActive
+                          ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                          isModelActive
+                            ? 'bg-indigo-600 dark:bg-indigo-400'
+                            : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      />
+                      <span className="truncate">{s.name}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-2 pb-1">
+            <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Builder & Tools
+            </span>
+          </div>
+
+          <Link
+            to="/schemas"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname.startsWith('/schemas')
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Layers className="h-4 w-4" />
+            Schema Builder
+          </Link>
+
+          <Link
+            to="/components"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname.startsWith('/components')
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Boxes className="h-4 w-4" />
+            Component Library
+          </Link>
+
+          <Link
+            to="/templates"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname.startsWith('/templates')
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <FileCode className="h-4 w-4" />
+            Templates
+          </Link>
+
+          <Link
+            to="/scheduler"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname.startsWith('/scheduler')
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <CalendarClock className="h-4 w-4" />
+            Scheduler
+          </Link>
+
+          <Link
+            to="/settings/api-keys"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname === '/settings/api-keys'
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Key className="h-4 w-4" />
+            API Keys
+          </Link>
+
+          <Link
+            to="/settings/audit-logs"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname === '/settings/audit-logs'
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <History className="h-4 w-4" />
+            Audit Logs
+          </Link>
+
+          <a
+            href="http://localhost:5000/api/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <BookOpen className="h-4 w-4" />
+            API Docs
+            <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+          </a>
+
+          <Link
+            to="/settings/members"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition ${
+              location.pathname.startsWith('/settings') &&
+              location.pathname !== '/settings/api-keys' &&
+              location.pathname !== '/settings/audit-logs'
+                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            Settings
+          </Link>
         </nav>
 
         {/* User Info & Logout */}

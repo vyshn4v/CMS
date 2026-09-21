@@ -6,7 +6,21 @@ import { api } from './lib/api';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
-import { ContentPage, SchemasPage, TemplatesPage, SettingsPage } from './pages/common/SectionPages';
+import { ContentDashboardPage } from './pages/content/ContentDashboardPage';
+import { ContentListPage } from './pages/content/ContentListPage';
+import { ContentEditorPage } from './pages/content/ContentEditorPage';
+import { SchemasListPage } from './pages/schemas/SchemasListPage';
+import { SchemaBuilderPage } from './pages/schemas/SchemaBuilderPage';
+import { ComponentsListPage } from './pages/components/ComponentsListPage';
+import { ComponentBuilderPage } from './pages/components/ComponentBuilderPage';
+import { TemplatesListPage } from './pages/templates/TemplatesListPage';
+import { TemplateEditorPage } from './pages/templates/TemplateEditorPage';
+import { SettingsLayout } from './pages/settings/SettingsLayout';
+import { MembersPage } from './pages/settings/MembersPage';
+import { RolesPage } from './pages/settings/RolesPage';
+import { ApiKeysPage } from './pages/settings/ApiKeysPage';
+import { AuditLogPage } from './pages/settings/AuditLogPage';
+import { SchedulerHubPage } from './pages/scheduler/SchedulerHubPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -54,7 +68,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return () => {
       isMounted = false;
     };
-  }, [location.pathname, navigate, setActiveOrg, setLoading, setOrganizations, setUser]);
+  }, []);
 
   if (isLoading) {
     return (
@@ -91,10 +105,40 @@ export const App: React.FC = () => {
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="content/*" element={<ContentPage />} />
-            <Route path="schemas/*" element={<SchemasPage />} />
-            <Route path="templates/*" element={<TemplatesPage />} />
-            <Route path="settings/*" element={<SettingsPage />} />
+
+            {/* Content Entries Studio */}
+            <Route path="content" element={<ContentDashboardPage />} />
+            <Route path="content/:slug" element={<ContentListPage />} />
+            <Route path="content/:slug/new" element={<ContentEditorPage />} />
+            <Route path="content/:slug/:id" element={<ContentEditorPage />} />
+
+            {/* Schema Builder */}
+            <Route path="schemas" element={<SchemasListPage />} />
+            <Route path="schemas/new" element={<SchemaBuilderPage />} />
+            <Route path="schemas/:id" element={<SchemaBuilderPage />} />
+
+            {/* Component Library */}
+            <Route path="components" element={<ComponentsListPage />} />
+            <Route path="components/new" element={<ComponentBuilderPage />} />
+            <Route path="components/:id" element={<ComponentBuilderPage />} />
+
+            {/* Templates Studio */}
+            <Route path="templates" element={<TemplatesListPage />} />
+            <Route path="templates/new" element={<TemplateEditorPage />} />
+            <Route path="templates/:id" element={<TemplateEditorPage />} />
+
+            {/* Email Scheduler Hub */}
+            <Route path="scheduler" element={<SchedulerHubPage />} />
+
+            {/* Settings & RBAC */}
+            <Route path="settings" element={<SettingsLayout />}>
+              <Route index element={<Navigate to="members" replace />} />
+              <Route path="members" element={<MembersPage />} />
+              <Route path="roles" element={<RolesPage />} />
+              <Route path="api-keys" element={<ApiKeysPage />} />
+              <Route path="audit-logs" element={<AuditLogPage />} />
+              <Route path="audit-log" element={<Navigate to="audit-logs" replace />} />
+            </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

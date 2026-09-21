@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { UserDto } from '@cms/shared-types';
 
-interface OrganizationBasic {
+export interface OrganizationBasic {
   id: string;
   name: string;
   slug: string;
   role: string;
+  permissions?: string[];
 }
 
 interface AuthState {

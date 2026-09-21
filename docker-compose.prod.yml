@@ -1,0 +1,85 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cms_prod_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cms_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cms_secure_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-cms_prod}
+    volumes:
+      - prod_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cms_user} -d ${POSTGRES_DB:-cms_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - cms_prod_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: cms_prod_redis
+    restart: always
+    command: ["redis-server", "--maxmemory", "50mb", "--maxmemory-policy", "allkeys-lru", "--appendonly", "yes"]
+    volumes:
+      - prod_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - cms_prod_net
+
+  cms:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cms_prod_app
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cms_user}:${POSTGRES_PASSWORD:-cms_secure_pass}@postgres:5432/${POSTGRES_DB:-cms_prod}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-cms_production_secret_key_change_me}
+      JWT_EXPIRY: ${JWT_EXPIRY:-24h}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      ALLOWED_EMAILS: ${ALLOWED_EMAILS:-}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:5000}
+      STATIC_PATH: /app/apps/web/dist
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - cms_prod_net
+
+volumes:
+  prod_postgres_data:
+    name: cms_prod_postgres_data
+  prod_redis_data:
+    name: cms_prod_redis_data
+
+networks:
+  cms_prod_net:
+    name: cms_prod_net
+    driver: bridge

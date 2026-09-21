@@ -16,6 +16,22 @@ enum TemplateType {
   EMAIL
   HTML_PAGE
   JSON
+  CUSTOM
+}
+
+enum ScheduledEmailStatus {
+  SCHEDULED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum QueueStatus {
+  ACTIVE
+  PENDING_INITIALIZATION
+  PAUSED
+  ERROR
 }
 
 enum ContentTypeKind {
@@ -56,6 +72,9 @@ model Organization {
   templates    Template[]
   apiKeys      ApiKey[]
   auditLogs    AuditLog[]
+  emailQueues     EmailQueue[]
+  emailSchedulers EmailScheduler[]
+  scheduledEmails ScheduledEmail[]
 
   @@map("organizations")
 }
@@ -126,8 +145,9 @@ model ContentType {
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
   org       Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  entries   ContentEntry[]
-  templates Template[]
+  entries         ContentEntry[]
+  templates       Template[]
+  emailSchedulers EmailScheduler[]
 
   @@unique([orgId, slug])
   @@map("content_types")
@@ -163,7 +183,12 @@ model ContentEntry {
   contentType ContentType  @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
   org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  emailSchedulers EmailScheduler[]
 
+  @@index([orgId, contentTypeId])
+  @@index([orgId, status])
+  @@index([orgId, createdAt])
+  @@index([contentTypeId, status])
   @@map("content_entries")
 }
 
@@ -172,7 +197,9 @@ model Template {
   orgId             String       @map("org_id")
   contentTypeId     String?      @map("content_type_id")
   name              String
-  type              TemplateType @default(EMAIL)
+  type              TemplateType @default(CUSTOM)
+  fieldsDraft       Json?        @map("fields_draft")
+  fieldsPublished   Json?        @map("fields_published")
   bodyDraft         String       @map("body_draft") @db.Text
   bodyPublished     String?      @map("body_published") @db.Text
   subjectDraft      String?      @map("subject_draft")
@@ -182,9 +209,12 @@ model Template {
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
 
-  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  contentType ContentType? @relation(fields: [contentTypeId], references: [id], onDelete: SetNull)
+  org             Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  contentType     ContentType?     @relation(fields: [contentTypeId], references: [id], onDelete: SetNull)
+  emailSchedulers EmailScheduler[]
 
+  @@index([orgId, contentTypeId])
+  @@index([orgId, status])
   @@map("templates")
 }
 
@@ -203,6 +233,8 @@ model ApiKey {
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   createdBy User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
+  @@index([orgId, isActive])
+  @@index([keyPrefix])
   @@map("api_keys")
 }
 
@@ -220,5 +252,87 @@ model AuditLog {
   org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   user User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([orgId, createdAt(sort: Desc)])
+  @@index([orgId, action])
+  @@index([orgId, resourceType])
   @@map("audit_logs")
 }
+
+model EmailQueue {
+  id          String      @id @default(uuid())
+  orgId       String      @map("org_id")
+  name        String      // Unique per org, e.g. "transactional-high", "default"
+  description String?
+  concurrency Int         @default(5)
+  status      QueueStatus @default(PENDING_INITIALIZATION)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  org             Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  schedulers      EmailScheduler[]
+  scheduledEmails ScheduledEmail[]
+
+  @@unique([orgId, name])
+  @@map("email_queues")
+}
+
+model EmailScheduler {
+  id            String    @id @default(uuid())
+  orgId         String    @map("org_id")
+  queueId       String    @map("queue_id")
+  templateId    String?   @map("template_id")
+  contentTypeId String?   @map("content_type_id") // Optional bound Content Model
+  sourceType    String    @default("TEMPLATE") @map("source_type") // 'TEMPLATE' | 'ENTRY'
+  entryId       String?   @map("entry_id")
+  name          String
+  description   String?
+  defaultFrom   String?   @map("default_from")   // Optional custom sender address (defaults to SMTP_FROM in .env)
+  defaultTo     String?   @map("default_to")     // Optional fallback recipient
+  defaultCc     String?   @map("default_cc")
+  subjectMapping String?  @map("subject_mapping") // Schema key or expression mapped to email Subject
+  bodyMapping    String?  @map("body_mapping")    // Schema key or expression mapped to email Body
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  org             Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  queue           EmailQueue       @relation(fields: [queueId], references: [id], onDelete: Restrict)
+  template        Template?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  contentType     ContentType?     @relation(fields: [contentTypeId], references: [id], onDelete: SetNull)
+  entry           ContentEntry?    @relation(fields: [entryId], references: [id], onDelete: SetNull)
+  scheduledEmails ScheduledEmail[]
+
+  @@index([orgId, isActive])
+  @@map("email_schedulers")
+}
+
+model ScheduledEmail {
+  id            String               @id @default(uuid())
+  orgId         String               @map("org_id")
+  schedulerId   String               @map("scheduler_id")
+  queueId       String               @map("queue_id")
+  bullJobId     String?              @map("bull_job_id")
+  from          String?              @map("from")           // Resolved sender address (defaults to SMTP_FROM in .env)
+  to            String
+  cc            String?
+  bcc           String?
+  subject       String?
+  data          Json                 // The runtime payload merged into the template
+  status        ScheduledEmailStatus @default(SCHEDULED)
+  scheduledFor  DateTime             @map("scheduled_for")
+  processedAt   DateTime?            @map("processed_at")
+  attempts      Int                  @default(0)
+  errorMessage  String?              @map("error_message") @db.Text
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+
+  org       Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  scheduler EmailScheduler @relation(fields: [schedulerId], references: [id], onDelete: Cascade)
+  queue     EmailQueue     @relation(fields: [queueId], references: [id], onDelete: Restrict)
+
+  @@index([orgId, status])
+  @@index([orgId, scheduledFor])
+  @@index([schedulerId, status])
+  @@map("scheduled_emails")
+}
+

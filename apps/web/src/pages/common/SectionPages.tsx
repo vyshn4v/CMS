@@ -25,10 +25,10 @@ export const TemplatesPage: React.FC = () => (
   />
 );
 
-export const SettingsPage: React.FC = () => (
+export const ApiKeysPage: React.FC = () => (
   <PlaceholderPage
-    title="Organization Settings & API Keys"
-    description="Manage team members, RBAC custom roles, and issue org-scoped API keys for the /render endpoint."
-    phase="Phase 2 & Phase 6"
+    title="Delivery API Keys"
+    description="Issue, name, and revoke organization-scoped API keys to consume the /render endpoint."
+    phase="Phase 6"
   />
 );

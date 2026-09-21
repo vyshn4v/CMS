@@ -43,6 +43,15 @@ export const Permissions = {
 
   // Audit permissions
   AUDIT_READ: 'audit.read',
+
+  // Scheduler & Queue permissions
+  SCHEDULER_CREATE: 'scheduler.create',
+  SCHEDULER_READ: 'scheduler.read',
+  SCHEDULER_UPDATE: 'scheduler.update',
+  SCHEDULER_DELETE: 'scheduler.delete',
+  SCHEDULER_DISPATCH: 'scheduler.dispatch',
+  QUEUE_MANAGE: 'queue.manage',
+  QUEUE_READ: 'queue.read',
 } as const;
 
 export type Permission = (typeof Permissions)[keyof typeof Permissions];
@@ -73,6 +82,13 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
     Permissions.TEMPLATE_PUBLISH,
     Permissions.SCHEMA_READ,
     Permissions.ORG_READ,
+    Permissions.SCHEDULER_CREATE,
+    Permissions.SCHEDULER_READ,
+    Permissions.SCHEDULER_UPDATE,
+    Permissions.SCHEDULER_DELETE,
+    Permissions.SCHEDULER_DISPATCH,
+    Permissions.QUEUE_MANAGE,
+    Permissions.QUEUE_READ,
   ],
   [SystemRoles.VIEWER]: [
     Permissions.CONTENT_READ,
@@ -80,5 +96,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
     Permissions.SCHEMA_READ,
     Permissions.ORG_READ,
     Permissions.AUDIT_READ,
+    Permissions.SCHEDULER_READ,
+    Permissions.QUEUE_READ,
   ],
 };

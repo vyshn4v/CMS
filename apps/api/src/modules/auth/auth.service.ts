@@ -135,7 +135,15 @@ export class AuthService {
         memberships: {
           include: {
             org: true,
-            role: true,
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -154,12 +162,20 @@ export class AuthService {
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       },
-      organizations: user.memberships.map((m) => ({
-        id: m.org.id,
-        name: m.org.name,
-        slug: m.org.slug,
-        role: m.role.name,
-      })),
+      organizations: user.memberships.map((m) => {
+        const perms =
+          m.role.isSystem && m.role.name === SystemRoles.SUPER_ADMIN
+            ? ['*']
+            : m.role.rolePermissions.map((rp) => rp.permission.action);
+
+        return {
+          id: m.org.id,
+          name: m.org.name,
+          slug: m.org.slug,
+          role: m.role.name,
+          permissions: perms,
+        };
+      }),
     };
   }
 }
