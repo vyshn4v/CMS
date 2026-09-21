@@ -75,6 +75,9 @@
       "/node_modules/",
       "/dist/"
     ],
+    "moduleNameMapper": {
+      "^@cms/shared-types$": "<rootDir>/../../../libs/shared-types/src/index.ts"
+    },
     "testEnvironment": "node"
   }
 }

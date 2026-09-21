@@ -132,7 +132,7 @@ export class TemplateService {
         const cleanFields: Record<string, string> = {};
         for (const [key, val] of Object.entries(fieldsDraft)) {
           if (allowedFields.has(key)) {
-            cleanFields[key] = val;
+            cleanFields[key] = val as string;
           }
         }
         fieldsDraft = cleanFields;
@@ -207,7 +207,7 @@ export class TemplateService {
           const cleanFields: Record<string, string> = {};
           for (const [key, val] of Object.entries(fieldsDraft)) {
             if (allowedFields.has(key)) {
-              cleanFields[key] = val;
+              cleanFields[key] = val as string;
             }
           }
           fieldsDraft = cleanFields;
