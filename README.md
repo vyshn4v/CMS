@@ -128,6 +128,10 @@ npm run test:e2e -w @cms/api
 
 The system is optimized to build into a lightweight Alpine container that serves both the API and the React SPA on a single port (`5000`) under a strict 1GB RAM budget.
 
+### Automated CI/CD & Remote Server Deployment
+For automated continuous deployment using **GitHub Actions**, **SSH**, and **PM2** directly to your remote Linux VM (Ubuntu/Oracle Cloud), see the full guide:
+👉 **[DEPLOYMENT.md](./DEPLOYMENT.md)**
+
 ### Run with Production Docker Compose
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
