@@ -190,30 +190,17 @@ sudo apt-get install -y nginx certbot python3-certbot-nginx
 ```
 
 ### B. Configure Nginx Site
-Create `/etc/nginx/sites-available/cms`:
-```nginx
-server {
-    listen 80;
-    server_name cms.yourdomain.com;
+A production-hardened configuration is included in the project at [`nginx/cms.conf`](./nginx/cms.conf) (automatically unpacked into your deployment directory `/home/ubuntu/cms-backend/nginx/cms.conf`):
 
-    # Client-side file upload limits
-    client_max_body_size 20M;
+```bash
+# Copy the pre-configured Nginx file
+sudo cp /home/ubuntu/cms-backend/nginx/cms.conf /etc/nginx/sites-available/cms
 
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
+# Edit to set your domain name or server IP
+sudo nano /etc/nginx/sites-available/cms
 ```
 
-Enable site and restart Nginx:
+Enable the site and verify Nginx syntax:
 ```bash
 sudo ln -s /etc/nginx/sites-available/cms /etc/nginx/sites-enabled/
 sudo nginx -t

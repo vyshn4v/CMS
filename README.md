@@ -137,6 +137,29 @@ For automated continuous deployment using **GitHub Actions**, **SSH**, and **PM2
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
+### 🌐 Nginx Reverse Proxy & SSL (Production Gateway)
+A production-ready Nginx configuration is provided at [`nginx/cms.conf`](./nginx/cms.conf). It handles SSL termination, Gzip compression, WebSocket upgrades, client upload buffers, and routes standard HTTP (`80`) and HTTPS (`443`) traffic to the CMS monolith running on port `5000`:
+
+1. **Install Nginx & Certbot** (on Ubuntu/Debian):
+   ```bash
+   sudo apt-get update && sudo apt-get install -y nginx certbot python3-certbot-nginx
+   ```
+2. **Copy Configuration**:
+   ```bash
+   sudo cp nginx/cms.conf /etc/nginx/sites-available/cms
+   ```
+3. **Configure Domain**: Edit `/etc/nginx/sites-available/cms` and replace `cms.yourdomain.com` with your actual domain or server IP.
+4. **Enable Site & Restart Nginx**:
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/cms /etc/nginx/sites-enabled/
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+5. **Issue Free SSL with Let's Encrypt**:
+   ```bash
+   sudo certbot --nginx -d cms.yourdomain.com
+   ```
+
 ### Resource Allocation (1GB Oracle Cloud Budget)
 | Component | Memory Limit | Purpose |
 |:----------|:-------------|:--------|

@@ -110,6 +110,7 @@ jobs:
             package-lock.json \
             ecosystem.config.js \
             prisma \
+            nginx \
             libs/shared-types/package.json \
             libs/shared-types/dist \
             apps/api/package.json \
