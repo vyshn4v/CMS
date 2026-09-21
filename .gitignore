@@ -50,3 +50,7 @@ prisma/dev.db-journal
 
 # Graphify output
 graphify-out/
+
+# Agent configuration and internal skills
+.agents/
+
