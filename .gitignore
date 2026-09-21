@@ -55,3 +55,7 @@ graphify-out/
 # Security reports & documents
 *SECURITY_AUDIT*
 security/
+
+# Agent configuration and internal skills
+.agents/
+
