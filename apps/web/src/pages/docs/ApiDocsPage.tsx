@@ -40,9 +40,7 @@ interface EndpointDoc {
 export const ApiDocsPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
   const orgId = activeOrg?.id || 'YOUR_ORG_ID';
-  const baseUrl = window.location.origin.includes('5173')
-    ? 'http://localhost:5000/api/v1'
-    : `${window.location.origin}/api/v1`;
+  const baseUrl = `${window.location.origin}/api/v1`;
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -407,7 +405,7 @@ export const ApiDocsPage: React.FC = () => {
 
   const downloadOpenApiSpec = () => {
     const link = document.createElement('a');
-    link.href = '/openapi.json';
+    link.href = '/api/docs-json';
     link.download = 'openapi.json';
     link.click();
   };

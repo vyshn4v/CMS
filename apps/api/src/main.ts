@@ -66,6 +66,7 @@ async function bootstrap() {
       .setTitle('CMS Headless API')
       .setDescription('REST API documentation for the CMS Headless content management system')
       .setVersion('1.0')
+      .addServer('/', 'Current Origin')
       .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT', description: 'JWT Bearer token for user management endpoints' }, 'bearer')
       .addApiKey({ type: 'apiKey', in: 'header', name: 'Authorization', description: 'Organization API Key (e.g. sk_live_...)' }, 'api-key')
       .addApiKey({ type: 'apiKey', in: 'header', name: 'x-api-key', description: 'Organization API Key (e.g. sk_live_...)' }, 'x-api-key')
@@ -84,6 +85,7 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, options);
     SwaggerModule.setup('api/docs', app, document, {
       swaggerOptions: { persistAuthorization: true },
+      customSiteTitle: 'CMS Headless API Documentation',
     });
     logger.log(`Swagger documentation initialized at: http://localhost:${port}/api/docs`);
   } else {

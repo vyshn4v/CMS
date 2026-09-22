@@ -8,7 +8,6 @@ import {
   Shield,
   Info,
   Calendar,
-  KeyRound,
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
