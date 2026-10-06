@@ -54,7 +54,16 @@ export class AuditService {
     const limit = Math.min(100, Math.max(1, Number(query.limit) || 20));
     const skip = (page - 1) * limit;
 
-    const cacheKey = `audit:logs:${orgId}:p${page}:l${limit}:a${query.action || 'ALL'}:r${query.resourceType || 'ALL'}:u${query.userId || 'ALL'}:s${query.startDate || ''}:e${query.endDate || ''}:q${query.search || ''}`;
+    const cacheKey = `audit:logs:${orgId}:${JSON.stringify({
+      page,
+      limit,
+      action: query.action ?? null,
+      resourceType: query.resourceType ?? null,
+      userId: query.userId ?? null,
+      startDate: query.startDate ?? null,
+      endDate: query.endDate ?? null,
+      search: query.search ?? null,
+    })}`;
 
     if (this.redisService?.isReady()) {
       const cached = await this.redisService.getAuditLogs<AuditLogListResponse>(cacheKey);
