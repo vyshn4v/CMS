@@ -15,6 +15,9 @@ export class UpdateOrganizationDto {
   @ApiPropertyOptional({ example: 'Acme Corp', description: 'Updated organization name' })
   name?: string;
 
+  @ApiPropertyOptional({ example: 'acme-corp', description: 'Updated organization slug' })
+  slug?: string;
+
   @ApiPropertyOptional({ example: 'https://example.com/new-logo.png' })
   logoUrl?: string;
 }

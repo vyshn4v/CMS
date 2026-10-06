@@ -55,6 +55,11 @@ export class OrgService {
    * Retrieve single organization details.
    */
   async getOrg(orgId: string): Promise<OrganizationDto> {
+    if (this.redisService?.isReady()) {
+      const cached = await this.redisService.getOrgDetails<OrganizationDto>(orgId);
+      if (cached) return cached;
+    }
+
     const org = await this.prisma.organization.findUnique({
       where: { id: orgId },
     });
@@ -63,7 +68,7 @@ export class OrgService {
       throw new NotFoundException('Organization not found');
     }
 
-    return {
+    const result: OrganizationDto = {
       id: org.id,
       name: org.name,
       slug: org.slug,
@@ -71,6 +76,12 @@ export class OrgService {
       createdAt: org.createdAt.toISOString(),
       updatedAt: org.updatedAt.toISOString(),
     };
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.setOrgDetails(orgId, result, 60);
+    }
+
+    return result;
   }
 
   /**
@@ -140,13 +151,37 @@ export class OrgService {
       throw new NotFoundException('Organization not found');
     }
 
+    if (input.slug !== undefined && typeof input.slug !== 'string') {
+      throw new BadRequestException('slug must be a string');
+    }
+    if (input.name !== undefined && typeof input.name !== 'string') {
+      throw new BadRequestException('name must be a string');
+    }
+
+    let newSlug = org.slug;
+    if (input.slug !== undefined && input.slug.trim().length > 0) {
+      const sanitizedSlug = input.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      if (sanitizedSlug !== org.slug) {
+        const existing = await this.prisma.organization.findUnique({ where: { slug: sanitizedSlug } });
+        if (existing && existing.id !== orgId) {
+          throw new BadRequestException('Workspace slug is already in use by another workspace');
+        }
+        newSlug = sanitizedSlug;
+      }
+    }
+
     const updated = await this.prisma.organization.update({
       where: { id: orgId },
       data: {
-        name: input.name !== undefined ? input.name.trim() : org.name,
+        name: input.name !== undefined && input.name.trim().length > 0 ? input.name.trim() : org.name,
+        slug: newSlug,
         logoUrl: input.logoUrl !== undefined ? input.logoUrl : org.logoUrl,
       },
     });
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateOrgDetails(orgId);
+    }
 
     return {
       id: updated.id,
@@ -162,6 +197,11 @@ export class OrgService {
    * List all members and assigned roles within an organization.
    */
   async listMembers(orgId: string): Promise<OrgMemberDto[]> {
+    if (this.redisService?.isReady()) {
+      const cached = await this.redisService.getOrgMembers<OrgMemberDto[]>(orgId);
+      if (cached) return cached;
+    }
+
     const members = await this.prisma.orgMember.findMany({
       where: { orgId },
       include: {
@@ -171,7 +211,7 @@ export class OrgService {
       orderBy: { joinedAt: 'asc' },
     });
 
-    return members.map((m) => ({
+    const result = members.map((m) => ({
       id: m.id,
       userId: m.userId,
       orgId: m.orgId,
@@ -185,6 +225,12 @@ export class OrgService {
       },
       joinedAt: m.joinedAt.toISOString(),
     }));
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.setOrgMembers(orgId, result, 30);
+    }
+
+    return result;
   }
 
   /**
@@ -242,6 +288,10 @@ export class OrgService {
         role: true,
       },
     });
+
+    if (this.redisService?.isReady()) {
+      await this.redisService.invalidateOrgMembers(orgId);
+    }
 
     return {
       id: member.id,
@@ -326,6 +376,7 @@ export class OrgService {
     // SEC-08: Invalidate Redis permissions cache on role change
     if (this.redisService?.isReady()) {
       await this.redisService.invalidateUserPermissions(member.userId, orgId);
+      await this.redisService.invalidateOrgMembers(orgId);
     }
 
     return {
@@ -384,6 +435,7 @@ export class OrgService {
     // SEC-08: Invalidate Redis permissions cache immediately upon removal
     if (this.redisService?.isReady()) {
       await this.redisService.invalidateUserPermissions(member.userId, orgId);
+      await this.redisService.invalidateOrgMembers(orgId);
     }
 
     return { success: true };
