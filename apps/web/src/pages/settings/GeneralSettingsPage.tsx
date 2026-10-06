@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
@@ -37,14 +37,22 @@ export const GeneralSettingsPage: React.FC = () => {
     enabled: !!orgId,
   });
 
-  // Sync state when orgData loads
+  // Track whether we have already seeded the form so that background
+  // re-fetches (or activeOrg updates) never overwrite in-progress edits.
+  const seededRef = useRef(false);
+
+  // Populate form fields only on first load; ignore subsequent orgData updates.
   useEffect(() => {
+    if (seededRef.current) return;
+
     if (orgData) {
       setName(orgData.name);
       setSlug(orgData.slug);
+      seededRef.current = true;
     } else if (activeOrg) {
       setName(activeOrg.name);
       setSlug(activeOrg.slug);
+      // Don't mark as seeded yet — wait for the full orgData fetch to confirm.
     }
   }, [orgData, activeOrg]);
 
@@ -69,7 +77,10 @@ export const GeneralSettingsPage: React.FC = () => {
           name: updated.name,
           slug: updated.slug,
         });
-        queryClient.invalidateQueries({ queryKey: ['org', orgId] });
+        // Write the authoritative server response directly into the cache so
+        // the form and any other consumers reflect the saved values immediately,
+        // without a redundant network round-trip that could stale-overwrite edits.
+        queryClient.setQueryData<OrganizationDto>(['org', orgId], updated);
       }
       setSuccessMessage('Workspace settings updated successfully!');
       setErrorMessage(null);
