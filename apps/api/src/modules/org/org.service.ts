@@ -151,6 +151,13 @@ export class OrgService {
       throw new NotFoundException('Organization not found');
     }
 
+    if (input.slug !== undefined && typeof input.slug !== 'string') {
+      throw new BadRequestException('slug must be a string');
+    }
+    if (input.name !== undefined && typeof input.name !== 'string') {
+      throw new BadRequestException('name must be a string');
+    }
+
     let newSlug = org.slug;
     if (input.slug !== undefined && input.slug.trim().length > 0) {
       const sanitizedSlug = input.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
