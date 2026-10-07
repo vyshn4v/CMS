@@ -5,13 +5,15 @@ import { Plus, ArrowRight, FileText, Database } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { ContentTypeDto } from '@cms/shared-types';
+import { CardGridSkeleton } from '../../components/ui/skeleton';
+import { Button, Badge, RefreshButton } from '../../components/ui';
 
 export const ContentDashboardPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
   const orgId = activeOrg?.id;
   const navigate = useNavigate();
 
-  const { data: schemas = [], isLoading } = useQuery<ContentTypeDto[]>({
+  const { data: schemas = [], isLoading, isFetching, refetch } = useQuery<ContentTypeDto[]>({
     queryKey: ['schemas', orgId],
     queryFn: async () => {
       if (!orgId) return [];
@@ -32,17 +34,21 @@ export const ContentDashboardPage: React.FC = () => {
             Manage, edit, and publish content entries for your structured content models.
           </p>
         </div>
-        <button
-          onClick={() => navigate('/schemas/new')}
-          className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Content Model</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={() => navigate('/schemas/new')}
+          >
+            New Content Model
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
-        <div className="p-12 text-center text-xs text-slate-400">Loading content models...</div>
+        <CardGridSkeleton cards={4} />
       ) : schemas.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center flex flex-col items-center justify-center">
           <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">
@@ -75,15 +81,9 @@ export const ContentDashboardPage: React.FC = () => {
                   <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
                     <FileText className="h-5 w-5" />
                   </div>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      schema.kind === 'COLLECTION'
-                        ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
-                        : 'bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400'
-                    }`}
-                  >
+                  <Badge variant={schema.kind === 'COLLECTION' ? 'blue' : 'purple'}>
                     {schema.kind}
-                  </span>
+                  </Badge>
                 </div>
 
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-3">

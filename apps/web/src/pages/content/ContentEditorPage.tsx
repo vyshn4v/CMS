@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BuilderSkeleton } from '../../components/ui/skeleton';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -170,7 +171,7 @@ export const ContentEditorPage: React.FC = () => {
   };
 
   if (isLoadingSchema || (isEditing && isLoadingEntry)) {
-    return <div className="p-8 text-center text-xs text-slate-400">Loading editor...</div>;
+    return <BuilderSkeleton />;
   }
 
   if (!contentType) {

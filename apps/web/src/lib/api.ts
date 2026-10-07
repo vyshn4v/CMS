@@ -9,6 +9,7 @@ export const api = axios.create({
   },
 });
 
+// ── Request interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use((config) => {
   const activeOrg = useAuthStore.getState().activeOrg;
   const storedOrgId = localStorage.getItem('cms_active_org_id');
@@ -21,6 +22,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// ── Response interceptors ────────────────────────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   (error) => {

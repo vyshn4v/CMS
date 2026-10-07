@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { CardGridSkeleton } from '../../components/ui/skeleton';
+import { Button, Badge, RefreshButton } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -29,7 +31,7 @@ export const ComponentsListPage: React.FC = () => {
   const [componentToDelete, setComponentToDelete] = useState<ComponentDto | null>(null);
 
   // Fetch components
-  const { data: components = [], isLoading } = useQuery<ComponentDto[]>({
+  const { data: components = [], isLoading, isFetching, refetch } = useQuery<ComponentDto[]>({
     queryKey: ['components', orgId],
     queryFn: async () => {
       if (!orgId) return [];
@@ -70,31 +72,32 @@ export const ComponentsListPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Boxes className="h-4 w-4" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               Component Library
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Design composable, reusable field groups (e.g., SEO metadata, Hero sections, FAQ items) to embed inside Content Types and Dynamic Zones.
+          <p className="text-xs text-slate-500 mt-1">
+            Design composable, reusable field groups to embed inside Content Types and Dynamic Zones.
           </p>
         </div>
 
-        {canCreateSchema && (
-          <Link
-            to="/components/new"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
-          >
-            <Plus className="h-4 w-4" />
-            Create Component
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          {canCreateSchema && (
+            <Link to="/components/new">
+              <Button variant="primary" size="sm" leftIcon={<Plus className="h-4 w-4" />}>
+                Create Component
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filter & Search Toolbar */}
@@ -141,10 +144,7 @@ export const ComponentsListPage: React.FC = () => {
 
       {/* Component Cards Grid */}
       {isLoading ? (
-        <div className="p-12 text-center text-slate-500">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent mb-2"></div>
-          <p className="text-xs">Loading component library...</p>
-        </div>
+        <CardGridSkeleton cards={6} />
       ) : filteredComponents.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
           <div className="h-12 w-12 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3">
@@ -194,9 +194,9 @@ export const ComponentsListPage: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                    <Badge variant="default" size="xs">
                       {component.category}
-                    </span>
+                    </Badge>
                   </div>
 
                   <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 pt-1">

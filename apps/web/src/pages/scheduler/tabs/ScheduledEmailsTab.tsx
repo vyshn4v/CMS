@@ -2,19 +2,25 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  XCircle,
   Eye,
   RefreshCw,
   Ban,
   Mail,
 } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { Input } from '../../../components/ui/input';
-import { EmptyState } from '../../../components/ui/empty-state';
+import {
+  Badge,
+  Input,
+  EmptyState,
+  TableSkeleton,
+  RefreshButton,
+  TableCard,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { EmailDetailsDrawer } from '../components/EmailDetailsDrawer';
 
@@ -28,7 +34,7 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
   const [search, setSearch] = useState('');
   const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
 
-  const { data: responseData, isLoading } = useQuery<any>({
+  const { data: responseData, isLoading, isFetching, refetch } = useQuery<any>({
     queryKey: ['scheduled-emails', orgId, statusFilter, search],
     queryFn: async () => {
       const params: any = {};
@@ -95,11 +101,12 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
             <option value="FAILED">Failed</option>
             <option value="CANCELLED">Cancelled</option>
           </select>
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="p-8 text-center text-xs text-slate-400">Loading email dispatch jobs...</div>
+        <TableSkeleton rows={5} columns={6} />
       ) : emails.length === 0 ? (
         <EmptyState
           icon={<Mail className="h-8 w-8 text-slate-400" />}
@@ -107,108 +114,93 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
           description="Emails dispatched or scheduled via UI or API will be tracked here in real-time."
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 text-slate-500">
-                <th className="py-3 px-4 font-semibold">Recipient (To)</th>
-                <th className="py-3 px-4 font-semibold">Scheduler Pipeline</th>
-                <th className="py-3 px-4 font-semibold">Scheduled For / Sent At</th>
-                <th className="py-3 px-4 font-semibold">Status</th>
-                <th className="py-3 px-4 font-semibold">Attempts</th>
-                <th className="py-3 px-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+        <TableCard>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Recipient (To)</TableHead>
+                <TableHead>Scheduler Pipeline</TableHead>
+                <TableHead>Scheduled For / Sent At</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Attempts</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {emails.map((e) => (
-                <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
-                  <td className="py-3 px-4">
+                <TableRow key={e.id}>
+                  <TableCell>
                     <div className="font-mono font-medium text-slate-900 dark:text-slate-100">
                       {e.to}
                     </div>
                     {e.subject && (
-                      <div className="text-[11px] text-slate-400 truncate max-w-xs">{e.subject}</div>
+                      <div className="text-[11px] text-slate-400 truncate max-w-xs mt-0.5">{e.subject}</div>
                     )}
-                  </td>
-                  <td className="py-3 px-4 font-medium text-indigo-600 dark:text-indigo-400">
+                  </TableCell>
+                  <TableCell className="font-medium text-indigo-600 dark:text-indigo-400">
                     {e.scheduler?.name || '—'}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-slate-500">
+                  </TableCell>
+                  <TableCell className="font-mono text-slate-500">
                     {new Date(e.scheduledFor).toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4">
-                    {e.status === 'COMPLETED' ? (
-                      <Badge variant="success" className="inline-flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        COMPLETED
-                      </Badge>
-                    ) : e.status === 'SCHEDULED' ? (
-                      <Badge variant="blue" className="inline-flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        SCHEDULED
-                      </Badge>
-                    ) : e.status === 'PROCESSING' ? (
-                      <Badge variant="warning" className="inline-flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
-                        PROCESSING
-                      </Badge>
-                    ) : e.status === 'CANCELLED' ? (
-                      <Badge variant="default" className="inline-flex items-center gap-1">
-                        <XCircle className="h-3 w-3" />
-                        CANCELLED
-                      </Badge>
-                    ) : (
-                      <Badge variant="danger" className="inline-flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        FAILED
-                      </Badge>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-slate-500">{e.attempts}</td>
-                  <td className="py-3 px-4 text-right">
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        e.status === 'COMPLETED'
+                          ? 'success'
+                          : e.status === 'SCHEDULED'
+                          ? 'blue'
+                          : e.status === 'PROCESSING'
+                          ? 'warning'
+                          : e.status === 'CANCELLED'
+                          ? 'default'
+                          : 'danger'
+                      }
+                      size="sm"
+                      dot
+                    >
+                      {e.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-slate-500">{e.attempts}</TableCell>
+                  <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <button
                         onClick={() => setSelectedEmail(e)}
-                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 h-7 w-7 p-0"
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition"
                         title="View details & payload"
                       >
                         <Eye className="h-3.5 w-3.5" />
-                      </Button>
+                      </button>
 
                       {e.status === 'SCHEDULED' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
                           onClick={() => cancelMutation.mutate(e.id)}
                           disabled={cancelMutation.isPending}
-                          className="text-slate-400 hover:text-amber-600 h-7 w-7 p-0"
+                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-400 hover:text-amber-600 disabled:opacity-40 transition"
                           title="Cancel pending dispatch"
                         >
                           <Ban className="h-3.5 w-3.5" />
-                        </Button>
+                        </button>
                       )}
 
                       {e.status === 'FAILED' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
                           onClick={() => retryMutation.mutate(e.id)}
                           disabled={retryMutation.isPending}
-                          className="text-slate-400 hover:text-indigo-600 h-7 w-7 p-0"
+                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-400 hover:text-indigo-600 disabled:opacity-40 transition"
                           title="Retry delivery now"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
-                        </Button>
+                        </button>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       )}
 
       <EmailDetailsDrawer

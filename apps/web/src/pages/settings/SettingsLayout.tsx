@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Building2, Users, Shield, Key, History } from 'lucide-react';
+import { LoadingScreen } from '../../components/ui/LoadingScreen';
 
 export const SettingsLayout: React.FC = () => {
   const tabs = [
@@ -12,12 +13,12 @@ export const SettingsLayout: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           Organization Settings
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           Manage workspace members, customize RBAC access control, and issue delivery API keys.
         </p>
       </div>
@@ -48,7 +49,9 @@ export const SettingsLayout: React.FC = () => {
       </div>
 
       <div>
-        <Outlet />
+        <React.Suspense fallback={<LoadingScreen label="Loading..." />}>
+          <Outlet />
+        </React.Suspense>
       </div>
     </div>
   );

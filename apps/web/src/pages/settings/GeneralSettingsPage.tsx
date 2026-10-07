@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { FormSkeleton } from '../../components/ui/skeleton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
@@ -111,14 +112,7 @@ export const GeneralSettingsPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
-          <p className="text-xs text-slate-400">Loading workspace settings...</p>
-        </div>
-      </div>
-    );
+    return <FormSkeleton />;
   }
 
   return (

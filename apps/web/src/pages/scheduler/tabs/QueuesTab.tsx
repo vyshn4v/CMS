@@ -1,9 +1,20 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Cpu, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { EmptyState } from '../../../components/ui/empty-state';
+import { Plus, Trash2, Cpu } from 'lucide-react';
+import {
+  Button,
+  Badge,
+  EmptyState,
+  TableSkeleton,
+  RefreshButton,
+  TableCard,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { ReinitializeBanner } from '../components/ReinitializeBanner';
 import { CreateQueueModal } from '../components/CreateQueueModal';
@@ -16,7 +27,12 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const { data: queuesData, isLoading } = useQuery<any>({
+  const {
+    data: queuesData,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery<any>({
     queryKey: ['queues', orgId],
     queryFn: async () => {
       const res = await api.get(`/orgs/${orgId}/queues`);
@@ -59,18 +75,21 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
             Runtime worker pools backed by Redis for delayed and immediate email dispatches.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setIsCreateOpen(true)}
-        >
-          Create Queue
-        </Button>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="w-4 h-4" />}
+            onClick={() => setIsCreateOpen(true)}
+          >
+            Create Queue
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
-        <div className="p-8 text-center text-xs text-slate-400">Loading dynamic queues...</div>
+        <TableSkeleton rows={4} columns={5} />
       ) : queues.length === 0 ? (
         <EmptyState
           icon={<Cpu className="h-8 w-8 text-slate-400" />}
@@ -88,83 +107,77 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 text-slate-500">
-                <th className="py-3 px-4 font-semibold">Queue Identifier</th>
-                <th className="py-3 px-4 font-semibold">Description</th>
-                <th className="py-3 px-4 font-semibold">Concurrency</th>
-                <th className="py-3 px-4 font-semibold">Status</th>
-                <th className="py-3 px-4 font-semibold">Runtime Worker</th>
-                <th className="py-3 px-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+        <TableCard>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Queue Identifier</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Concurrency</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Runtime Worker</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {queues.map((q) => (
-                <tr key={q.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
-                  <td className="py-3 px-4 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                <TableRow key={q.id}>
+                  <TableCell className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
                     {q.name}
-                  </td>
-                  <td className="py-3 px-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">
+                  </TableCell>
+                  <TableCell className="text-slate-500 dark:text-slate-400 max-w-xs truncate">
                     {q.description || '—'}
-                  </td>
-                  <td className="py-3 px-4">
+                  </TableCell>
+                  <TableCell>
                     <span className="inline-flex items-center gap-1 font-mono font-medium">
                       <Cpu className="h-3 w-3 text-slate-400" />
                       {q.concurrency} workers
                     </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    {q.status === 'ACTIVE' ? (
-                      <Badge variant="success" className="inline-flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        ACTIVE
-                      </Badge>
-                    ) : q.status === 'PENDING_INITIALIZATION' ? (
-                      <Badge variant="warning" className="inline-flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        PENDING REINIT
-                      </Badge>
-                    ) : (
-                      <Badge variant="danger" className="inline-flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {q.status}
-                      </Badge>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    {q.isRuntimeActive ? (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Listening
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
-                        <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700" />
-                        Idle / Pending
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <Button
-                      variant="ghost"
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        q.status === 'ACTIVE'
+                          ? 'success'
+                          : q.status === 'PENDING_INITIALIZATION'
+                          ? 'warning'
+                          : 'danger'
+                      }
                       size="sm"
-                      onClick={() => {
-                        if (confirm(`Delete queue "${q.name}"?`)) {
-                          deleteMutation.mutate(q.id);
-                        }
-                      }}
-                      className="text-slate-400 hover:text-rose-600 h-7 w-7 p-0"
+                      dot
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </td>
-                </tr>
+                      {q.status === 'PENDING_INITIALIZATION' ? 'PENDING REINIT' : q.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={q.isRuntimeActive ? 'success' : 'default'}
+                      size="sm"
+                      dot
+                    >
+                      {q.isRuntimeActive ? 'Listening' : 'Idle'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete queue "${q.name}"?`)) {
+                            deleteMutation.mutate(q.id);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 text-slate-400 transition"
+                        title="Delete Queue"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       )}
 
       <CreateQueueModal

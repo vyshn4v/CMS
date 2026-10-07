@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
+import { TableSkeleton } from '../../components/ui/skeleton';
+import {
+  Button,
+  Badge,
+  RefreshButton,
+  TableCard,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
-  CheckCircle,
-  Clock,
   Trash2,
   Edit3,
   Globe,
@@ -43,7 +54,12 @@ export const ContentListPage: React.FC = () => {
   });
 
   // Fetch entries
-  const { data: listData, isLoading: isLoadingEntries } = useQuery<ContentEntryListResponse>({
+  const {
+    data: listData,
+    isLoading: isLoadingEntries,
+    isFetching: isFetchingEntries,
+    refetch: refetchEntries,
+  } = useQuery<ContentEntryListResponse>({
     queryKey: ['contentEntries', orgId, slug, page, statusFilter],
     queryFn: async () => {
       if (!orgId || !slug) return { items: [], total: 0, page: 1, limit: 20, totalPages: 1 };
@@ -98,7 +114,7 @@ export const ContentListPage: React.FC = () => {
   };
 
   if (isLoadingSchema) {
-    return <div className="p-8 text-center text-xs text-slate-400">Loading model information...</div>;
+    return <TableSkeleton rows={6} columns={5} />;
   }
 
   if (!contentType) {
@@ -128,15 +144,9 @@ export const ContentListPage: React.FC = () => {
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {contentType.name}
             </h1>
-            <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                contentType.kind === 'COLLECTION'
-                  ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
-                  : 'bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400'
-              }`}
-            >
+            <Badge variant={contentType.kind === 'COLLECTION' ? 'blue' : 'purple'}>
               {contentType.kind}
-            </span>
+            </Badge>
           </div>
 
           <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-400">
@@ -163,6 +173,9 @@ export const ContentListPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Refresh Button */}
+          <RefreshButton onRefresh={refetchEntries} isRefreshing={isFetchingEntries} />
+
           {/* Status Filter */}
           <select
             value={statusFilter}
@@ -179,21 +192,24 @@ export const ContentListPage: React.FC = () => {
 
           {/* New Entry Button */}
           {canCreateContent && !(contentType.kind === 'SINGLE' && entries.length > 0) && (
-            <button
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus className="h-4 w-4" />}
               onClick={() => navigate(`/content/${slug}/new`)}
-              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
             >
-              <Plus className="h-4 w-4" />
-              <span>New Entry</span>
-            </button>
+              New Entry
+            </Button>
           )}
         </div>
       </div>
 
       {/* Entries Table Card */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+      <TableCard>
         {isLoadingEntries ? (
-          <div className="p-12 text-center text-xs text-slate-400">Loading content entries...</div>
+          <div className="p-4">
+            <TableSkeleton rows={5} columns={4} />
+          </div>
         ) : entries.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center">
             <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">
@@ -208,67 +224,62 @@ export const ContentListPage: React.FC = () => {
                 : 'No entries currently exist for this content model.'}
             </p>
             {canCreateContent && (
-              <button
+              <Button
                 onClick={() => navigate(`/content/${slug}/new`)}
-                className="mt-4 flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
+                variant="primary"
+                size="sm"
+                leftIcon={<Plus className="h-4 w-4" />}
+                className="mt-4"
               >
-                <Plus className="h-4 w-4" />
-                <span>Create Entry</span>
-              </button>
+                Create Entry
+              </Button>
             )}
           </div>
         ) : (
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-500 font-semibold uppercase tracking-wider">
-              <tr>
-                <th className="py-3 px-4">Entry / Preview</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Created By</th>
-                <th className="py-3 px-4">Last Updated</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Entry / Preview</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created By</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {entries.map((entry) => {
                 const isPublished = entry.status === 'PUBLISHED';
                 return (
-                  <tr
+                  <TableRow
                     key={entry.id}
-                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition cursor-pointer"
+                    className="cursor-pointer"
                     onClick={() => navigate(`/content/${slug}/${entry.id}`)}
                   >
-                    <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-100">
+                    <TableCell className="font-semibold text-slate-900 dark:text-slate-100">
                       <div>
                         <p>{getEntryPreview(entry.data)}</p>
                         <span className="text-[10px] font-mono text-slate-400">
                           ID: {entry.id.slice(0, 8)}...
                         </span>
                       </div>
-                    </td>
+                    </TableCell>
 
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isPublished
-                            ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
-                        }`}
-                      >
-                        {isPublished ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                    <TableCell>
+                      <Badge variant={isPublished ? 'success' : 'warning'} dot>
                         {entry.status}
-                      </span>
-                    </td>
+                      </Badge>
+                    </TableCell>
 
-                    <td className="py-3.5 px-4 text-slate-600 dark:text-slate-300">
+                    <TableCell className="text-slate-600 dark:text-slate-300">
                       {entry.createdBy?.name || entry.createdBy?.email || 'System'}
-                    </td>
+                    </TableCell>
 
-                    <td className="py-3.5 px-4 text-slate-400">
+                    <TableCell className="text-slate-400">
                       {new Date(entry.updatedAt).toLocaleDateString()}
-                    </td>
+                    </TableCell>
 
-                    <td
-                      className="py-3.5 px-4 text-right"
+                    <TableCell
+                      className="text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-end gap-1.5">
@@ -311,12 +322,12 @@ export const ContentListPage: React.FC = () => {
                           </button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
 
         {/* Pagination Bar */}
@@ -341,7 +352,7 @@ export const ContentListPage: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+      </TableCard>
     </div>
   );
 };

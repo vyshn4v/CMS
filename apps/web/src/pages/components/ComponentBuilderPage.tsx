@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BuilderSkeleton } from '../../components/ui/skeleton';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -169,12 +170,7 @@ export const ComponentBuilderPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="p-12 text-center text-slate-500">
-        <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent mb-2"></div>
-        <p className="text-xs">Loading component schema...</p>
-      </div>
-    );
+    return <BuilderSkeleton />;
   }
 
   return (
