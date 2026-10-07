@@ -7,3 +7,4 @@ export * from './spinner';
 export * from './empty-state';
 export * from './alert';
 export * from './tabs';
+export * from './skeleton';

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { TableSkeleton } from '../../components/ui/skeleton';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -98,7 +99,7 @@ export const ContentListPage: React.FC = () => {
   };
 
   if (isLoadingSchema) {
-    return <div className="p-8 text-center text-xs text-slate-400">Loading model information...</div>;
+    return <TableSkeleton rows={6} columns={5} />;
   }
 
   if (!contentType) {
@@ -193,7 +194,9 @@ export const ContentListPage: React.FC = () => {
       {/* Entries Table Card */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
         {isLoadingEntries ? (
-          <div className="p-12 text-center text-xs text-slate-400">Loading content entries...</div>
+          <div className="p-4">
+            <TableSkeleton rows={5} columns={4} />
+          </div>
         ) : entries.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center">
             <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">

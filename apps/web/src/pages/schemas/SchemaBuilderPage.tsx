@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LoadingScreen } from '../../components/ui/LoadingScreen';
+import { BuilderSkeleton } from '../../components/ui/skeleton';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
@@ -203,7 +203,7 @@ export const SchemaBuilderPage: React.FC = () => {
   };
 
   if (isEditing && isLoading) {
-    return <LoadingScreen label="Loading schema details..." />;
+    return <BuilderSkeleton />;
   }
 
   return (

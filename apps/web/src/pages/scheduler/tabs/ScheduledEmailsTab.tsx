@@ -15,6 +15,7 @@ import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Input } from '../../../components/ui/input';
 import { EmptyState } from '../../../components/ui/empty-state';
+import { TableSkeleton } from '../../../components/ui/skeleton';
 import { api } from '../../../lib/api';
 import { EmailDetailsDrawer } from '../components/EmailDetailsDrawer';
 
@@ -99,7 +100,7 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
       </div>
 
       {isLoading ? (
-        <div className="p-8 text-center text-xs text-slate-400">Loading email dispatch jobs...</div>
+        <TableSkeleton rows={5} columns={6} />
       ) : emails.length === 0 ? (
         <EmptyState
           icon={<Mail className="h-8 w-8 text-slate-400" />}

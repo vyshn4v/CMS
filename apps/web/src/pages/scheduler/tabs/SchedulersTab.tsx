@@ -4,6 +4,7 @@ import { Plus, Send, Trash2, CalendarClock, FileCode, Layers, Cpu, Mail } from '
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { EmptyState } from '../../../components/ui/empty-state';
+import { TableSkeleton } from '../../../components/ui/skeleton';
 import { api } from '../../../lib/api';
 import { CreateSchedulerModal } from '../components/CreateSchedulerModal';
 import { DispatchModal } from '../components/DispatchModal';
@@ -65,7 +66,7 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
       </div>
 
       {isLoading ? (
-        <div className="p-8 text-center text-xs text-slate-400">Loading schedulers...</div>
+        <TableSkeleton rows={4} columns={6} />
       ) : schedulers.length === 0 ? (
         <EmptyState
           icon={<CalendarClock className="h-8 w-8 text-slate-400" />}

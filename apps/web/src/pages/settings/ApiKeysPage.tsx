@@ -15,6 +15,7 @@ import {
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { ApiKeyDto, CreateApiKeyResponse } from '@cms/shared-types';
+import { TableSkeleton } from '../../components/ui/skeleton';
 
 export const ApiKeysPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
@@ -136,9 +137,8 @@ export const ApiKeysPage: React.FC = () => {
       {/* Keys Table / List */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
         {isLoading ? (
-          <div className="p-12 text-center text-slate-500 dark:text-slate-400">
-            <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent mb-2"></div>
-            <p className="text-sm">Loading API keys...</p>
+          <div className="p-4">
+            <TableSkeleton rows={4} columns={5} />
           </div>
         ) : apiKeys.length === 0 ? (
           <div className="p-12 text-center">

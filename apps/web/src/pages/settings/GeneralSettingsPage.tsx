@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { LoadingScreen } from '../../components/ui/LoadingScreen';
+import { FormSkeleton } from '../../components/ui/skeleton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Building2,
@@ -112,7 +112,7 @@ export const GeneralSettingsPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <LoadingScreen label="Loading workspace settings..." />;
+    return <FormSkeleton />;
   }
 
   return (

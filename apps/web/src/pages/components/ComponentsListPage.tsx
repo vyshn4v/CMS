@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CardGridSkeleton } from '../../components/ui/skeleton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -141,10 +142,7 @@ export const ComponentsListPage: React.FC = () => {
 
       {/* Component Cards Grid */}
       {isLoading ? (
-        <div className="p-12 text-center text-slate-500">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent mb-2"></div>
-          <p className="text-xs">Loading component library...</p>
-        </div>
+        <CardGridSkeleton cards={6} />
       ) : filteredComponents.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-12 text-center">
           <div className="h-12 w-12 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3">

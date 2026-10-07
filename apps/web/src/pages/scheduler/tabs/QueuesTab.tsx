@@ -4,6 +4,7 @@ import { Plus, Trash2, Cpu, CheckCircle2, Clock, AlertCircle } from 'lucide-reac
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { EmptyState } from '../../../components/ui/empty-state';
+import { TableSkeleton } from '../../../components/ui/skeleton';
 import { api } from '../../../lib/api';
 import { ReinitializeBanner } from '../components/ReinitializeBanner';
 import { CreateQueueModal } from '../components/CreateQueueModal';
@@ -70,7 +71,7 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
       </div>
 
       {isLoading ? (
-        <div className="p-8 text-center text-xs text-slate-400">Loading dynamic queues...</div>
+        <TableSkeleton rows={4} columns={5} />
       ) : queues.length === 0 ? (
         <EmptyState
           icon={<Cpu className="h-8 w-8 text-slate-400" />}

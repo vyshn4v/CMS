@@ -6,6 +6,7 @@ import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ContentTypeDto } from '@cms/shared-types';
+import { TableSkeleton } from '../../components/ui/skeleton';
 
 export const SchemasListPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
@@ -63,10 +64,11 @@ export const SchemasListPage: React.FC = () => {
       </div>
 
       {/* List Grid */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
-        {isLoading ? (
-          <div className="p-12 text-center text-xs text-slate-400">Loading schemas...</div>
-        ) : schemas.length === 0 ? (
+      {isLoading ? (
+        <TableSkeleton rows={5} columns={6} />
+      ) : (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+          {schemas.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center justify-center">
             <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">
               <Database className="h-6 w-6" />
@@ -201,6 +203,7 @@ export const SchemasListPage: React.FC = () => {
           </table>
         )}
       </div>
+      )}
     </div>
   );
 };

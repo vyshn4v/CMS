@@ -13,7 +13,7 @@ import {
 import { ContentTypeDto, TemplateDto } from '@cms/shared-types';
 import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../lib/api';
-import { Button, Badge, EmptyState, Spinner } from '../../components/ui';
+import { Button, Badge, EmptyState, TableSkeleton } from '../../components/ui';
 
 export const TemplatesListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -138,8 +138,8 @@ export const TemplatesListPage: React.FC = () => {
       {/* Templates Table */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
         {isLoading ? (
-          <div className="p-12 flex items-center justify-center">
-            <Spinner size="md" label="Loading templates..." />
+          <div className="p-4">
+            <TableSkeleton rows={5} columns={5} />
           </div>
         ) : templates.length === 0 ? (
           <EmptyState

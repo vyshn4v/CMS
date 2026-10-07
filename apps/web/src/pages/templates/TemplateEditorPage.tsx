@@ -19,7 +19,7 @@ import { TemplatePreviewPane } from '../../components/editors/TemplatePreviewPan
 import { TemplateHeader, ViewMode } from '../../components/templates/TemplateHeader';
 import { ComponentFieldCard } from '../../components/templates/ComponentFieldCard';
 import { DynamicZoneFieldCard } from '../../components/templates/DynamicZoneFieldCard';
-import { Alert, Spinner } from '../../components/ui';
+import { Alert, BuilderSkeleton } from '../../components/ui';
 
 export const TemplateEditorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -363,11 +363,7 @@ export const TemplateEditorPage: React.FC = () => {
   };
 
   if (isTemplateLoading) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[400px]">
-        <Spinner size="lg" label="Loading template..." />
-      </div>
-    );
+    return <BuilderSkeleton />;
   }
 
   const modelFields: FieldDefinition[] = safeParseSchema(selectedSchema?.schema).fields || [];

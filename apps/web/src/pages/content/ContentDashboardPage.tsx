@@ -5,6 +5,7 @@ import { Plus, ArrowRight, FileText, Database } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { ContentTypeDto } from '@cms/shared-types';
+import { CardGridSkeleton } from '../../components/ui/skeleton';
 
 export const ContentDashboardPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
@@ -42,7 +43,7 @@ export const ContentDashboardPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="p-12 text-center text-xs text-slate-400">Loading content models...</div>
+        <CardGridSkeleton cards={4} />
       ) : schemas.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center flex flex-col items-center justify-center">
           <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3">

@@ -147,7 +147,25 @@ export const RolesPage: React.FC = () => {
       {/* Roles List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {isRolesLoading ? (
-          <div className="p-8 text-center text-xs text-slate-400 col-span-2">Loading roles...</div>
+          Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4 animate-pulse"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 bg-slate-200 dark:bg-slate-800 rounded" />
+                  <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded" />
+                </div>
+                <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full" />
+              </div>
+              <div className="h-3 w-48 bg-slate-200 dark:bg-slate-800 rounded" />
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between">
+                <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded" />
+                <div className="h-6 w-16 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              </div>
+            </div>
+          ))
         ) : (
           roles.map((role) => (
             <div

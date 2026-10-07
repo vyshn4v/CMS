@@ -4,6 +4,7 @@ import { UserPlus, Trash2, Mail, AlertCircle, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { OrgMemberDto, RoleDto } from '@cms/shared-types';
+import { TableSkeleton } from '../../components/ui/skeleton';
 
 export const MembersPage: React.FC = () => {
   const { activeOrg, user: currentUser } = useAuthStore();
@@ -110,7 +111,9 @@ export const MembersPage: React.FC = () => {
       {/* Members Table */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
         {isMembersLoading ? (
-          <div className="p-8 text-center text-xs text-slate-400">Loading members...</div>
+          <div className="p-4">
+            <TableSkeleton rows={4} columns={4} />
+          </div>
         ) : members.length === 0 ? (
           <div className="p-8 text-center text-xs text-slate-400">No members found</div>
         ) : (

@@ -20,6 +20,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../lib/api';
 import { OrgSwitcher } from './OrgSwitcher';
 import { ContentTypeDto } from '@cms/shared-types';
+import { LoadingScreen } from '../ui/LoadingScreen';
 
 export const AppLayout: React.FC = () => {
   const location = useLocation();
@@ -273,7 +274,9 @@ export const AppLayout: React.FC = () => {
         </header>
 
         <div className="flex-1 overflow-y-auto p-8">
-          <Outlet />
+          <React.Suspense fallback={<LoadingScreen label="Loading..." />}>
+            <Outlet />
+          </React.Suspense>
         </div>
       </main>
     </div>

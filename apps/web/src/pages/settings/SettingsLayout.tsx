@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { Building2, Users, Shield, Key, History } from 'lucide-react';
+import { LoadingScreen } from '../../components/ui/LoadingScreen';
 
 export const SettingsLayout: React.FC = () => {
   const tabs = [
@@ -48,7 +49,9 @@ export const SettingsLayout: React.FC = () => {
       </div>
 
       <div>
-        <Outlet />
+        <React.Suspense fallback={<LoadingScreen label="Loading..." />}>
+          <Outlet />
+        </React.Suspense>
       </div>
     </div>
   );
