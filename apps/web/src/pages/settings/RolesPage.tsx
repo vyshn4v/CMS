@@ -4,6 +4,7 @@ import { Shield, Plus, Edit2, Trash2, CheckSquare, Square, X, AlertCircle } from
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { RoleDto, PermissionGroupDto } from '@cms/shared-types';
+import { Button, RefreshButton } from '../../components/ui';
 
 export const RolesPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
@@ -18,7 +19,12 @@ export const RolesPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch roles
-  const { data: roles = [], isLoading: isRolesLoading } = useQuery<RoleDto[]>({
+  const {
+    data: roles = [],
+    isLoading: isRolesLoading,
+    isFetching: isRolesFetching,
+    refetch: refetchRoles,
+  } = useQuery<RoleDto[]>({
     queryKey: ['roles', orgId],
     queryFn: async () => {
       if (!orgId) return [];
@@ -135,13 +141,17 @@ export const RolesPage: React.FC = () => {
             Configure system and custom roles with granular permission rules.
           </p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Create Custom Role</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetchRoles} isRefreshing={isRolesFetching} />
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={openCreateModal}
+          >
+            Create Custom Role
+          </Button>
+        </div>
       </div>
 
       {/* Roles List */}

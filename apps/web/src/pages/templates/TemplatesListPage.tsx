@@ -13,7 +13,7 @@ import {
 import { ContentTypeDto, TemplateDto } from '@cms/shared-types';
 import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../lib/api';
-import { Button, Badge, EmptyState, TableSkeleton } from '../../components/ui';
+import { Button, Badge, EmptyState, TableSkeleton, RefreshButton } from '../../components/ui';
 
 export const TemplatesListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,7 +37,12 @@ export const TemplatesListPage: React.FC = () => {
   });
 
   // Fetch templates
-  const { data: responseData, isLoading } = useQuery<{ items: TemplateDto[]; total: number }>({
+  const {
+    data: responseData,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery<{ items: TemplateDto[]; total: number }>({
     queryKey: ['templates', orgId, selectedModel, selectedStatus, search],
     queryFn: async () => {
       if (!orgId) return { items: [], total: 0 };
@@ -80,11 +85,14 @@ export const TemplatesListPage: React.FC = () => {
           </p>
         </div>
 
-        <Link to="/templates/new">
-          <Button variant="primary" size="md" leftIcon={<Plus className="w-4 h-4" />}>
-            New Template
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          <Link to="/templates/new">
+            <Button variant="primary" size="sm" leftIcon={<Plus className="w-4 h-4" />}>
+              New Template
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters & Search */}

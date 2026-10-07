@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { OrgMemberDto, RoleDto } from '@cms/shared-types';
 import { TableSkeleton } from '../../components/ui/skeleton';
+import { Button, RefreshButton } from '../../components/ui';
 
 export const MembersPage: React.FC = () => {
   const { activeOrg, user: currentUser } = useAuthStore();
@@ -17,7 +18,12 @@ export const MembersPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Fetch members
-  const { data: members = [], isLoading: isMembersLoading } = useQuery<OrgMemberDto[]>({
+  const {
+    data: members = [],
+    isLoading: isMembersLoading,
+    isFetching: isMembersFetching,
+    refetch: refetchMembers,
+  } = useQuery<OrgMemberDto[]>({
     queryKey: ['members', orgId],
     queryFn: async () => {
       if (!orgId) return [];
@@ -96,16 +102,20 @@ export const MembersPage: React.FC = () => {
             Collaborators with access to manage content and schemas in this workspace.
           </p>
         </div>
-        <button
-          onClick={() => {
-            if (roles.length > 0 && !inviteRoleId) setInviteRoleId(roles[0].id);
-            setIsInviteOpen(true);
-          }}
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
-        >
-          <UserPlus className="h-4 w-4" />
-          <span>Invite Member</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetchMembers} isRefreshing={isMembersFetching} />
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<UserPlus className="h-4 w-4" />}
+            onClick={() => {
+              if (roles.length > 0 && !inviteRoleId) setInviteRoleId(roles[0].id);
+              setIsInviteOpen(true);
+            }}
+          >
+            Invite Member
+          </Button>
+        </div>
       </div>
 
       {/* Members Table */}

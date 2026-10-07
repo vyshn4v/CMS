@@ -6,13 +6,14 @@ import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { ContentTypeDto } from '@cms/shared-types';
 import { CardGridSkeleton } from '../../components/ui/skeleton';
+import { Button, RefreshButton } from '../../components/ui';
 
 export const ContentDashboardPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
   const orgId = activeOrg?.id;
   const navigate = useNavigate();
 
-  const { data: schemas = [], isLoading } = useQuery<ContentTypeDto[]>({
+  const { data: schemas = [], isLoading, isFetching, refetch } = useQuery<ContentTypeDto[]>({
     queryKey: ['schemas', orgId],
     queryFn: async () => {
       if (!orgId) return [];
@@ -33,13 +34,17 @@ export const ContentDashboardPage: React.FC = () => {
             Manage, edit, and publish content entries for your structured content models.
           </p>
         </div>
-        <button
-          onClick={() => navigate('/schemas/new')}
-          className="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Content Model</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={() => navigate('/schemas/new')}
+          >
+            New Content Model
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

@@ -16,6 +16,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Input } from '../../../components/ui/input';
 import { EmptyState } from '../../../components/ui/empty-state';
 import { TableSkeleton } from '../../../components/ui/skeleton';
+import { RefreshButton } from '../../../components/ui/refresh-button';
 import { api } from '../../../lib/api';
 import { EmailDetailsDrawer } from '../components/EmailDetailsDrawer';
 
@@ -29,7 +30,7 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
   const [search, setSearch] = useState('');
   const [selectedEmail, setSelectedEmail] = useState<any | null>(null);
 
-  const { data: responseData, isLoading } = useQuery<any>({
+  const { data: responseData, isLoading, isFetching, refetch } = useQuery<any>({
     queryKey: ['scheduled-emails', orgId, statusFilter, search],
     queryFn: async () => {
       const params: any = {};
@@ -96,6 +97,7 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
             <option value="FAILED">Failed</option>
             <option value="CANCELLED">Cancelled</option>
           </select>
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
         </div>
       </div>
 

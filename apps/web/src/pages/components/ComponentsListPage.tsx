@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CardGridSkeleton } from '../../components/ui/skeleton';
+import { Button, RefreshButton } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -30,7 +31,7 @@ export const ComponentsListPage: React.FC = () => {
   const [componentToDelete, setComponentToDelete] = useState<ComponentDto | null>(null);
 
   // Fetch components
-  const { data: components = [], isLoading } = useQuery<ComponentDto[]>({
+  const { data: components = [], isLoading, isFetching, refetch } = useQuery<ComponentDto[]>({
     queryKey: ['components', orgId],
     queryFn: async () => {
       if (!orgId) return [];
@@ -71,31 +72,32 @@ export const ComponentsListPage: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
             <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Boxes className="h-4 w-4" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               Component Library
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Design composable, reusable field groups (e.g., SEO metadata, Hero sections, FAQ items) to embed inside Content Types and Dynamic Zones.
+          <p className="text-xs text-slate-500 mt-1">
+            Design composable, reusable field groups to embed inside Content Types and Dynamic Zones.
           </p>
         </div>
 
-        {canCreateSchema && (
-          <Link
-            to="/components/new"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
-          >
-            <Plus className="h-4 w-4" />
-            Create Component
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          {canCreateSchema && (
+            <Link to="/components/new">
+              <Button variant="primary" size="sm" leftIcon={<Plus className="h-4 w-4" />}>
+                Create Component
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filter & Search Toolbar */}

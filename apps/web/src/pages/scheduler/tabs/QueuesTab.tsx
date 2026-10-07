@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { EmptyState } from '../../../components/ui/empty-state';
 import { TableSkeleton } from '../../../components/ui/skeleton';
+import { RefreshButton } from '../../../components/ui/refresh-button';
 import { api } from '../../../lib/api';
 import { ReinitializeBanner } from '../components/ReinitializeBanner';
 import { CreateQueueModal } from '../components/CreateQueueModal';
@@ -17,7 +18,12 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const { data: queuesData, isLoading } = useQuery<any>({
+  const {
+    data: queuesData,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery<any>({
     queryKey: ['queues', orgId],
     queryFn: async () => {
       const res = await api.get(`/orgs/${orgId}/queues`);
@@ -60,14 +66,17 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
             Runtime worker pools backed by Redis for delayed and immediate email dispatches.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setIsCreateOpen(true)}
-        >
-          Create Queue
-        </Button>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="w-4 h-4" />}
+            onClick={() => setIsCreateOpen(true)}
+          >
+            Create Queue
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

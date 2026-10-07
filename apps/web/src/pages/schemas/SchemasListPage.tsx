@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { usePermissions } from '../../hooks/usePermissions';
 import { ContentTypeDto } from '@cms/shared-types';
 import { TableSkeleton } from '../../components/ui/skeleton';
+import { Button, RefreshButton } from '../../components/ui';
 
 export const SchemasListPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
@@ -16,7 +17,7 @@ export const SchemasListPage: React.FC = () => {
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
   const { canCreateSchema, canEditSchema, canDeleteSchema } = usePermissions();
 
-  const { data: schemas = [], isLoading } = useQuery<ContentTypeDto[]>({
+  const { data: schemas = [], isLoading, isFetching, refetch } = useQuery<ContentTypeDto[]>({
     queryKey: ['schemas', orgId],
     queryFn: async () => {
       if (!orgId) return [];
@@ -50,17 +51,19 @@ export const SchemasListPage: React.FC = () => {
             Define your API schemas, structured data models, and typed collection entries.
           </p>
         </div>
-        {canCreateSchema && (
-          <div>
-            <button
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          {canCreateSchema && (
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus className="h-4 w-4" />}
               onClick={() => navigate('/schemas/new')}
-              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
             >
-              <Plus className="h-4 w-4" />
-              <span>Create Content Type</span>
-            </button>
-          </div>
-        )}
+              Create Content Type
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* List Grid */}

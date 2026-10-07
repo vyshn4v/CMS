@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TableSkeleton } from '../../components/ui/skeleton';
+import { Button, RefreshButton } from '../../components/ui';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -44,7 +45,12 @@ export const ContentListPage: React.FC = () => {
   });
 
   // Fetch entries
-  const { data: listData, isLoading: isLoadingEntries } = useQuery<ContentEntryListResponse>({
+  const {
+    data: listData,
+    isLoading: isLoadingEntries,
+    isFetching: isFetchingEntries,
+    refetch: refetchEntries,
+  } = useQuery<ContentEntryListResponse>({
     queryKey: ['contentEntries', orgId, slug, page, statusFilter],
     queryFn: async () => {
       if (!orgId || !slug) return { items: [], total: 0, page: 1, limit: 20, totalPages: 1 };
@@ -164,6 +170,9 @@ export const ContentListPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Refresh Button */}
+          <RefreshButton onRefresh={refetchEntries} isRefreshing={isFetchingEntries} />
+
           {/* Status Filter */}
           <select
             value={statusFilter}
@@ -180,13 +189,14 @@ export const ContentListPage: React.FC = () => {
 
           {/* New Entry Button */}
           {canCreateContent && !(contentType.kind === 'SINGLE' && entries.length > 0) && (
-            <button
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus className="h-4 w-4" />}
               onClick={() => navigate(`/content/${slug}/new`)}
-              className="flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
             >
-              <Plus className="h-4 w-4" />
-              <span>New Entry</span>
-            </button>
+              New Entry
+            </Button>
           )}
         </div>
       </div>

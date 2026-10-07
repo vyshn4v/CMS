@@ -4,7 +4,6 @@ import {
   History,
   Search,
   Filter,
-  RefreshCw,
   Eye,
   X,
   Copy,
@@ -19,6 +18,7 @@ import {
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { AuditLogDto, AuditLogListResponse } from '@cms/shared-types';
+import { RefreshButton } from '../../components/ui';
 
 const ACTION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   CREATE: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
@@ -123,14 +123,7 @@ export const AuditLogPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
       </div>
 
       {/* Filter Toolbar */}

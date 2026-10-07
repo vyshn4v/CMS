@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { EmptyState } from '../../../components/ui/empty-state';
 import { TableSkeleton } from '../../../components/ui/skeleton';
+import { RefreshButton } from '../../../components/ui/refresh-button';
 import { api } from '../../../lib/api';
 import { CreateSchedulerModal } from '../components/CreateSchedulerModal';
 import { DispatchModal } from '../components/DispatchModal';
@@ -18,7 +19,7 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedForDispatch, setSelectedForDispatch] = useState<any | null>(null);
 
-  const { data: responseData, isLoading } = useQuery<any>({
+  const { data: responseData, isLoading, isFetching, refetch } = useQuery<any>({
     queryKey: ['schedulers', orgId],
     queryFn: async () => {
       const res = await api.get(`/orgs/${orgId}/schedulers`);
@@ -55,14 +56,17 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
             Pre-configured email delivery pipelines bound to templates, models, and BullMQ queues.
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          leftIcon={<Plus className="w-4 h-4" />}
-          onClick={() => setIsCreateOpen(true)}
-        >
-          Create Scheduler
-        </Button>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="w-4 h-4" />}
+            onClick={() => setIsCreateOpen(true)}
+          >
+            Create Scheduler
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

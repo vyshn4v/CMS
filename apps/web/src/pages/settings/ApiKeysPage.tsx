@@ -16,6 +16,7 @@ import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { ApiKeyDto, CreateApiKeyResponse } from '@cms/shared-types';
 import { TableSkeleton } from '../../components/ui/skeleton';
+import { Button, RefreshButton } from '../../components/ui';
 
 export const ApiKeysPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
@@ -34,7 +35,12 @@ export const ApiKeysPage: React.FC = () => {
   const [keyToRevoke, setKeyToRevoke] = useState<ApiKeyDto | null>(null);
 
   // Fetch API keys
-  const { data: apiKeys = [], isLoading } = useQuery<ApiKeyDto[]>({
+  const {
+    data: apiKeys = [],
+    isLoading,
+    isFetching,
+    refetch,
+  } = useQuery<ApiKeyDto[]>({
     queryKey: ['api-keys', orgId],
     queryFn: async () => {
       if (!orgId) return [];
@@ -121,17 +127,21 @@ export const ApiKeysPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setKeyName('');
-            setErrorMessage(null);
-            setIsCreateOpen(true);
-          }}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition"
-        >
-          <Plus className="h-4 w-4" />
-          Create API Key
-        </button>
+        <div className="flex items-center gap-2">
+          <RefreshButton onRefresh={refetch} isRefreshing={isFetching} />
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="h-4 w-4" />}
+            onClick={() => {
+              setKeyName('');
+              setErrorMessage(null);
+              setIsCreateOpen(true);
+            }}
+          >
+            Create API Key
+          </Button>
+        </div>
       </div>
 
       {/* Keys Table / List */}
