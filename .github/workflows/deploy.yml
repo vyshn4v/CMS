@@ -184,8 +184,8 @@ jobs:
         if: steps.check-credentials.outputs.deployable == 'true'
         run: |
           SERVER_PATH="${{ secrets.SERVER_PATH || '/home/ubuntu/cms-backend' }}"
-          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p $SERVER_PATH"
-          scp -o StrictHostKeyChecking=yes -i ~/.ssh/id_rsa -P ${{ secrets.SERVER_PORT || 22 }} bundle/deploy.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:$SERVER_PATH/
+          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST }} "mkdir -p $SERVER_PATH"
+          scp -o StrictHostKeyChecking=yes -i ~/.ssh/id_rsa -P ${{ secrets.SERVER_PORT || 22 }} bundle/deploy.tar.gz ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST }}:$SERVER_PATH/
 
       - name: Extract, Migrate & Restart PM2
         if: steps.check-credentials.outputs.deployable == 'true'
@@ -193,7 +193,7 @@ jobs:
           SERVER_PATH="${{ secrets.SERVER_PATH || '/home/ubuntu/cms-backend' }}"
           APP_NAME="${{ secrets.BACKEND_APP_NAME || 'cms-api' }}"
           
-          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
+          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST }} "
             # Setup environment paths (support NVM and standard system binaries)
             export NVM_DIR=\"\$HOME/.nvm\"
             [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\"
