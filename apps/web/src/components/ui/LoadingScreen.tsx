@@ -35,9 +35,8 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
     >
       <div className="flex flex-col items-center gap-5">
         {/* ── Pixel box ── */}
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5">
-          <div
-            className="grid gap-1"
+        <div
+            className="grid gap-[3px]"
             style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
           >
             {CELLS.map((idx) => {
@@ -56,8 +55,6 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
                 />
               );
             })}
-          </div>
-        </div>
 
         {/* ── Label ── */}
         {label && (
