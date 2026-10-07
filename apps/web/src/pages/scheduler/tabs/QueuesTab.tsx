@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Cpu, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Cpu } from 'lucide-react';
 import {
   Button,
   Badge,
@@ -135,49 +135,43 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
                     </span>
                   </TableCell>
                   <TableCell>
-                    {q.status === 'ACTIVE' ? (
-                      <Badge variant="success">
-                        <CheckCircle2 />
-                        ACTIVE
-                      </Badge>
-                    ) : q.status === 'PENDING_INITIALIZATION' ? (
-                      <Badge variant="warning">
-                        <Clock />
-                        PENDING REINIT
-                      </Badge>
-                    ) : (
-                      <Badge variant="danger">
-                        <AlertCircle />
-                        {q.status}
-                      </Badge>
-                    )}
+                    <Badge
+                      variant={
+                        q.status === 'ACTIVE'
+                          ? 'success'
+                          : q.status === 'PENDING_INITIALIZATION'
+                          ? 'warning'
+                          : 'danger'
+                      }
+                      size="sm"
+                      dot
+                    >
+                      {q.status === 'PENDING_INITIALIZATION' ? 'PENDING REINIT' : q.status}
+                    </Badge>
                   </TableCell>
                   <TableCell>
-                    {q.isRuntimeActive ? (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Listening
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
-                        <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700" />
-                        Idle / Pending
-                      </span>
-                    )}
+                    <Badge
+                      variant={q.isRuntimeActive ? 'success' : 'default'}
+                      size="sm"
+                      dot
+                    >
+                      {q.isRuntimeActive ? 'Listening' : 'Idle'}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (confirm(`Delete queue "${q.name}"?`)) {
-                          deleteMutation.mutate(q.id);
-                        }
-                      }}
-                      className="text-slate-400 hover:text-rose-600 h-7 w-7 p-0"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete queue "${q.name}"?`)) {
+                            deleteMutation.mutate(q.id);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 text-slate-400 transition"
+                        title="Delete Queue"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

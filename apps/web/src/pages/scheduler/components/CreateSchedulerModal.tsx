@@ -436,7 +436,7 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
                           <Database className="w-3.5 h-3.5 text-indigo-500" />
                           Dynamic Input & Schema Field Alignment
                         </span>
-                        <Badge variant="blue" className="text-[10px]">
+                        <Badge variant="blue" size="xs">
                           {schemaFields.length} Field{schemaFields.length === 1 ? '' : 's'}
                         </Badge>
                       </div>
@@ -519,7 +519,7 @@ export const CreateSchedulerModal: React.FC<CreateSchedulerModalProps> = ({
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                           Predefined Mail Payload Preview
                         </span>
-                        <Badge variant="success" className="text-[10px]">
+                        <Badge variant="success" size="xs" dot>
                           {selectedEntry.status}
                         </Badge>
                       </div>

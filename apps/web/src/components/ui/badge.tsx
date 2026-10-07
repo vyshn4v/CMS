@@ -56,10 +56,10 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 font-medium border rounded-full shrink-0 select-none [&>svg]:w-3 [&>svg]:h-3 [&>svg]:shrink-0',
+        'inline-flex items-center gap-1.5 font-medium border rounded-full shrink-0 select-none leading-none [&>svg]:w-3 [&>svg]:h-3 [&>svg]:shrink-0',
         size === 'xs' && 'px-2 py-0.5 text-[10px] uppercase font-semibold tracking-wide',
-        size === 'sm' && 'px-2.5 py-0.5 text-xs font-medium',
-        size === 'md' && 'px-3 py-1 text-xs font-semibold',
+        size === 'sm' && 'px-2.5 py-1 text-xs font-medium',
+        size === 'md' && 'px-3 py-1.5 text-xs font-semibold',
         variantStyles[variant],
         className,
       )}

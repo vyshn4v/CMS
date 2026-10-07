@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Send, Clock, Calendar, Layers, FileCode, CheckCircle2 } from 'lucide-react';
+import { Send, Clock, Calendar, CheckCircle2 } from 'lucide-react';
 import { Modal } from '../../../components/ui/modal';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -144,13 +144,11 @@ export const DispatchModal: React.FC<DispatchModalProps> = ({
         <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
           <div className="flex items-center gap-2">
             {isEntryMode ? (
-              <Badge variant="blue" className="inline-flex items-center gap-1 font-semibold">
-                <Layers className="w-3 h-3" />
+              <Badge variant="purple" size="sm" dot>
                 Predefined Entry Mail
               </Badge>
             ) : (
-              <Badge variant="default" className="inline-flex items-center gap-1 font-semibold">
-                <FileCode className="w-3 h-3" />
+              <Badge variant="blue" size="sm" dot>
                 Dynamic Template Mail
               </Badge>
             )}

@@ -229,16 +229,15 @@ export const ApiKeysPage: React.FC = () => {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setKeyToRevoke(key)}
-                      className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs"
-                      title="Revoke API key"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 mr-1" />
-                      Revoke
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => setKeyToRevoke(key)}
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 text-slate-400 transition"
+                        title="Revoke API key"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

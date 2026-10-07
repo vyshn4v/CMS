@@ -2,17 +2,12 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  XCircle,
   Eye,
   RefreshCw,
   Ban,
   Mail,
 } from 'lucide-react';
 import {
-  Button,
   Badge,
   Input,
   EmptyState,
@@ -149,70 +144,55 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
                     {new Date(e.scheduledFor).toLocaleString()}
                   </TableCell>
                   <TableCell>
-                    {e.status === 'COMPLETED' ? (
-                      <Badge variant="success">
-                        <CheckCircle2 />
-                        COMPLETED
-                      </Badge>
-                    ) : e.status === 'SCHEDULED' ? (
-                      <Badge variant="blue">
-                        <Clock />
-                        SCHEDULED
-                      </Badge>
-                    ) : e.status === 'PROCESSING' ? (
-                      <Badge variant="warning">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
-                        PROCESSING
-                      </Badge>
-                    ) : e.status === 'CANCELLED' ? (
-                      <Badge variant="default">
-                        <XCircle />
-                        CANCELLED
-                      </Badge>
-                    ) : (
-                      <Badge variant="danger">
-                        <AlertCircle />
-                        FAILED
-                      </Badge>
-                    )}
+                    <Badge
+                      variant={
+                        e.status === 'COMPLETED'
+                          ? 'success'
+                          : e.status === 'SCHEDULED'
+                          ? 'blue'
+                          : e.status === 'PROCESSING'
+                          ? 'warning'
+                          : e.status === 'CANCELLED'
+                          ? 'default'
+                          : 'danger'
+                      }
+                      size="sm"
+                      dot
+                    >
+                      {e.status}
+                    </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-slate-500">{e.attempts}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <button
                         onClick={() => setSelectedEmail(e)}
-                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 h-7 w-7 p-0"
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition"
                         title="View details & payload"
                       >
                         <Eye className="h-3.5 w-3.5" />
-                      </Button>
+                      </button>
 
                       {e.status === 'SCHEDULED' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
                           onClick={() => cancelMutation.mutate(e.id)}
                           disabled={cancelMutation.isPending}
-                          className="text-slate-400 hover:text-amber-600 h-7 w-7 p-0"
+                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-400 hover:text-amber-600 disabled:opacity-40 transition"
                           title="Cancel pending dispatch"
                         >
                           <Ban className="h-3.5 w-3.5" />
-                        </Button>
+                        </button>
                       )}
 
                       {e.status === 'FAILED' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
                           onClick={() => retryMutation.mutate(e.id)}
                           disabled={retryMutation.isPending}
-                          className="text-slate-400 hover:text-indigo-600 h-7 w-7 p-0"
+                          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-400 hover:text-indigo-600 disabled:opacity-40 transition"
                           title="Retry delivery now"
                         >
                           <RefreshCw className="h-3.5 w-3.5" />
-                        </Button>
+                        </button>
                       )}
                     </div>
                   </TableCell>

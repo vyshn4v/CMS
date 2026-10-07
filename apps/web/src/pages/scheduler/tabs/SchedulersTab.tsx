@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Send, Trash2, CalendarClock, FileCode, Layers, Cpu, Mail } from 'lucide-react';
+import { Plus, Send, Trash2, CalendarClock, FileCode, Cpu, Mail } from 'lucide-react';
 import {
   Button,
   Badge,
@@ -106,6 +106,7 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                 <TableHead>Template</TableHead>
                 <TableHead>Bound Model</TableHead>
                 <TableHead>Queue</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Recipient Policy</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -124,30 +125,25 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {s.sourceType === 'ENTRY' ? (
-                      <Badge variant="success">
-                        <Layers />
-                        Predefined Entry
-                      </Badge>
-                    ) : (
-                      <Badge variant="blue">
-                        <FileCode />
-                        Dynamic Template
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="default" className="font-mono">
-                      <FileCode />
-                      {s.template?.name || s.templateId}
+                    <Badge
+                      variant={s.sourceType === 'ENTRY' ? 'purple' : 'blue'}
+                      size="sm"
+                      dot
+                    >
+                      {s.sourceType === 'ENTRY' ? 'Entry' : 'Template'}
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <div className="flex items-center gap-1.5 font-mono text-xs text-slate-700 dark:text-slate-300">
+                      <FileCode className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                      <span>{s.template?.name || s.templateId}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     {s.contentType ? (
-                      <Badge variant="outline">
-                        <Layers />
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
                         {s.contentType.name}
-                      </Badge>
+                      </span>
                     ) : (
                       <span className="text-slate-400">—</span>
                     )}
@@ -157,6 +153,15 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                       <Cpu className="h-3 w-3 text-slate-400" />
                       {s.queue?.name || s.queueId}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={s.isActive !== false ? 'success' : 'default'}
+                      size="sm"
+                      dot
+                    >
+                      {s.isActive !== false ? 'ACTIVE' : 'INACTIVE'}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-slate-500 text-[11px] space-y-0.5">
                     <div className="font-mono">
@@ -180,26 +185,24 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        size="sm"
+                      <button
                         onClick={() => setSelectedForDispatch(s)}
-                        className="h-7 text-xs flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800"
+                        className="p-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 transition"
+                        title="Dispatch Email"
                       >
-                        <Send className="h-3 w-3" />
-                        Dispatch
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                        <Send className="h-3.5 w-3.5" />
+                      </button>
+                      <button
                         onClick={() => {
                           if (confirm(`Delete scheduler "${s.name}"?`)) {
                             deleteMutation.mutate(s.id);
                           }
                         }}
-                        className="text-slate-400 hover:text-rose-600 h-7 w-7 p-0"
+                        className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-950/50 hover:text-rose-600 text-slate-400 transition"
+                        title="Delete Scheduler"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      </button>
                     </div>
                   </TableCell>
                 </TableRow>

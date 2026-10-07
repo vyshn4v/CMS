@@ -2,7 +2,6 @@ import React from 'react';
 import { Modal } from '../../../components/ui/modal';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
-import { CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react';
 
 interface EmailDetailsDrawerProps {
   isOpen: boolean;
@@ -33,32 +32,23 @@ export const EmailDetailsDrawer: React.FC<EmailDetailsDrawerProps> = ({
               Lifecycle Status
             </span>
             <div className="flex items-center gap-2">
-              {email.status === 'COMPLETED' ? (
-                <Badge variant="success" className="inline-flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  COMPLETED
-                </Badge>
-              ) : email.status === 'SCHEDULED' ? (
-                <Badge variant="blue" className="inline-flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  SCHEDULED (DELAYED)
-                </Badge>
-              ) : email.status === 'PROCESSING' ? (
-                <Badge variant="warning" className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                  PROCESSING
-                </Badge>
-              ) : email.status === 'CANCELLED' ? (
-                <Badge variant="default" className="inline-flex items-center gap-1">
-                  <XCircle className="h-3 w-3" />
-                  CANCELLED
-                </Badge>
-              ) : (
-                <Badge variant="danger" className="inline-flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  FAILED
-                </Badge>
-              )}
+              <Badge
+                variant={
+                  email.status === 'COMPLETED'
+                    ? 'success'
+                    : email.status === 'SCHEDULED'
+                    ? 'blue'
+                    : email.status === 'PROCESSING'
+                    ? 'warning'
+                    : email.status === 'CANCELLED'
+                    ? 'default'
+                    : 'danger'
+                }
+                size="sm"
+                dot
+              >
+                {email.status}
+              </Badge>
               <span className="text-slate-500 font-medium">Attempts: {email.attempts}</span>
             </div>
           </div>
