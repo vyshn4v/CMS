@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/auth.store';
 import { api } from './lib/api';
+import { LoadingScreen } from './components/ui/LoadingScreen';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
@@ -72,14 +73,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
-          <p className="text-xs font-medium text-slate-500">Initializing session...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen fullscreen label="Initializing session..." />;
   }
 
   if (!user && location.pathname !== '/login') {
