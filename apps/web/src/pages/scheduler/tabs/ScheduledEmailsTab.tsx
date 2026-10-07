@@ -11,12 +11,21 @@ import {
   Ban,
   Mail,
 } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { Input } from '../../../components/ui/input';
-import { EmptyState } from '../../../components/ui/empty-state';
-import { TableSkeleton } from '../../../components/ui/skeleton';
-import { RefreshButton } from '../../../components/ui/refresh-button';
+import {
+  Button,
+  Badge,
+  Input,
+  EmptyState,
+  TableSkeleton,
+  RefreshButton,
+  TableCard,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { EmailDetailsDrawer } from '../components/EmailDetailsDrawer';
 
@@ -110,65 +119,65 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
           description="Emails dispatched or scheduled via UI or API will be tracked here in real-time."
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 text-slate-500">
-                <th className="py-3 px-4 font-semibold">Recipient (To)</th>
-                <th className="py-3 px-4 font-semibold">Scheduler Pipeline</th>
-                <th className="py-3 px-4 font-semibold">Scheduled For / Sent At</th>
-                <th className="py-3 px-4 font-semibold">Status</th>
-                <th className="py-3 px-4 font-semibold">Attempts</th>
-                <th className="py-3 px-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+        <TableCard>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Recipient (To)</TableHead>
+                <TableHead>Scheduler Pipeline</TableHead>
+                <TableHead>Scheduled For / Sent At</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Attempts</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {emails.map((e) => (
-                <tr key={e.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
-                  <td className="py-3 px-4">
+                <TableRow key={e.id}>
+                  <TableCell>
                     <div className="font-mono font-medium text-slate-900 dark:text-slate-100">
                       {e.to}
                     </div>
                     {e.subject && (
-                      <div className="text-[11px] text-slate-400 truncate max-w-xs">{e.subject}</div>
+                      <div className="text-[11px] text-slate-400 truncate max-w-xs mt-0.5">{e.subject}</div>
                     )}
-                  </td>
-                  <td className="py-3 px-4 font-medium text-indigo-600 dark:text-indigo-400">
+                  </TableCell>
+                  <TableCell className="font-medium text-indigo-600 dark:text-indigo-400">
                     {e.scheduler?.name || '—'}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-slate-500">
+                  </TableCell>
+                  <TableCell className="font-mono text-slate-500">
                     {new Date(e.scheduledFor).toLocaleString()}
-                  </td>
-                  <td className="py-3 px-4">
+                  </TableCell>
+                  <TableCell>
                     {e.status === 'COMPLETED' ? (
-                      <Badge variant="success" className="inline-flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
+                      <Badge variant="success">
+                        <CheckCircle2 />
                         COMPLETED
                       </Badge>
                     ) : e.status === 'SCHEDULED' ? (
-                      <Badge variant="blue" className="inline-flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                      <Badge variant="blue">
+                        <Clock />
                         SCHEDULED
                       </Badge>
                     ) : e.status === 'PROCESSING' ? (
-                      <Badge variant="warning" className="inline-flex items-center gap-1">
+                      <Badge variant="warning">
                         <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
                         PROCESSING
                       </Badge>
                     ) : e.status === 'CANCELLED' ? (
-                      <Badge variant="default" className="inline-flex items-center gap-1">
-                        <XCircle className="h-3 w-3" />
+                      <Badge variant="default">
+                        <XCircle />
                         CANCELLED
                       </Badge>
                     ) : (
-                      <Badge variant="danger" className="inline-flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
+                      <Badge variant="danger">
+                        <AlertCircle />
                         FAILED
                       </Badge>
                     )}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-slate-500">{e.attempts}</td>
-                  <td className="py-3 px-4 text-right">
+                  </TableCell>
+                  <TableCell className="font-mono text-slate-500">{e.attempts}</TableCell>
+                  <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <Button
                         variant="ghost"
@@ -206,12 +215,12 @@ export const ScheduledEmailsTab: React.FC<ScheduledEmailsTabProps> = ({ orgId })
                         </Button>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       )}
 
       <EmailDetailsDrawer

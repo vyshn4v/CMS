@@ -5,7 +5,17 @@ import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { OrgMemberDto, RoleDto } from '@cms/shared-types';
 import { TableSkeleton } from '../../components/ui/skeleton';
-import { Button, RefreshButton } from '../../components/ui';
+import {
+  Button,
+  RefreshButton,
+  TableCard,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../components/ui';
 
 export const MembersPage: React.FC = () => {
   const { activeOrg, user: currentUser } = useAuthStore();
@@ -119,7 +129,7 @@ export const MembersPage: React.FC = () => {
       </div>
 
       {/* Members Table */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+      <TableCard>
         {isMembersLoading ? (
           <div className="p-4">
             <TableSkeleton rows={4} columns={4} />
@@ -127,21 +137,21 @@ export const MembersPage: React.FC = () => {
         ) : members.length === 0 ? (
           <div className="p-8 text-center text-xs text-slate-400">No members found</div>
         ) : (
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-500 font-semibold uppercase tracking-wider">
-              <tr>
-                <th className="py-3 px-4">User</th>
-                <th className="py-3 px-4">Role</th>
-                <th className="py-3 px-4">Joined</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {members.map((member) => {
                 const isCurrent = member.user.id === currentUser?.id;
                 return (
-                  <tr key={member.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition">
-                    <td className="py-3 px-4">
+                  <TableRow key={member.id}>
+                    <TableCell>
                       <div className="flex items-center gap-3">
                         {member.user.avatarUrl ? (
                           <img
@@ -161,14 +171,14 @@ export const MembersPage: React.FC = () => {
                           <p className="text-slate-400 text-[11px]">{member.user.email}</p>
                         </div>
                       </div>
-                    </td>
-                    <td className="py-3 px-4">
+                    </TableCell>
+                    <TableCell>
                       <select
                         value={member.roleId}
                         onChange={(e) =>
                           updateRoleMutation.mutate({ memberId: member.id, roleId: e.target.value })
                         }
-                        className="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-1 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       >
                         {roles.map((r) => (
                           <option key={r.id} value={r.id}>
@@ -176,12 +186,14 @@ export const MembersPage: React.FC = () => {
                           </option>
                         ))}
                       </select>
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">
+                    </TableCell>
+                    <TableCell className="text-slate-500">
                       {new Date(member.joinedAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <button
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => {
                           if (confirm(`Are you sure you want to remove ${member.user.name}?`)) {
                             removeMutation.mutate(member.id);
@@ -189,18 +201,18 @@ export const MembersPage: React.FC = () => {
                         }}
                         disabled={removeMutation.isPending}
                         title="Remove member"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition disabled:opacity-50"
+                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-50"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </TableCard>
 
       {/* Invite Member Modal */}
       {isInviteOpen && (

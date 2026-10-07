@@ -9,3 +9,4 @@ export * from './alert';
 export * from './tabs';
 export * from './skeleton';
 export * from './refresh-button';
+export * from './table';

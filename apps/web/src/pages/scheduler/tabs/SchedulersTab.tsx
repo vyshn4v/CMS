@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Send, Trash2, CalendarClock, FileCode, Layers, Cpu, Mail } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { EmptyState } from '../../../components/ui/empty-state';
-import { TableSkeleton } from '../../../components/ui/skeleton';
-import { RefreshButton } from '../../../components/ui/refresh-button';
+import {
+  Button,
+  Badge,
+  EmptyState,
+  TableSkeleton,
+  RefreshButton,
+  TableCard,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { CreateSchedulerModal } from '../components/CreateSchedulerModal';
 import { DispatchModal } from '../components/DispatchModal';
@@ -88,68 +97,68 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 text-slate-500">
-                <th className="py-3 px-4 font-semibold">Scheduler Name</th>
-                <th className="py-3 px-4 font-semibold">Source Mode</th>
-                <th className="py-3 px-4 font-semibold">Template</th>
-                <th className="py-3 px-4 font-semibold">Bound Model</th>
-                <th className="py-3 px-4 font-semibold">Queue</th>
-                <th className="py-3 px-4 font-semibold">Recipient Policy</th>
-                <th className="py-3 px-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+        <TableCard>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Scheduler Name</TableHead>
+                <TableHead>Source Mode</TableHead>
+                <TableHead>Template</TableHead>
+                <TableHead>Bound Model</TableHead>
+                <TableHead>Queue</TableHead>
+                <TableHead>Recipient Policy</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {schedulers.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
-                  <td className="py-3 px-4">
+                <TableRow key={s.id}>
+                  <TableCell>
                     <div className="font-semibold text-slate-900 dark:text-slate-100">
                       {s.name}
                     </div>
                     {s.description && (
-                      <div className="text-[11px] text-slate-400 truncate max-w-xs">
+                      <div className="text-[11px] text-slate-400 truncate max-w-xs mt-0.5">
                         {s.description}
                       </div>
                     )}
-                  </td>
-                  <td className="py-3 px-4">
+                  </TableCell>
+                  <TableCell>
                     {s.sourceType === 'ENTRY' ? (
-                      <Badge variant="success" className="inline-flex items-center gap-1 font-medium text-[10px]">
-                        <Layers className="h-3 w-3" />
+                      <Badge variant="success">
+                        <Layers />
                         Predefined Entry
                       </Badge>
                     ) : (
-                      <Badge variant="blue" className="inline-flex items-center gap-1 font-medium text-[10px]">
-                        <FileCode className="h-3 w-3" />
+                      <Badge variant="blue">
+                        <FileCode />
                         Dynamic Template
                       </Badge>
                     )}
-                  </td>
-                  <td className="py-3 px-4">
-                    <Badge variant="default" className="inline-flex items-center gap-1 font-mono">
-                      <FileCode className="h-3 w-3" />
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="default" className="font-mono">
+                      <FileCode />
                       {s.template?.name || s.templateId}
                     </Badge>
-                  </td>
-                  <td className="py-3 px-4">
+                  </TableCell>
+                  <TableCell>
                     {s.contentType ? (
-                      <Badge variant="outline" className="inline-flex items-center gap-1 font-medium">
-                        <Layers className="h-3 w-3" />
+                      <Badge variant="outline">
+                        <Layers />
                         {s.contentType.name}
                       </Badge>
                     ) : (
                       <span className="text-slate-400">—</span>
                     )}
-                  </td>
-                  <td className="py-3 px-4 font-mono text-slate-600 dark:text-slate-400">
+                  </TableCell>
+                  <TableCell className="font-mono text-slate-600 dark:text-slate-400">
                     <span className="inline-flex items-center gap-1 font-medium">
                       <Cpu className="h-3 w-3 text-slate-400" />
                       {s.queue?.name || s.queueId}
                     </span>
-                  </td>
-                  <td className="py-3 px-4 text-slate-500 text-[11px] space-y-0.5">
+                  </TableCell>
+                  <TableCell className="text-slate-500 text-[11px] space-y-0.5">
                     <div className="font-mono">
                       <span className="text-[10px] text-slate-400 font-sans">To: </span>
                       {s.defaultTo || (
@@ -168,8 +177,8 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                         <span>.env SMTP_FROM</span>
                       )}
                     </div>
-                  </td>
-                  <td className="py-3 px-4 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <Button
                         size="sm"
@@ -192,12 +201,12 @@ export const SchedulersTab: React.FC<SchedulersTabProps> = ({ orgId }) => {
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       )}
 
       <CreateSchedulerModal

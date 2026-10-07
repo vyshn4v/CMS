@@ -11,9 +11,22 @@ import {
   Layers,
 } from 'lucide-react';
 import { ContentTypeDto, TemplateDto } from '@cms/shared-types';
-import { useAuthStore } from '../../store/auth.store';
 import { api } from '../../lib/api';
-import { Button, Badge, EmptyState, TableSkeleton, RefreshButton } from '../../components/ui';
+import { useAuthStore } from '../../store/auth.store';
+import {
+  Button,
+  Badge,
+  EmptyState,
+  TableSkeleton,
+  RefreshButton,
+  TableCard,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../components/ui';
 
 export const TemplatesListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -70,15 +83,15 @@ export const TemplatesListPage: React.FC = () => {
   });
 
   return (
-    <div className="flex flex-col flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-              <FileCode className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <FileCode className="w-4 h-4" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Templates Studio</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Templates Studio</h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Author and publish dynamic Handlebars templates for transactional emails, web layouts, and JSON data.
@@ -96,7 +109,7 @@ export const TemplatesListPage: React.FC = () => {
       </div>
 
       {/* Filters & Search */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="relative flex-1 min-w-[240px]">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
           <input
@@ -144,7 +157,7 @@ export const TemplatesListPage: React.FC = () => {
       </div>
 
       {/* Templates Table */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+      <TableCard>
         {isLoading ? (
           <div className="p-4">
             <TableSkeleton rows={5} columns={5} />
@@ -163,101 +176,98 @@ export const TemplatesListPage: React.FC = () => {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50/70 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-                <tr>
-                  <th className="px-6 py-3.5 font-semibold">Template Name</th>
-                  <th className="px-6 py-3.5 font-semibold">Target Output Model</th>
-                  <th className="px-6 py-3.5 font-semibold">Status</th>
-                  <th className="px-6 py-3.5 font-semibold">Last Updated</th>
-                  <th className="px-6 py-3.5 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
-                {templates.map((tpl) => (
-                  <tr
-                    key={tpl.id}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition cursor-pointer"
-                    onClick={() => navigate(`/templates/${tpl.id}`)}
-                  >
-                    <td className="px-6 py-4 font-semibold text-slate-900 dark:text-slate-100">
-                      <div className="flex items-center gap-2.5">
-                        <FileCode className="w-4 h-4 text-indigo-500" />
-                        <span>{tpl.name}</span>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Template Name</TableHead>
+                <TableHead>Target Output Model</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {templates.map((tpl) => (
+                <TableRow
+                  key={tpl.id}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/templates/${tpl.id}`)}
+                >
+                  <TableCell className="font-semibold text-slate-900 dark:text-slate-100">
+                    <div className="flex items-center gap-2.5">
+                      <FileCode className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <span>{tpl.name}</span>
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    {tpl.contentType ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-xs text-slate-800 dark:text-slate-200">
+                          {tpl.contentType.name}
+                        </span>
+                        {tpl.contentType.schema?.fields?.length ? (
+                          <Badge variant="purple" size="xs">
+                            {tpl.contentType.schema.fields.length}{' '}
+                            {tpl.contentType.schema.fields.length === 1 ? 'field' : 'fields'}
+                          </Badge>
+                        ) : null}
                       </div>
-                    </td>
+                    ) : (
+                      <span className="text-amber-600 dark:text-amber-400/80 italic text-[11px]">Unlinked Model</span>
+                    )}
+                  </TableCell>
 
-                    <td className="px-6 py-4">
-                      {tpl.contentType ? (
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-xs text-slate-800 dark:text-slate-200">
-                            {tpl.contentType.name}
-                          </span>
-                          {tpl.contentType.schema?.fields?.length ? (
-                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-mono font-medium border bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50">
-                              {tpl.contentType.schema.fields.length}{' '}
-                              {tpl.contentType.schema.fields.length === 1 ? 'field' : 'fields'}
-                            </span>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <span className="text-amber-600 dark:text-amber-400/80 italic text-[11px]">Unlinked Model</span>
-                      )}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <Badge
-                        variant={tpl.status === 'PUBLISHED' ? 'success' : 'default'}
-                        size="sm"
-                        dot
-                      >
-                        {tpl.status}
-                      </Badge>
-                    </td>
-
-                    <td className="px-6 py-4 text-slate-400">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{new Date(tpl.updatedAt).toLocaleDateString()}</span>
-                      </div>
-                    </td>
-
-                    <td
-                      className="px-6 py-4 text-right space-x-1"
-                      onClick={(e) => e.stopPropagation()}
+                  <TableCell>
+                    <Badge
+                      variant={tpl.status === 'PUBLISHED' ? 'success' : 'default'}
+                      dot
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate(`/templates/${tpl.id}`)}
-                        title="Edit Template"
-                        className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition"
-                      >
-                        <Edit className="w-3.5 h-3.5" />
-                      </Button>
+                      {tpl.status}
+                    </Badge>
+                  </TableCell>
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (confirm(`Delete template "${tpl.name}"?`)) {
-                            deleteMutation.mutate(tpl.id);
-                          }
-                        }}
-                        title="Delete Template"
-                        className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  <TableCell className="text-slate-400">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                      <span>{new Date(tpl.updatedAt).toLocaleDateString()}</span>
+                    </div>
+                  </TableCell>
+
+                  <TableCell
+                    className="text-right space-x-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigate(`/templates/${tpl.id}`)}
+                      title="Edit Template"
+                      className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (confirm(`Delete template "${tpl.name}"?`)) {
+                          deleteMutation.mutate(tpl.id);
+                        }
+                      }}
+                      title="Delete Template"
+                      className="text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
-      </div>
+      </TableCard>
     </div>
   );
 };

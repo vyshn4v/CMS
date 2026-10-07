@@ -18,18 +18,18 @@ import {
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { AuditLogDto, AuditLogListResponse } from '@cms/shared-types';
-import { RefreshButton } from '../../components/ui';
-
-const ACTION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  CREATE: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800' },
-  UPDATE: { bg: 'bg-blue-50 dark:bg-blue-950/40', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200 dark:border-blue-800' },
-  DELETE: { bg: 'bg-rose-50 dark:bg-rose-950/40', text: 'text-rose-700 dark:text-rose-300', border: 'border-rose-200 dark:border-rose-800' },
-  PUBLISH: { bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-700 dark:text-purple-300', border: 'border-purple-200 dark:border-purple-800' },
-  UNPUBLISH: { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800' },
-  LOGIN: { bg: 'bg-indigo-50 dark:bg-indigo-950/40', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800' },
-  SECURITY_REJECTION: { bg: 'bg-red-100 dark:bg-red-950/60', text: 'text-red-700 dark:text-red-300 font-semibold', border: 'border-red-300 dark:border-red-800' },
-  FAILED_MUTATION: { bg: 'bg-orange-50 dark:bg-orange-950/40', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200 dark:border-orange-800' },
-};
+import {
+  Badge,
+  BadgeVariant,
+  RefreshButton,
+  TableCard,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../components/ui';
 
 export const AuditLogPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
@@ -91,20 +91,15 @@ export const AuditLogPage: React.FC = () => {
   };
 
   const getActionBadge = (action: string) => {
-    const key = Object.keys(ACTION_COLORS).find((k) => action.toUpperCase().includes(k)) || '';
-    const style = ACTION_COLORS[key] || {
-      bg: 'bg-slate-100 dark:bg-slate-800',
-      text: 'text-slate-700 dark:text-slate-300',
-      border: 'border-slate-200 dark:border-slate-700',
-    };
+    let variant: BadgeVariant = 'default';
+    const upper = action.toUpperCase();
+    if (upper.includes('CREATE')) variant = 'success';
+    else if (upper.includes('UPDATE') || upper.includes('PATCH')) variant = 'blue';
+    else if (upper.includes('DELETE') || upper.includes('REVOKE')) variant = 'danger';
+    else if (upper.includes('PUBLISH') || upper.includes('UNPUBLISH')) variant = 'purple';
+    else if (upper.includes('LOGIN') || upper.includes('AUTH')) variant = 'warning';
 
-    return (
-      <span
-        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide uppercase border ${style.bg} ${style.text} ${style.border}`}
-      >
-        {action}
-      </span>
-    );
+    return <Badge variant={variant}>{action}</Badge>;
   };
 
   return (
@@ -204,146 +199,141 @@ export const AuditLogPage: React.FC = () => {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                <th className="py-3.5 px-4">Timestamp</th>
-                <th className="py-3.5 px-4">Actor</th>
-                <th className="py-3.5 px-4">Action</th>
-                <th className="py-3.5 px-4">Resource</th>
-                <th className="py-3.5 px-4">Resource ID</th>
-                <th className="py-3.5 px-4">IP Address</th>
-                <th className="py-3.5 px-4 text-right">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-              {isLoading ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="py-4 px-4"><div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                    <td className="py-4 px-4"><div className="h-4 w-14 bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                    <td className="py-4 px-4 text-right"><div className="h-4 w-12 ml-auto bg-slate-200 dark:bg-slate-800 rounded" /></td>
-                  </tr>
-                ))
-              ) : logs.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <div className="flex flex-col items-center gap-2">
-                      <Shield className="h-8 w-8 text-slate-300 dark:text-slate-700" />
-                      <span className="font-medium text-slate-600 dark:text-slate-400">
-                        No audit logs recorded
-                      </span>
-                      <span className="text-[11px] text-slate-400">
-                        Mutating operations such as creating schemas, publishing templates, or modifying entries will appear here.
-                      </span>
+      <TableCard>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Timestamp</TableHead>
+              <TableHead>Actor</TableHead>
+              <TableHead>Action</TableHead>
+              <TableHead>Resource</TableHead>
+              <TableHead>Resource ID</TableHead>
+              <TableHead>IP Address</TableHead>
+              <TableHead className="text-right">Details</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <TableRow key={i} className="animate-pulse">
+                  <TableCell><div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded" /></TableCell>
+                  <TableCell><div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded" /></TableCell>
+                  <TableCell><div className="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded" /></TableCell>
+                  <TableCell><div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" /></TableCell>
+                  <TableCell><div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded" /></TableCell>
+                  <TableCell><div className="h-4 w-14 bg-slate-200 dark:bg-slate-800 rounded" /></TableCell>
+                  <TableCell className="text-right"><div className="h-4 w-12 ml-auto bg-slate-200 dark:bg-slate-800 rounded" /></TableCell>
+                </TableRow>
+              ))
+            ) : logs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-12 text-center text-slate-400">
+                  <div className="flex flex-col items-center gap-2">
+                    <Shield className="h-8 w-8 text-slate-300 dark:text-slate-700" />
+                    <span className="font-medium text-slate-600 dark:text-slate-400">
+                      No audit logs recorded
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      Mutating operations such as creating schemas, publishing templates, or modifying entries will appear here.
+                    </span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              logs.map((log) => (
+                <TableRow key={log.id}>
+                  {/* Timestamp */}
+                  <TableCell className="text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                      <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      {formatDate(log.createdAt)}
                     </div>
-                  </td>
-                </tr>
-              ) : (
-                logs.map((log) => (
-                  <tr
-                    key={log.id}
-                    className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition"
-                  >
-                    {/* Timestamp */}
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                        <Clock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        {formatDate(log.createdAt)}
-                      </div>
-                    </td>
+                  </TableCell>
 
-                    {/* Actor */}
-                    <td className="py-3 px-4">
-                      {log.user ? (
-                        <div className="flex items-center gap-2">
-                          {log.user.avatarUrl ? (
-                            <img
-                              src={log.user.avatarUrl}
-                              alt={log.user.name}
-                              className="h-6 w-6 rounded-full shrink-0"
-                            />
-                          ) : (
-                            <div className="h-6 w-6 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold flex items-center justify-center text-[10px] shrink-0">
-                              {log.user.name?.[0] || 'U'}
-                            </div>
-                          )}
-                          <div className="truncate max-w-[140px]">
-                            <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">
-                              {log.user.name}
-                            </p>
-                            <p className="text-[10px] text-slate-400 truncate">
-                              {log.user.email}
-                            </p>
+                  {/* Actor */}
+                  <TableCell>
+                    {log.user ? (
+                      <div className="flex items-center gap-2">
+                        {log.user.avatarUrl ? (
+                          <img
+                            src={log.user.avatarUrl}
+                            alt={log.user.name}
+                            className="h-6 w-6 rounded-full shrink-0"
+                          />
+                        ) : (
+                          <div className="h-6 w-6 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-semibold flex items-center justify-center text-[10px] shrink-0">
+                            {log.user.name?.[0] || 'U'}
                           </div>
+                        )}
+                        <div className="truncate max-w-[140px]">
+                          <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                            {log.user.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate">
+                            {log.user.email}
+                          </p>
                         </div>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-slate-500 font-medium">
-                          <Shield className="h-3 w-3 text-slate-400" /> System / API
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Action */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      {getActionBadge(log.action)}
-                    </td>
-
-                    {/* Resource Type */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px]">
-                        <Tag className="h-3 w-3 text-slate-400" />
-                        {log.resourceType}
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-slate-500 font-medium">
+                        <Shield className="h-3 w-3 text-slate-400" /> System / API
                       </span>
-                    </td>
+                    )}
+                  </TableCell>
 
-                    {/* Resource ID */}
-                    <td className="py-3 px-4 font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                      {log.resourceId ? (
-                        <span title={log.resourceId} className="cursor-help">
-                          {log.resourceId.length > 12
-                            ? `${log.resourceId.slice(0, 8)}...${log.resourceId.slice(-4)}`
-                            : log.resourceId}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
+                  {/* Action */}
+                  <TableCell className="whitespace-nowrap">
+                    {getActionBadge(log.action)}
+                  </TableCell>
 
-                    {/* IP Address */}
-                    <td className="py-3 px-4 font-mono text-[11px] text-slate-500 whitespace-nowrap">
-                      {log.ipAddress ? (
-                        <div className="flex items-center gap-1">
-                          <Globe className="h-3 w-3 text-slate-400 shrink-0" />
-                          {log.ipAddress}
-                        </div>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
+                  {/* Resource Type */}
+                  <TableCell className="whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[11px]">
+                      <Tag className="h-3 w-3 text-slate-400" />
+                      {log.resourceType}
+                    </span>
+                  </TableCell>
 
-                    {/* Inspector Button */}
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => setSelectedLog(log)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        Inspect
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                  {/* Resource ID */}
+                  <TableCell className="font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    {log.resourceId ? (
+                      <span title={log.resourceId} className="cursor-help">
+                        {log.resourceId.length > 12
+                          ? `${log.resourceId.slice(0, 8)}...${log.resourceId.slice(-4)}`
+                          : log.resourceId}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </TableCell>
+
+                  {/* IP Address */}
+                  <TableCell className="font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                    {log.ipAddress ? (
+                      <div className="flex items-center gap-1">
+                        <Globe className="h-3 w-3 text-slate-400 shrink-0" />
+                        {log.ipAddress}
+                      </div>
+                    ) : (
+                      '—'
+                    )}
+                  </TableCell>
+
+                  {/* Inspector Button */}
+                  <TableCell className="text-right whitespace-nowrap">
+                    <button
+                      onClick={() => setSelectedLog(log)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Inspect
+                    </button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
         {/* Pagination Bar */}
         <div className="border-t border-slate-200 dark:border-slate-800 px-4 py-3 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
@@ -379,7 +369,7 @@ export const AuditLogPage: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
+      </TableCard>
 
       {/* Audit Detail Inspector Modal */}
       {selectedLog && (

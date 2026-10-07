@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Cpu, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
-import { EmptyState } from '../../../components/ui/empty-state';
-import { TableSkeleton } from '../../../components/ui/skeleton';
-import { RefreshButton } from '../../../components/ui/refresh-button';
+import {
+  Button,
+  Badge,
+  EmptyState,
+  TableSkeleton,
+  RefreshButton,
+  TableCard,
+  Table,
+  TableHeader,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+} from '../../../components/ui';
 import { api } from '../../../lib/api';
 import { ReinitializeBanner } from '../components/ReinitializeBanner';
 import { CreateQueueModal } from '../components/CreateQueueModal';
@@ -98,52 +107,52 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 text-slate-500">
-                <th className="py-3 px-4 font-semibold">Queue Identifier</th>
-                <th className="py-3 px-4 font-semibold">Description</th>
-                <th className="py-3 px-4 font-semibold">Concurrency</th>
-                <th className="py-3 px-4 font-semibold">Status</th>
-                <th className="py-3 px-4 font-semibold">Runtime Worker</th>
-                <th className="py-3 px-4 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+        <TableCard>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Queue Identifier</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Concurrency</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Runtime Worker</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {queues.map((q) => (
-                <tr key={q.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition">
-                  <td className="py-3 px-4 font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                <TableRow key={q.id}>
+                  <TableCell className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
                     {q.name}
-                  </td>
-                  <td className="py-3 px-4 text-slate-500 dark:text-slate-400 max-w-xs truncate">
+                  </TableCell>
+                  <TableCell className="text-slate-500 dark:text-slate-400 max-w-xs truncate">
                     {q.description || '—'}
-                  </td>
-                  <td className="py-3 px-4">
+                  </TableCell>
+                  <TableCell>
                     <span className="inline-flex items-center gap-1 font-mono font-medium">
                       <Cpu className="h-3 w-3 text-slate-400" />
                       {q.concurrency} workers
                     </span>
-                  </td>
-                  <td className="py-3 px-4">
+                  </TableCell>
+                  <TableCell>
                     {q.status === 'ACTIVE' ? (
-                      <Badge variant="success" className="inline-flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
+                      <Badge variant="success">
+                        <CheckCircle2 />
                         ACTIVE
                       </Badge>
                     ) : q.status === 'PENDING_INITIALIZATION' ? (
-                      <Badge variant="warning" className="inline-flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                      <Badge variant="warning">
+                        <Clock />
                         PENDING REINIT
                       </Badge>
                     ) : (
-                      <Badge variant="danger" className="inline-flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
+                      <Badge variant="danger">
+                        <AlertCircle />
                         {q.status}
                       </Badge>
                     )}
-                  </td>
-                  <td className="py-3 px-4">
+                  </TableCell>
+                  <TableCell>
                     {q.isRuntimeActive ? (
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                         <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -155,8 +164,8 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
                         Idle / Pending
                       </span>
                     )}
-                  </td>
-                  <td className="py-3 px-4 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -169,12 +178,12 @@ export const QueuesTab: React.FC<QueuesTabProps> = ({ orgId }) => {
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableCard>
       )}
 
       <CreateQueueModal

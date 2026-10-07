@@ -39,16 +39,18 @@ export const SchedulerHubPage: React.FC = () => {
   ];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <CalendarClock className="h-5 w-5" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <CalendarClock className="w-4 h-4" />
             </div>
-            Email Scheduler Hub
-          </h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              Email Scheduler Hub
+            </h1>
+          </div>
           <p className="text-xs text-slate-500 mt-1">
             Configure reusable template pipelines, monitor asynchronous delayed email jobs, and manage BullMQ worker pools.
           </p>

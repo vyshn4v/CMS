@@ -4,7 +4,7 @@ import { Shield, Plus, Edit2, Trash2, CheckSquare, Square, X, AlertCircle } from
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { RoleDto, PermissionGroupDto } from '@cms/shared-types';
-import { Button, RefreshButton } from '../../components/ui';
+import { Button, Badge, RefreshButton } from '../../components/ui';
 
 export const RolesPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
@@ -190,15 +190,9 @@ export const RolesPage: React.FC = () => {
                       {role.name}
                     </h3>
                   </div>
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                      role.isSystem
-                        ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                        : 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
-                    }`}
-                  >
+                  <Badge variant={role.isSystem ? 'default' : 'purple'}>
                     {role.isSystem ? 'System' : 'Custom'}
-                  </span>
+                  </Badge>
                 </div>
 
                 <p className="mt-2 text-xs text-slate-500 leading-relaxed">

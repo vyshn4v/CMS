@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CardGridSkeleton } from '../../components/ui/skeleton';
-import { Button, RefreshButton } from '../../components/ui';
+import { Button, Badge, RefreshButton } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -194,9 +194,9 @@ export const ComponentsListPage: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                    <Badge variant="default" size="xs">
                       {component.category}
-                    </span>
+                    </Badge>
                   </div>
 
                   <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 pt-1">

@@ -6,7 +6,7 @@ import { api } from '../../lib/api';
 import { useAuthStore } from '../../store/auth.store';
 import { ContentTypeDto } from '@cms/shared-types';
 import { CardGridSkeleton } from '../../components/ui/skeleton';
-import { Button, RefreshButton } from '../../components/ui';
+import { Button, Badge, RefreshButton } from '../../components/ui';
 
 export const ContentDashboardPage: React.FC = () => {
   const { activeOrg } = useAuthStore();
@@ -81,15 +81,9 @@ export const ContentDashboardPage: React.FC = () => {
                   <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
                     <FileText className="h-5 w-5" />
                   </div>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      schema.kind === 'COLLECTION'
-                        ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
-                        : 'bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400'
-                    }`}
-                  >
+                  <Badge variant={schema.kind === 'COLLECTION' ? 'blue' : 'purple'}>
                     {schema.kind}
-                  </span>
+                  </Badge>
                 </div>
 
                 <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-3">
