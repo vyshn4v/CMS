@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/auth.store';
 import { api } from './lib/api';
 import { LoadingScreen } from './components/ui/LoadingScreen';
+import { GlobalLoader } from './components/ui/GlobalLoader';
 import { LoginPage } from './pages/auth/LoginPage';
 import { AppLayout } from './components/layout/AppLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
@@ -86,6 +87,7 @@ const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
+      <GlobalLoader />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
