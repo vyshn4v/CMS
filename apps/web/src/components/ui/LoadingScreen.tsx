@@ -34,27 +34,25 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       )}
     >
       <div className="flex flex-col items-center gap-5">
-        {/* ── Pixel box ── */}
+        {/* ── Pixel grid ── */}
         <div
-            className="grid gap-[3px]"
-            style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
-          >
-            {CELLS.map((idx) => {
-              const col = idx % GRID_SIZE;
-              const row = Math.floor(idx / GRID_SIZE);
-              // Diagonal wave: delay = (col + row) * 80ms, period = 1.2s
-              const delay = `${(col + row) * 80}ms`;
+          className="grid gap-[3px]"
+          style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
+        >
+          {CELLS.map((idx) => {
+            const col = idx % GRID_SIZE;
+            const row = Math.floor(idx / GRID_SIZE);
+            const delay = `${(col + row) * 80}ms`;
 
-              return (
-                <span
-                  key={idx}
-                  className="pixel-cell"
-                  style={
-                    { '--pixel-delay': delay } as React.CSSProperties
-                  }
-                />
-              );
-            })}
+            return (
+              <span
+                key={idx}
+                className="pixel-cell"
+                style={{ '--pixel-delay': delay } as React.CSSProperties}
+              />
+            );
+          })}
+        </div>
 
         {/* ── Label ── */}
         {label && (
