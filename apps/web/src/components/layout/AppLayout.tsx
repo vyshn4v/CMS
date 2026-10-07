@@ -275,7 +275,7 @@ export const AppLayout: React.FC = () => {
         </header>
 
         <div className="flex-1 overflow-y-auto p-8">
-          <ErrorBoundary>
+          <ErrorBoundary key={location.pathname}>
             <React.Suspense fallback={<LoadingScreen label="Loading..." />}>
               <Outlet />
             </React.Suspense>

@@ -28,7 +28,24 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     console.error('ErrorBoundary caught an unhandled error:', error, errorInfo);
   }
 
+  private isChunkError(error: Error | null): boolean {
+    if (!error) return false;
+    const errorMessage = error.message || '';
+    return (
+      errorMessage.includes('dynamically imported module') ||
+      errorMessage.includes('Failed to fetch') ||
+      errorMessage.includes('Loading chunk') ||
+      errorMessage.includes('Importing a module script failed') ||
+      error.name === 'ChunkLoadError'
+    );
+  }
+
   public reset = () => {
+    if (this.isChunkError(this.state.error)) {
+      this.handleReload();
+      return;
+    }
+
     this.props.onReset?.();
     this.setState({ hasError: false, error: null });
   };
@@ -48,11 +65,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       const errorMessage = this.state.error?.message || '';
-      const isChunkError =
-        errorMessage.includes('dynamically imported module') ||
-        errorMessage.includes('Failed to fetch') ||
-        errorMessage.includes('Loading chunk') ||
-        errorMessage.includes('Importing a module script failed');
+      const isChunk = this.isChunkError(this.state.error);
 
       return (
         <div
@@ -70,10 +83,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
             <div className="space-y-1.5">
               <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                {isChunkError ? 'Unable to load page resource' : 'Something went wrong'}
+                {isChunk ? 'Unable to load page resource' : 'Something went wrong'}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                {isChunkError
+                {isChunk
                   ? 'A new update or network interruption prevented this section from loading. Reloading the page will fetch the latest version.'
                   : 'An unexpected application error occurred while rendering this page.'}
               </p>
@@ -94,13 +107,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               >
                 Reload Page
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={this.reset}
-              >
-                Try Again
-              </Button>
+              {!isChunk && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={this.reset}
+                >
+                  Try Again
+                </Button>
+              )}
             </div>
           </div>
         </div>
