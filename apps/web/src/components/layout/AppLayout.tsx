@@ -21,6 +21,7 @@ import { api } from '../../lib/api';
 import { OrgSwitcher } from './OrgSwitcher';
 import { ContentTypeDto } from '@cms/shared-types';
 import { LoadingScreen } from '../ui/LoadingScreen';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 
 export const AppLayout: React.FC = () => {
   const location = useLocation();
@@ -274,9 +275,11 @@ export const AppLayout: React.FC = () => {
         </header>
 
         <div className="flex-1 overflow-y-auto p-8">
-          <React.Suspense fallback={<LoadingScreen label="Loading..." />}>
-            <Outlet />
-          </React.Suspense>
+          <ErrorBoundary>
+            <React.Suspense fallback={<LoadingScreen label="Loading..." />}>
+              <Outlet />
+            </React.Suspense>
+          </ErrorBoundary>
         </div>
       </main>
     </div>

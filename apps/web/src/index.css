@@ -66,40 +66,31 @@ code, kbd, samp, pre {
 @keyframes pixel-pulse {
   0%, 100% {
     opacity: 0.12;
-    background-color: theme('colors.slate.300');
+    background-color: var(--pixel-bg-base, theme('colors.slate.300'));
     transform: scale(0.75);
   }
   50% {
     opacity: 1;
-    background-color: theme('colors.indigo.500');
-    transform: scale(1);
-  }
-}
-
-.dark @keyframes pixel-pulse {
-  0%, 100% {
-    opacity: 0.12;
-    background-color: theme('colors.slate.700');
-    transform: scale(0.75);
-  }
-  50% {
-    opacity: 1;
-    background-color: theme('colors.indigo.400');
+    background-color: var(--pixel-bg-active, theme('colors.indigo.500'));
     transform: scale(1);
   }
 }
 
 .pixel-cell {
+  --pixel-bg-base: theme('colors.slate.300');
+  --pixel-bg-active: theme('colors.indigo.500');
   display: block;
   width: 5px;
   height: 5px;
   border-radius: 2px;
-  background-color: theme('colors.slate.300');
+  background-color: var(--pixel-bg-base, theme('colors.slate.300'));
   animation: pixel-pulse 1.2s ease-in-out infinite;
   animation-delay: var(--pixel-delay, 0ms);
   opacity: 0.12;
 }
 
 .dark .pixel-cell {
-  background-color: theme('colors.slate.700');
+  --pixel-bg-base: theme('colors.slate.700');
+  --pixel-bg-active: theme('colors.indigo.400');
+  background-color: var(--pixel-bg-base, theme('colors.slate.700'));
 }

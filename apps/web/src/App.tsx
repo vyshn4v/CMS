@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/auth.store';
 import { api } from './lib/api';
 import { LoadingScreen } from './components/ui/LoadingScreen';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { AppLayout } from './components/layout/AppLayout';
 import { SettingsLayout } from './pages/settings/SettingsLayout';
 
@@ -88,60 +89,62 @@ export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <React.Suspense fallback={<LoadingScreen fullscreen label="Loading..." />}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+        <ErrorBoundary fullscreen>
+          <React.Suspense fallback={<LoadingScreen fullscreen label="Loading..." />}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
 
-            <Route
-              path="/"
-              element={
-                <AuthGuard>
-                  <AppLayout />
-                </AuthGuard>
-              }
-            >
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<DashboardPage />} />
+              <Route
+                path="/"
+                element={
+                  <AuthGuard>
+                    <AppLayout />
+                  </AuthGuard>
+                }
+              >
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<DashboardPage />} />
 
-              {/* Content Entries Studio */}
-              <Route path="content" element={<ContentDashboardPage />} />
-              <Route path="content/:slug" element={<ContentListPage />} />
-              <Route path="content/:slug/new" element={<ContentEditorPage />} />
-              <Route path="content/:slug/:id" element={<ContentEditorPage />} />
+                {/* Content Entries Studio */}
+                <Route path="content" element={<ContentDashboardPage />} />
+                <Route path="content/:slug" element={<ContentListPage />} />
+                <Route path="content/:slug/new" element={<ContentEditorPage />} />
+                <Route path="content/:slug/:id" element={<ContentEditorPage />} />
 
-              {/* Schema Builder */}
-              <Route path="schemas" element={<SchemasListPage />} />
-              <Route path="schemas/new" element={<SchemaBuilderPage />} />
-              <Route path="schemas/:id" element={<SchemaBuilderPage />} />
+                {/* Schema Builder */}
+                <Route path="schemas" element={<SchemasListPage />} />
+                <Route path="schemas/new" element={<SchemaBuilderPage />} />
+                <Route path="schemas/:id" element={<SchemaBuilderPage />} />
 
-              {/* Component Library */}
-              <Route path="components" element={<ComponentsListPage />} />
-              <Route path="components/new" element={<ComponentBuilderPage />} />
-              <Route path="components/:id" element={<ComponentBuilderPage />} />
+                {/* Component Library */}
+                <Route path="components" element={<ComponentsListPage />} />
+                <Route path="components/new" element={<ComponentBuilderPage />} />
+                <Route path="components/:id" element={<ComponentBuilderPage />} />
 
-              {/* Templates Studio */}
-              <Route path="templates" element={<TemplatesListPage />} />
-              <Route path="templates/new" element={<TemplateEditorPage />} />
-              <Route path="templates/:id" element={<TemplateEditorPage />} />
+                {/* Templates Studio */}
+                <Route path="templates" element={<TemplatesListPage />} />
+                <Route path="templates/new" element={<TemplateEditorPage />} />
+                <Route path="templates/:id" element={<TemplateEditorPage />} />
 
-              {/* Email Scheduler Hub */}
-              <Route path="scheduler" element={<SchedulerHubPage />} />
+                {/* Email Scheduler Hub */}
+                <Route path="scheduler" element={<SchedulerHubPage />} />
 
-              {/* Settings & RBAC */}
-              <Route path="settings" element={<SettingsLayout />}>
-                <Route index element={<Navigate to="general" replace />} />
-                <Route path="general" element={<GeneralSettingsPage />} />
-                <Route path="members" element={<MembersPage />} />
-                <Route path="roles" element={<RolesPage />} />
-                <Route path="api-keys" element={<ApiKeysPage />} />
-                <Route path="audit-logs" element={<AuditLogPage />} />
-                <Route path="audit-log" element={<Navigate to="audit-logs" replace />} />
+                {/* Settings & RBAC */}
+                <Route path="settings" element={<SettingsLayout />}>
+                  <Route index element={<Navigate to="general" replace />} />
+                  <Route path="general" element={<GeneralSettingsPage />} />
+                  <Route path="members" element={<MembersPage />} />
+                  <Route path="roles" element={<RolesPage />} />
+                  <Route path="api-keys" element={<ApiKeysPage />} />
+                  <Route path="audit-logs" element={<AuditLogPage />} />
+                  <Route path="audit-log" element={<Navigate to="audit-logs" replace />} />
+                </Route>
               </Route>
-            </Route>
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </React.Suspense>
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </React.Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>
   );

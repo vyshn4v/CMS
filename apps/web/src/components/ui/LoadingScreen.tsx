@@ -27,6 +27,8 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
 }) => {
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={cn(
         'flex items-center justify-center bg-slate-50 dark:bg-slate-950',
         fullscreen ? 'fixed inset-0 z-50' : 'w-full h-full min-h-[240px]',
@@ -36,6 +38,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       <div className="flex flex-col items-center gap-5">
         {/* ── Pixel grid ── */}
         <div
+          aria-hidden="true"
           className="grid gap-[2px]"
           style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
         >
@@ -55,10 +58,12 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
         </div>
 
         {/* ── Label ── */}
-        {label && (
+        {label ? (
           <p className="text-xs font-medium text-slate-400 tracking-wide select-none">
             {label}
           </p>
+        ) : (
+          <span className="sr-only">Loading</span>
         )}
       </div>
     </div>

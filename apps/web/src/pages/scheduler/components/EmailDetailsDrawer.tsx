@@ -47,7 +47,7 @@ export const EmailDetailsDrawer: React.FC<EmailDetailsDrawerProps> = ({
                 size="sm"
                 dot
               >
-                {email.status}
+                {email.status === 'SCHEDULED' ? 'SCHEDULED (DELAYED)' : email.status}
               </Badge>
               <span className="text-slate-500 font-medium">Attempts: {email.attempts}</span>
             </div>
