@@ -36,7 +36,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
       <div className="flex flex-col items-center gap-5">
         {/* ── Pixel grid ── */}
         <div
-          className="grid gap-[3px]"
+          className="grid gap-[2px]"
           style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)` }}
         >
           {CELLS.map((idx) => {
