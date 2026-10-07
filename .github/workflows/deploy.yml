@@ -1,20 +1,17 @@
 name: Deploy CMS Monolith to Server
 
 on:
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
   push:
     branches:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    # Trigger on merged PRs into main, direct pushes to main, or manual dispatch
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
 
     runs-on: ubuntu-latest
 
