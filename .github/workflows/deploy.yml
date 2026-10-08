@@ -127,20 +127,65 @@ jobs:
             echo "deployable=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Setup SSH Key
+      - name: Setup SSH Key & Verify Host Key
         if: steps.check-credentials.outputs.deployable == 'true'
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT || '22' }}
+          SERVER_USER: ${{ secrets.SERVER_USER || 'ubuntu' }}
+          EXPECTED_HOST_KEY: ${{ secrets.SSH_KNOWN_HOSTS || secrets.SERVER_HOST_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 700 ~/.ssh
+
+          # Fail deployment if trusted expected host key is missing
+          if [ -z "$EXPECTED_HOST_KEY" ]; then
+            echo "::error::Preconfigured expected host key (SSH_KNOWN_HOSTS or SERVER_HOST_KEY) is missing in repository secrets. Refusing connection without host key verification."
+            exit 1
+          fi
+
+          # Write private key securely, normalizing line endings
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p ${{ secrets.SERVER_PORT || 22 }} -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+          # Populate known_hosts with the trusted preconfigured host key
+          if [[ "$EXPECTED_HOST_KEY" =~ ^(ssh-|ecdsa-|sk-) ]]; then
+            if [ "$SERVER_PORT" = "22" ]; then
+              printf '%s %s\n' "$SERVER_HOST" "$EXPECTED_HOST_KEY" > ~/.ssh/known_hosts
+            else
+              printf '[%s]:%s %s\n' "$SERVER_HOST" "$SERVER_PORT" "$EXPECTED_HOST_KEY" > ~/.ssh/known_hosts
+            fi
+          else
+            printf '%s\n' "$EXPECTED_HOST_KEY" | tr -d '\r' > ~/.ssh/known_hosts
+          fi
+          chmod 644 ~/.ssh/known_hosts
+
+          # Configure SSH client to strictly enforce host key verification (never accept-new or ignore)
+          cat << 'EOF' > ~/.ssh/config
+          Host *
+            StrictHostKeyChecking yes
+            UserKnownHostsFile ~/.ssh/known_hosts
+            ConnectTimeout 30
+            ServerAliveInterval 30
+            ServerAliveCountMax 5
+            BatchMode yes
+          EOF
+          chmod 600 ~/.ssh/config
+
+          # Verify server against the trusted host key before proceeding with upload
+          echo "Verifying server host key for $SERVER_HOST:$SERVER_PORT..."
+          if ! ssh -i ~/.ssh/id_rsa -p "$SERVER_PORT" "$SERVER_USER@$SERVER_HOST" "echo 'SSH host key verified successfully'"; then
+            echo "::error::Host key verification failed! The server key does not match the preconfigured expected host key."
+            exit 1
+          fi
 
       - name: Upload Bundle to Server
         if: steps.check-credentials.outputs.deployable == 'true'
         run: |
           SERVER_PATH="${{ secrets.SERVER_PATH || '/home/ubuntu/cms-backend' }}"
-          ssh -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "mkdir -p $SERVER_PATH"
-          scp -i ~/.ssh/id_rsa -P ${{ secrets.SERVER_PORT || 22 }} bundle/deploy.tar.gz ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:$SERVER_PATH/
+          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST }} "mkdir -p $SERVER_PATH"
+          scp -o StrictHostKeyChecking=yes -i ~/.ssh/id_rsa -P ${{ secrets.SERVER_PORT || 22 }} bundle/deploy.tar.gz ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST }}:$SERVER_PATH/
 
       - name: Extract, Migrate & Restart PM2
         if: steps.check-credentials.outputs.deployable == 'true'
@@ -148,7 +193,7 @@ jobs:
           SERVER_PATH="${{ secrets.SERVER_PATH || '/home/ubuntu/cms-backend' }}"
           APP_NAME="${{ secrets.BACKEND_APP_NAME || 'cms-api' }}"
           
-          ssh -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
+          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/id_rsa -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_USER || 'ubuntu' }}@${{ secrets.SERVER_HOST }} "
             # Setup environment paths (support NVM and standard system binaries)
             export NVM_DIR=\"\$HOME/.nvm\"
             [ -s \"\$NVM_DIR/nvm.sh\" ] && \. \"\$NVM_DIR/nvm.sh\"
